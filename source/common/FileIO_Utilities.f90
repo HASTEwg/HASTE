@@ -747,6 +747,7 @@ Subroutine Make_Boom()
     Write(*,'(A)') '        `-=#$%&%$#=-`        '
     Write(*,'(A)') '           |:   :|           '
     Write(*,'(A)') '  _____.(~#%&$@%#&#~)._____  '
+    Write(*,'(A)') ding
     Write(*,*)
 End Subroutine Make_Boom
     
