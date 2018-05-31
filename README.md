@@ -11,32 +11,32 @@ This code was originally developed in support of dissertation research at the Ai
 ## Roadmap
 
 #### v1.0
-- On-the-fly (OTF) reconstruction of resonance cross sections
-- High-altitude atmosphere implementation
-- Tabulated source spectra
-- Exoatmospheric sources
-- Compiler portability
+- [ ] On-the-fly (OTF) reconstruction of resonance cross sections
+- [ ] High-altitude atmosphere implementation
+- [ ] Tabulated source spectra
+- [ ] Exoatmospheric sources
+- [ ] Compiler portability
 #### v1.1
-- Direct computation of direct contribution
-- History trace sample data for visualizations
-- Detector constellations
-- Pathlength integral checker option
-- Primary and secondary photon transport
-  - Photon sources
-  - Photon transport
-  - Photon detectors
+- [ ] Direct computation of direct contribution
+- [ ] History trace sample data for visualizations
+- [ ] Detector constellations
+- [ ] Pathlength integral checker option
+- [ ] Primary and secondary photon transport
+  - [ ] Photon sources
+  - [ ] Photon transport
+  - [ ] Photon detectors
 #### v1.2
-- Atmospheric detectors
-- Low-altitude hydrogen
-- On-the-fly (OTF) Doppler broadening enhancement & optimization
-- Curved paths between atmospheric scatters
+- [ ] Atmospheric detectors
+- [ ] Low-altitude hydrogen
+- [ ] On-the-fly (OTF) Doppler broadening enhancement & optimization
+- [ ] Curved paths between atmospheric scatters
 #### v1.3
 - Run continuation & merging options
 - Importance sampling for mitigating 'large' events
 - Full ENDF "tape" format for cross sections data
 #### v2.+
-- Automated plotting & visualization packages
-  - Real-time
-  - Post-processing
-- Thermal neutron decay zone/layer mapping
-- OpenMP (or other) threading options
+- [ ] Automated plotting & visualization packages
+  - [ ] Real-time
+  - [ ] Post-processing
+- [ ] Thermal neutron decay zone/layer mapping
+- [ ] OpenMP (or other) threading options
