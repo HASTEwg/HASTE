@@ -2,9 +2,9 @@ Module Utilities
 
     Implicit None
     Public
-    !In general, the contents of this module are public, but the
-    !followng procedures are support routines or are accessible via 
-    !generic interfaces and need not be explicitly public...
+!In general, the contents of this module are public, but the
+!followng procedures are support routines or are accessible via 
+!generic interfaces and need not be explicitly public...
     Private :: Qroot_small  !support routine for SMALLER_QUADRATIC_ROOT
     Private :: Qroot_large  !support routine for LARGER_QUADRATIC_ROOT
     Private :: Converged_defaultTolerances  !Public via CONVERGED
@@ -49,7 +49,7 @@ Subroutine Thread_Index(i,OMP_threaded,CAF_imaged)
     End If
 End Subroutine Thread_Index
 
-Function Prec_dp(x,y) Result(p)
+Pure Function Prec_dp(x,y) Result(p)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: p  !precision of y, relative to true value x
@@ -63,7 +63,7 @@ Function Prec_dp(x,y) Result(p)
     End If
 End Function Prec_dp
 
-Function Prec_sp(x,y) Result(p)
+Pure Function Prec_sp(x,y) Result(p)
     Use Kinds, Only: sp
     Implicit None
     Real(sp) :: p  !precision of y, relative to true value x
@@ -77,7 +77,7 @@ Function Prec_sp(x,y) Result(p)
     End If
 End Function Prec_sp
 
-Function Octogon_Area(P) Result(A)
+Pure Function Octogon_Area(P) Result(A)
     Use Kinds, Only: dp
     Implicit None
     Real(dp):: A
@@ -93,7 +93,7 @@ Function Octogon_Area(P) Result(A)
     End Do
 End Function Octogon_Area
 
-Function Quadrilateral_Area(P) Result(A)
+Pure Function Quadrilateral_Area(P) Result(A)
     Use Kinds, Only: dp
     Implicit None
     Real(dp):: A
@@ -102,7 +102,7 @@ Function Quadrilateral_Area(P) Result(A)
     A = 0.5_dp * Vector_Length(Normal_Vector_4(P))
 End Function Quadrilateral_Area
 
-Function Triangle_Area(P) Result(A)
+Pure Function Triangle_Area(P) Result(A)
     Use Kinds, Only: dp
     Implicit None
     Real(dp):: A
@@ -111,7 +111,7 @@ Function Triangle_Area(P) Result(A)
     A = 0.5_dp * Vector_Length(Normal_Vector_3(P))
 End Function Triangle_Area
 
-Function Normal_Vector_4(P,hat) Result(N)
+Pure Function Normal_Vector_4(P,hat) Result(N)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: N(1:3)
@@ -127,7 +127,7 @@ Function Normal_Vector_4(P,hat) Result(N)
     End If
 End Function Normal_Vector_4
 
-Function Normal_Vector_3(P,hat) Result(N)
+Pure Function Normal_Vector_3(P,hat) Result(N)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: N(1:3)
@@ -195,7 +195,7 @@ Subroutine Quadratic_Roots(b,c,u_large,u_small)
     u_small = -c / u_large
 End Subroutine Quadratic_Roots
 
-Function Qroot_large(b,c) Result(u)
+Pure Function Qroot_large(b,c) Result(u)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: u
@@ -204,7 +204,7 @@ Function Qroot_large(b,c) Result(u)
     u = -b - Sign(1._dp,b) * Sqrt(b**2 + c)
 End Function Qroot_large
 
-Function Qroot_small(b,c) Result(u)
+Pure Function Qroot_small(b,c) Result(u)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: u
@@ -285,7 +285,7 @@ Pure Function Bisection_Search(x, xList, n) Result (j)
     j = jHigh
 End Function Bisection_Search
 
-Function Converged_defaultTolerances(x1,x2) Result(bingo) 
+Pure Function Converged_defaultTolerances(x1,x2) Result(bingo) 
     Use Kinds, Only: dp
     Implicit None
     Logical :: bingo
@@ -296,7 +296,7 @@ Function Converged_defaultTolerances(x1,x2) Result(bingo)
     bingo = (Abs(x1-x2) .LT. rTol*(Min(Abs(x1),Abs(x2))) .OR. Abs(x1-x2) .LT. aTol)
 End Function Converged_defaultTolerances
 
-Function Converged_userTolerances(x1,x2,rTol,aTol) Result(bingo) 
+Pure Function Converged_userTolerances(x1,x2,rTol,aTol) Result(bingo) 
     Use Kinds, Only: dp
     Implicit None
     Logical :: bingo
@@ -306,7 +306,7 @@ Function Converged_userTolerances(x1,x2,rTol,aTol) Result(bingo)
     bingo = (Abs(x1-x2) .LT. rTol*(Min(Abs(x1),Abs(x2))) .OR. Abs(x1-x2) .LT. aTol)
 End Function Converged_userTolerances
 
-Function Vector_Length(v) Result(d)
+Pure Function Vector_Length(v) Result(d)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: d
@@ -315,7 +315,7 @@ Function Vector_Length(v) Result(d)
     d = Sqrt(Sum(v*v))
 End Function Vector_Length
 
-Function Unit_Vector(v) Result(hat)
+Pure Function Unit_Vector(v) Result(hat)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: hat(1:3)
@@ -324,7 +324,7 @@ Function Unit_Vector(v) Result(hat)
     hat = v / Vector_Length(v)
 End Function Unit_Vector
 
-Function Cross_Product(v,w) Result(u)
+Pure Function Cross_Product(v,w) Result(u)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: u(1:3)
@@ -335,7 +335,7 @@ Function Cross_Product(v,w) Result(u)
          & v(1)*w(2) - v(2)*w(1) /)
 End Function Cross_Product
 
-Function pNorm(v,p) Result(x)
+Pure Function pNorm(v,p) Result(x)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: x
