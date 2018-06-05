@@ -750,5 +750,18 @@ Subroutine Make_Boom()
     Write(*,'(A)') ding
     Write(*,*)
 End Subroutine Make_Boom
+
+Subroutine Output_Message_C(message,kill)
+    Implicit None
+    Character(*), Intent(In) :: message
+    Logical, Intent(In), Optional :: kill
     
+    Write(*,'(A)') message
+    If (Present(kill)) Then
+        If (kill) ERROR STOP
+    End If
+End Subroutine Output_Message_C
+
+
+
 End Module FileIO_Utilities
