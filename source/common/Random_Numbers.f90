@@ -356,4 +356,47 @@ Subroutine Load_RNG(RNG,dir)
     Call Var_from_file( RNG%q, fname )
 End Subroutine Load_RNG
 
+Function Invert_CDF_O1(xi,x1,x2) Result(x)
+    !Inverts the CDF from a general uniform probability distribution (PDF order zero, CDF order 1)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: x
+    Real(dp), Intent(In) :: xi  !sampled cumulative probability [0,1)
+    Real(dp), Intent(In) :: x1,x2  !range of x
+    
+    x = x1 + xi * (x2 - x1)
+End Function Invert_CDF_O0
+
+Function Invert_CDF_O2(xi,x1,dx,y1,m) Result(x)
+    !Inverts the CDF from a general linear probability distribution (PDF order 1, CDF order 2)
+    Use Kinds, Only: dp
+    Use Utilities, Only: Larger_Quadratic_root
+    Implicit None
+    Real(dp) :: x
+    Real(dp), Intent(In) :: xi  !sampled cumulative probability [0,1)
+    Real(dp), Intent(In) :: x1,dx  !starting value and range of x
+    Real(dp), Intent(In) :: y1  !pdf vaues at x1
+    Real(dp), Intent(In) :: m  !pdf slope
+    Real(dp) :: b,c
+    
+    b = y1/m - x1
+    c = (x1*(2._dp*y1 - m*x1) + dx*xi*(dx*m + 2._dp*y1)) / m
+    x = Larger_Quadratic_root(b,c)
+    !The larger quadratic root is computed first for precision, but only one of the roots lies between x1 and x2
+    !If the larger root is not on (x1,x2), then the smaller root is:
+    If (x.GT.x2 .OR. x.LT.x1) x = -c / x
+End Function Invert_CDF_O2
+
+Function Invert_CDF_O2(xi,x1,dx,y1,y2) Result(x)
+    !Inverts the CDF from a general quadratic probability distribution (PDF order 2, CDF order 3)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: x
+    Real(dp), Intent(In) :: xi  !sampled cumulative probability [0,1)
+    Real(dp), Intent(In) :: x1,dx  !!starting value and range of x
+    Real(dp), Intent(In) :: y1,y2  !pdf vaues at x1 and x2
+    Real(dp) :: b,c
+    
+End Function Invert_CDF_O2
+
 End Module Random_Numbers
