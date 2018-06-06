@@ -13,37 +13,9 @@ Program HATS
 !!          section implementation for speed.
 !!  0.7     Revised EPL quadrature routines, Kepler Problem solver, & gravity 
 !!          divergence approach.
-!!  0.8     Opened development to HATSwg.
-!!
-!!  CONDITIONS FOR INCREMENT TO v1.0 (not yet met: as items are addressed,
-!                                     they are removed from this list)
-!!  -Cross Sections:  Change to raw ENDF "tape" as input instead of file 
-!!                    collections, remove patch for resonance cross sections 
-!!                    and replace with apprpriate routines to reconstruct 
-!!                    resonances in-place
-!!  -Pathlengths:  Switch Kepler EPLs to p-xi formulation
-!!  -Find_Trajectory:  Add handling and searching for multiple roots to the 
-!!                     rendezvous problem, also add convergence monitoring to 
-!!                     trajectory solver in gravity cases
-!!  -MC_Neutron:  Add weight adjustment in presence of gravity for 
-!!                exoatmospheric source, add direct (first flight)
-!!                contributions across detector grid without sampling (this 
-!!                will include modifications to Detectors to add a first flight
-!!                time-energy-direction grid which will not have variance 
-!!                estimates)
-!!  -Sources:  Create book-keeping and output of sampled source distributions
-!!             (use direction & time-energy grids defined for detector to store 
-!!             tallies for plotting the time-energy-direction distribution of 
-!!             source neutrons), record and output information on biased 
-!!             sourcing, correct biased sourcing for exoatmospheric sources
-!!  -EVERYWHERE:  Change use of 'PRINT' statements to 'WRITE' statements for 
-!!                more consistent formatting, create a log file to duplicate 
-!!                and catch screen outputs so errors are correctly logged on 
-!!                non-standard program stoppages
-!!   
+!!  0.8     Opened development to HATSwg, migrated project to Github.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-Uintel fortran portable binaries
-se IFPORT, Only: DCLOCK
+Use IFPORT, Only: DCLOCK
 Use IFPORT, Only: $MAXPATH
 Use Kinds, Only: dp
 Use Random_Numbers, Only: RNG_Type
@@ -80,7 +52,7 @@ Use FileIO_Utilities, Only: Make_Boom
 
 Implicit None
 
-Character(80), Parameter :: title = 'High-Altitude Transport to Space for Neutrons (HATS-n) v0.8.01, 30 Nov 2017'
+Character(80), Parameter :: title = 'High-Altitude Transport to Space for Neutrons (HATS-n) v0.8.02, 30 Jun 2018'
 Integer(8) :: n_histories
 Logical :: absolute_n_histories  !specifies whether number of histories is an absolute limit, or a goal to accumulate contributions on
 Logical :: prompt_exit  !specifies whether the simulation will wait for user unput before exiting
