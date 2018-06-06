@@ -1,0 +1,13 @@
+&csSetupList1
+n_elements = 2      !number of elements to load cross sections for, number of elements in the atmosphere representation
+/
+
+&csSetupList2
+el_fractions = 0.78084,0.209476
+n_isotopes = 1,1   !number of isotopes for each element
+/
+
+&csSetupList3
+isotope_names = 'N14','O16'  !Common isotope abbreviations for each element
+diatomic = .TRUE.,.TRUE.
+/
