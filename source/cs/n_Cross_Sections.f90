@@ -1,4 +1,4 @@
-Module Cross_Sections
+Module n_Cross_Sections
     
     Use Kinds, Only: dp
     Use Global, Only: k_Boltzmann
@@ -1649,4 +1649,4 @@ Subroutine Write_Cross_Sections(CS,Broadened_CS,file_name)
     Close(unit)
 End Subroutine Write_Cross_Sections
      
-End Module Cross_Sections
+End Module n_Cross_Sections
