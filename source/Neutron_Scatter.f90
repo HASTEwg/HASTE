@@ -68,6 +68,7 @@ Module Neutron_Scatter
         Integer(8) :: n_kills(1:6)  !kills due to (1)Time, (2)Energy, (3)Weight, (4)Leakage, (5)Absorption. (6)Collision limit
         Integer(8) :: next_events(1:3)  !next-events at detector (1)Attempted, (2)Found, (3)Tallied
         Integer(8) :: n_no_tally(1:3)  !next-events at detector NOT tallied due to (1)Time & Energy, (2)Time, (3)Energy
+        Integer(8) :: n_uncounted  !histories uncounted due to exoatmospheric source geometries
         Type(CS_Type) :: CS
         Type(Scatter_Data_Type) :: scat  !parameters defining the next scatter
         Logical :: Gravity
@@ -194,6 +195,7 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
     ScatMod%n_kills = 0
     ScatMod%next_events = 0
     ScatMod%n_no_tally = 0
+    ScatMod%n_uncounted = 0
     ScatMod%CS = Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ScatMod%aniso_dist,E_min,E_max)
     !initialize scatter parameters for sampled scatter, except the lev_cs array (it is not used for the sampled scatter)
     Allocate(ScatMod%scat%a(0:ScatMod%CS%n_a_max))
@@ -634,6 +636,8 @@ Subroutine Save_ScatMod_counts(ScatMod,dir,ext_in)
     Call Var_to_File(ScatMod%next_events,fname)
     fname = dir//'ScatMod_'//i_char//'_nnt'//ext
     Call Var_to_File(ScatMod%n_no_tally,fname)
+    fname = dir//'ScatMod_'//i_char//'_nu'//ext
+    Call Var_to_File(ScatMod%n_uncounted,fname)
 End Subroutine Save_ScatMod_counts
 
 Subroutine Load_ScatMod_counts(ScatMod,dir,ext_in)
@@ -664,6 +668,8 @@ Subroutine Load_ScatMod_counts(ScatMod,dir,ext_in)
     Call Var_from_File(ScatMod%next_events,fname)
     fname = dir//'ScatMod_'//i_char//'_nnt'//ext
     Call Var_from_File(ScatMod%n_no_tally,fname)
+    fname = dir//'ScatMod_'//i_char//'_nu'//ext
+    Call Var_from_File(ScatMod%n_uncounted,fname)
 End Subroutine Load_ScatMod_counts
 
 Subroutine Write_Scatter_Model(s,file_name)
@@ -736,6 +742,7 @@ Subroutine Write_Scatter_Model(s,file_name)
     Write(unit,'(A,I15)') '  Next-Events NOT tallied:  Time-Energy: ',s%n_no_tally(1)
     Write(unit,'(A,I15)') '                            Time:        ',s%n_no_tally(2)
     Write(unit,'(A,I15)') '                            Energy:      ',s%n_no_tally(3)
+    Write(unit,'(A,I15)') '  Histories uncounted due to exo source:  ',s%n_uncounted
     Write(unit,*)
     Write(unit,*)
     Close(unit)
