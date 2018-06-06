@@ -47,7 +47,7 @@ Module Sources
 
 Contains
 
-Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
+Function Setup_Source(setup_file_name,run_file_name,R_top_atm,gravity) Result(s)
     Use Kinds, Only: dp
     Use Global, Only: Z_hat,X_hat
     Use Global, Only: R_earth
@@ -59,6 +59,7 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
     Type(Source_Type) :: s
     Character(*), Intent(In) :: setup_file_name,run_file_name
     Real(dp), Intent(In) :: R_top_atm
+    Logical, Intent(In) :: gravity
     Real(dp) :: x_source,y_source,z_source  ![km]  x,y,z coordinates of source
     Real(dp) :: declination_source,right_ascension_source
     Real(dp) :: v_E_source,v_N_source,v_U_source
@@ -93,7 +94,12 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
     s%big_r = Vector_Length(s%r)
     s%z = s%big_r - R_earth
     !check for exoatmospheric source
-    Call Check_exo_source(s%big_r,R_top_atm,s%exoatmospheric,s%w)
+    s%w = 1._dp
+    If (s%big_r .LT. R_top_atm) Then
+        s%exoatmospheric = .FALSE.
+    Else
+        s%exoatmospheric = .TRUE.
+    End If
     !Set source velocity
     s%v = (/ v_E_source, &
            & v_N_source, &
@@ -205,24 +211,6 @@ Function Celest_to_XYZ(alt,RA_deg,DEC_deg) Result(r)
          & -(R_Earth + alt) * Sin(RA) * Cos(DEC), &
          & (R_Earth + alt) * Sin(DEC) /)
 End Function Celest_to_XYZ
-
-Subroutine Check_exo_source(Rs,Ra,exo,w)
-    Use Kinds, Only: dp
-    Use Global, Only: R_Earth
-    Use Utilities, Only: Vector_Length
-    Implicit None
-    Real(dp), Intent(In) :: Rs,Ra
-    Logical, Intent(Out) :: exo
-    Real(dp), Intent(Out) :: w
-    
-    If (Rs .LT. Ra) Then
-        exo = .FALSE.
-        w = 1._dp
-    Else
-        exo = .TRUE.
-        w = 0.5_dp * (1._dp - Sqrt(Rs**2 - Ra**2) / Rs)
-    End If
-End Subroutine Check_exo_source
 
 Subroutine Sample_E_and_D(source,RNG,E,OmegaHat,w)
     Use Kinds, Only: dp
