@@ -26,7 +26,7 @@ Subroutine Do_Neutron(s,d,atm,ScatMod,RNG,contributed)
     Integer :: scatter  !loop counter
         
     !Start a new neutron
-    n = Start_Neutron(s,atm,RNG,ScatMod%Gravity)
+    n = Start_Neutron(s,atm,RNG,ScatMod,d,atm)
     If (ScatMod%direct_contribution) Then
         Call First_Event_Neutron(n,ScatMod,s,d,atm)
         If (ScatMod%n_scatters .EQ. 0) Then
@@ -81,15 +81,15 @@ Subroutine Do_Neutron(s,d,atm,ScatMod,RNG,contributed)
     End If
 End Subroutine Do_Neutron
 
-Function Start_Neutron(source,atm,RNG,gravity) Result(n)
+Function Start_Neutron(source,atm,RNG,ScatMod,detector) Result(n)
     Use Kinds, Only: dp
     Use Neutron_Scatter, Only: Neutron_Type
+    Use Neutron_Scatter, Only: Scatter_Model_Type
     Use Neutron_Utilities, Only: Neutron_Speed
-    Use Neutron_Utilities, Only: Neutron_Energy
+    Use Detectors, Only: Detector_Type
     Use Sources, Only: Source_Type
     Use Atmospheres, Only: Atmosphere_Type
     Use Random_Numbers, Only: RNG_Type
-    Use Random_Directions, Only: Isotropic_Omega_hat
     Use Global, Only: R_Earth
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Unit_Vector
@@ -100,30 +100,52 @@ Function Start_Neutron(source,atm,RNG,gravity) Result(n)
     Type(Source_Type), Intent(InOut) :: source
     Type(Atmosphere_Type), Intent(In) :: atm
     Type(RNG_Type), Intent(InOut) :: RNG
-    Logical, Intent(In) :: gravity
+    Type(Scatter_Model_Type), Intent(InOut) :: ScatMod
+    Type(Detector_Type), Intent(InOut) :: detector
     Real(dp) :: zeta
     Real(dp) :: dZ
     Real(dp) :: d_to_atm
-    Real(dp) :: v(1:3)
+    Real(dp) :: v(1:3),s
+    Real(dp) :: xi
+    Real(dp) :: tof,t_min,t_max
 
     n%t = 0._dp  !Initialize simulation time
     n%r = source%r  !Initial position is at neutron source
-    Call source%Sample_EandD(RNG,n%E0ef,n%weight)  !Initialize energy and weight
-    n%s0ef = Neutron_Speed(n%E0ef)
-    n%Omega_hat = Isotropic_Omega_hat(RNG)  !Initial isotropic direction
-    If (source%has_velocity) Then
-        v = n%Omega_hat * n%s0ef + source%v
-        n%E = Neutron_Energy(v)
-        n%Omega_hat = Unit_Vector(v)
-    Else
-        n%E = n%E0ef
-    End If
+    Call New_Energy_Direction_in_SF_and_ECI()
     If (source%exoatmospheric) Then  !check to see if this neutron is headed for the atmosphere
-        !If (gravity) Then
-            !UNDONE  Choose a trajectory that will intersect the atmosphere, also set s%w for this sampled energy.  For now, default to straight line approximation.
-        !Else
+        If (ScatMod%gravity) Then
             Do
-                zeta = Dot_Product(Unit_Vector(source%r),n%Omega_hat)
+                zeta = Dot_Product(Unit_Vector(n%r),n%Omega_hat)
+                s = Neutron_Speed(n%E)
+                v = s * n%Omega_hat
+                xi = SME(n%r,v)
+                If (zeta.LT.0._dp .OR. xi.LT.0._dp) Then !downward path or return trajectory, the path might intersect the atmosphere
+                    rp = Radius_of_Perigee(n%r,v)
+                    If (rp .LT. atm%R_top) Then  !this path intersects the atmosphere
+                        !find flight time to atmosphere interface
+                        dZ = atm%z_top - source%z
+                        t_min = dZ / (s + Sqrt(2._dp*mu*(1._dp/source%big_r - 1._dp/(source%big_r+dZ))))
+                        t_max = Time_since_periapsis(n%r,v)
+                        If (xi .LT. 0._dp) t_max = TwoPi * Sqrt((-0.5_dp * mu / xi)**3 / mu) - t_max
+                        tof = Time_to_R(n%r,v,atm%R_top,t_min,t_max)
+                        !adjust starting time, position, and direction to state at atmospheric interface
+                        Call Kepler_Gooding(n%r,v,tof,n%r,v)
+                        n%E = Neutron_Energy(v)
+                        n%Omega_hat = Unit_Vector(v)
+                        n%t = n%t + tof
+                        Exit
+                    End If
+                End If
+                !upward/flat path or not low enough Z_closest_approach, this path will not intersect atmosphere, reject it
+                ScatMod%n_uncounted = ScatMod%n_uncounted + 1
+                !If direct contributions are being included, tally one before rejecting it
+                If (ScatMod%direct_contribution) Call First_Event_Neutron(n,ScatMod,source,detector,atm)
+                !draw a new random energy and direction
+                Call New_Energy_Direction_in_SF_and_ECI()
+            End Do
+        Else
+            Do
+                zeta = Dot_Product(Unit_Vector(n%r),n%Omega_hat)
                 If (zeta .LT. 0._dp) Then !downward path, the path might intersect the atmosphere
                     If (R_close_approach(source%big_r,zeta) .LT. atm%R_top) Then  !this path intersects the atmosphere
                         dZ = atm%z_top - source%z
@@ -136,20 +158,34 @@ Function Start_Neutron(source,atm,RNG,gravity) Result(n)
                     End If
                 End If
                 !upward/flat path or not low enough Z_closest_approach, this path will not intersect atmosphere, reject it
-                !draw a new random direction
-                n%Omega_hat = Isotropic_Omega_hat(RNG)
-                v = n%Omega_hat * n%s0ef + source%v
-                If (source%has_velocity) Then
-                    n%E = Neutron_Energy(v)
-                    n%Omega_hat = Unit_Vector(v)
-                End If
+                ScatMod%n_uncounted = ScatMod%n_uncounted + 1
+                !If direct contributions are being included, tally one before rejecting it
+                If (ScatMod%direct_contribution) Call First_Event_Neutron(n,ScatMod,source,detector,atm)
+                !draw a new random energy and direction
+                Call New_Energy_Direction_in_SF_and_ECI()
             End Do
-        !End If
+        End If
     End If
     !update z,zeta,big_r for initial position
     n%zeta = Dot_Product(Unit_Vector(n%r),n%Omega_hat)
     n%big_r = Vector_Length(n%r)
     n%Z = n%big_r - R_Earth
+Contains
+    Subroutine New_Energy_Direction_in_SF_and_ECI()
+        Use Neutron_Utilities, Only: Neutron_Energy
+        Implicit None
+        Real(dp) :: v(1:3)
+        
+        Call source%Sample_EandD(RNG,n%E0ef,n%Omega_hat,n%weight)  !Initialize energy and weight
+        n%s0ef = Neutron_Speed(n%E0ef)
+        If (source%has_velocity) Then  !move energy & direction into ECI frame
+            v = n%Omega_hat * n%s0ef + source%v
+            n%E = Neutron_Energy(v)
+            n%Omega_hat = Unit_Vector(v)
+        Else  !otherwise, source frame is ECI frame
+            n%E = n%E0ef
+        End If
+    End Subroutine New_Energy_Direction_in_SF_and_ECI
 End Function Start_Neutron
 
 Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
