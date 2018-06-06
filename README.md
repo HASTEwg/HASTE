@@ -7,3 +7,5 @@ The High-Altitude Transport to Space (HATS) estimator is a high fidelity Monte C
 - Radioactive decay of free neutrons
 
 This code was originally developed in support of dissertation research at the Air Force Institute of Technology, and now remains under collaborative development in the radiation effects and detection community.  Roadmap for feature development is [in the wiki](https://github.com/HATSwg/HATS/wiki/Roadmap).
+
+Currently, THE SOURCE IS BROKEN (v0.8).  The next working increment will be v1.0-beta followed by release of v1.0: date TBD.  I'm working at a commensurate speed to how much you're paying me.
