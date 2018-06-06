@@ -306,7 +306,7 @@ Recursive Function Time_to_R(r0,v0,radius,t_min,t_max,t_guess,allow_recursion) R
     Real(dp) :: r_mag
     
     If (Dot_Product(r0,v0) .LT. 1.E-12_dp) Then !initial conditions too close to periapsis, perturb and recurse
-        Call Kepler(r0,v0,t_min,r,v)
+        Call Kepler_Gooding(r0,v0,t_min,r,v)
         t = t_min + Time_to_R(r,v,radius,0._dp,t_max-t_min)
         Return
     End If
@@ -319,7 +319,7 @@ Recursive Function Time_to_R(r0,v0,radius,t_min,t_max,t_guess,allow_recursion) R
     End If
     Do i = 1,100
         t_old = t
-        Call Kepler(r0,v0,t,r,v)
+        Call Kepler_Gooding(r0,v0,t,r,v)
         r_mag = Vector_Length(r)
         t = t_old - (r_mag - radius) / Dot_Product(r/r_mag,v)
         If (Converged(t,t_old,rTol=1.E-12_dp,aTol=1.E-9_dp)) Return  !normal exit
@@ -338,7 +338,7 @@ Recursive Function Time_to_R(r0,v0,radius,t_min,t_max,t_guess,allow_recursion) R
     Do j = 1,1000
         t = 0.5_dp * (t1 + t2)
         If (Converged(t,t_old,rTol=1.E-3_dp,aTol=1.E-3_dp)) Exit
-        Call Kepler(r0,v0,t,r,v) 
+        Call Kepler_Gooding(r0,v0,t,r,v) 
         If (Dot_Product(r,v) .GT. 0._dp) Then !ascending trajectory
             If (Vector_Length(r) .GT. radius) Then !time too late
                 t2 = t
