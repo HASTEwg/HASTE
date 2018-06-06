@@ -27,8 +27,6 @@ Use Atmospheres, Only: Atmosphere_Type
 Use Atmospheres, Only: Setup_Atmosphere
 Use Sources, Only: Source_Type
 Use Sources, Only: Setup_Source
-Use Sources, Only: Celest_to_XYZ
-Use Sources, Only: Check_Exo_Source
 Use Detectors, Only: Detector_Type
 Use Detectors, Only: Setup_Detector
 Use Detectors, Only: Close_Slice_Files
