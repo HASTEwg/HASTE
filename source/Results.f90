@@ -278,6 +278,7 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
         file_name = file_dir//'img'//i_char//'_n_u.tmp'
         Call Var_from_File(n_u,file_name,delete_file = .TRUE.)
         uncounted = uncounted + n_u
+        n_hist_run(i) = n_hist_run(i) + n_u  !includes implicity leaked histories from exatmospheric sources
     End Do
     tot_time = Sum(time)
     min_time = MinVal(time)
