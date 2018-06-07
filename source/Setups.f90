@@ -621,7 +621,7 @@ Subroutine Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n
     Write(unit,'(2A)') '    Slice Shape files:    ',paths_files%s_file_name//'<...>.txt'
     Write(unit,*)
     Write(unit,'(A,I11)') '  RNG Seed: ',RNG%seed
-    Write(unit,'(A,I15,A,I15,A,F6.2,A)') '  Number of Histories: ',Sum(n_h_hit),' contributing, ',Sum(n_h_run),' total run, (',100._dp*Real(Sum(n_h_hit),dp)/Real(Sum(n_h_run),dp),'% efficency)'
+    Write(unit,'(A,I0,A,I0,A,F6.2,A)') '  Number of Histories: ',Sum(n_h_hit),' contributing, ',Sum(n_h_run),' total run, (',100._dp*Real(Sum(n_h_hit),dp)/Real(Sum(n_h_run),dp),'% efficency)'
     Write(unit,'(A)') '  Histories per image/thread:'
     Write(unit,'(A11,2A17)') 'Image','Contributing','Total Run'
     Write(unit,'(A11,2A17)') '-----','---------------','---------------'
