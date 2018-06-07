@@ -13,7 +13,7 @@ Module Results
 Contains
 
 !DIR$ IF DEFINED (COA)
-Subroutine Image_Result_to_Disk(time,n_hit,n_run,t,d,n_kills,next_events,no_tally)
+Subroutine Image_Result_to_Disk(time,n_hit,n_run,t,d,n_kills,next_events,no_tally,uncounted)
     Use IFPORT, Only: $MAXPATH
     Use IFPORT, Only: MAKEDIRQQ
     Use Kinds, Only: dp
@@ -30,6 +30,7 @@ Subroutine Image_Result_to_Disk(time,n_hit,n_run,t,d,n_kills,next_events,no_tall
     Integer(8), Intent(In) :: n_kills(1:6)
     Integer(8), Intent(In) :: next_events(1:3)
     Integer(8), Intent(In) :: no_tally(1:3)
+    Integer(8), Intent(In) :: uncounted
     Character(3) :: i_char
     Character($MAXPATH) :: dir
     Character(:), Allocatable :: file_name,file_dir
@@ -95,11 +96,14 @@ Subroutine Image_Result_to_Disk(time,n_hit,n_run,t,d,n_kills,next_events,no_tall
     !write no_tally to file
     file_name = file_dir//'img'//i_char//'_n_t.tmp'
     Call Var_to_File(no_tally,file_name)
+    !write uncounted to file
+    file_name = file_dir//'img'//i_char//'_n_u.tmp'
+    Call Var_to_File(uncounted,file_name)
 End Subroutine Image_Result_to_Disk
 !DIR$ END IF
 
 !DIR$ IF DEFINED (COA)
-Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist_run,n_hist_hit,t,d,n_kills,next_events,no_tally)
+Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist_run,n_hist_hit,t,d,n_kills,next_events,no_tally,uncounted)
     Use IFPORT, Only: $MAXPATH
     Use IFPORT, Only: DELDIRQQ
     Use Kinds, Only: dp
@@ -120,6 +124,7 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     Integer(8), Intent(Out) :: n_kills(1:6)
     Integer(8), Intent(Out) :: next_events(1:3)
     Integer(8), Intent(Out) :: no_tally(1:3)
+    Integer(8), Intent(Out) :: uncounted
     Integer :: i,j
     Real(dp), Allocatable :: time(:)
     Integer :: size,index
@@ -130,7 +135,7 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     Real(dp), Allocatable :: TE_tmp(:,:,:)
     Real(dp), Allocatable :: Dir_tmp(:,:,:)
     Integer, Allocatable :: i1s(:),i2s(:)
-    Integer(8) :: n_k(1:6),n_e(1:3),n_t(1:3)
+    Integer(8) :: n_k(1:6),n_e(1:3),n_t(1:3),n_u
     Character(3) :: i_char
     Character($MAXPATH) :: dir
     Character(:), Allocatable :: file_name,file_dir
@@ -168,6 +173,7 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     n_kills = 0
     next_events = 0
     no_tally = 0
+    uncounted = 0
     !read variables from files and accumulate appropriately
     Allocate(Character($MAXPATH) :: file_name)
     Do i = 1,num_images()
@@ -269,6 +275,9 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
         file_name = file_dir//'img'//i_char//'_n_t.tmp'
         Call Var_from_File(n_t,file_name,delete_file = .TRUE.)
         no_tally = no_tally + n_t
+        file_name = file_dir//'img'//i_char//'_n_u.tmp'
+        Call Var_from_File(n_u,file_name,delete_file = .TRUE.)
+        uncounted = uncounted + n_u
     End Do
     tot_time = Sum(time)
     min_time = MinVal(time)
