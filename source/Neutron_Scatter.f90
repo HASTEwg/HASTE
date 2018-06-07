@@ -742,7 +742,7 @@ Subroutine Write_Scatter_Model(s,file_name)
     Write(unit,'(A,I15)') '  Next-Events NOT tallied:  Time-Energy: ',s%n_no_tally(1)
     Write(unit,'(A,I15)') '                            Time:        ',s%n_no_tally(2)
     Write(unit,'(A,I15)') '                            Energy:      ',s%n_no_tally(3)
-    Write(unit,'(A,I15)') '  Histories uncounted due to exo source:  ',s%n_uncounted
+    Write(unit,'(A,I15)') '  Histories implicitly leaked due to EXO source:  ',s%n_uncounted
     Write(unit,*)
     Write(unit,*)
     Close(unit)
