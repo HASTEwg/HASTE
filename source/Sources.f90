@@ -20,6 +20,7 @@ Module Sources
         Logical :: exoatmospheric  !T indicates source is outside atmosphere, F indicates source IN the atmosphere
         Integer :: E_dist_index,A_dist_index
         Logical :: E_A_dist_coupled
+        Logical :: aniso_dist
         Real(dp) :: E_high   ![keV] energy description, E_high=E_low for 'Point', specifies energy range for 'Uniform', specifies cutoff energies for 'Watt235'
         Real(dp) :: E_low
         Real(dp) :: w  !weight of particles as they are created at the source, always equal to 1 for atmospheric source, varies for exoatmospheric sources
