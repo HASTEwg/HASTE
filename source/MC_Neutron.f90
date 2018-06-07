@@ -321,14 +321,20 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     w2 = n%weight !initial value (neutron weight at source)
     !Adjust for emission angle
     Omega_hat1_ef = Unit_Vector(v1ef)
+    Call Scattered_Angles(s%A_hat,Omega_hat1_ef,mu0ef,omega0ef,s%B_hat,s%C_hat)
     If (s%has_velocity) Then
-        Call Scattered_Angles(s%A_hat,Omega_hat1_ef,mu0ef,omega0ef,s%B_hat,s%C_hat)
         Bn = n%s0ef / s%speed
         dmu0ef_dmu0 = Abs((1._dp + Bn * (2._dp * mu0ef + Bn))**(1.5_dp) / (Bn**2 * (Bn + mu0ef)))  !Eqn 479 from Haste-N removed material (p 39)
     Else
         dmu0ef_dmu0 = 1._dp
     End If
-    w2 = w2 * dmu0ef_dmu0 * inv_FourPi 
+    !UNDONE Evaluate direction PDF for emission directly to detector
+    If (s%aniso_dist) Then
+        !UNDONE The functing "PDF" on the following line is a placeholder...
+        w2 = w2 * dmu0cm_dmu0 * PDF(mu0ef,omega0ef,n%E0ef) * inv_TwoPi
+    Else
+        w2 = w2 * dmu0cm_dmu0 * inv_FourPi
+    End If
     !Adjust for divergence
     If (ScatMod%Gravity) Then
         divEF = Div_Fact_by_shooting(s%r,Omega_hat1_ef,n%s0ef,s%v,tof,vS2,v2sat+vS2)
@@ -446,7 +452,7 @@ Subroutine Move_Neutron(n,ScatMod,atm,RNG,leaked)
     n%Z = n%big_r - R_Earth
 End Subroutine Move_Neutron
 
-Subroutine Next_Event_Neutron(n,ScatMod,d,atm,RNG,source_w)
+Subroutine Next_Event_Neutron(n,ScatMod,d,atm,RNG)
     Use Kinds, Only: dp
     Use Neutron_Scatter, Only: Neutron_Type
     Use Neutron_Scatter, Only: Scatter_Model_Type
@@ -460,7 +466,6 @@ Subroutine Next_Event_Neutron(n,ScatMod,d,atm,RNG,source_w)
     Type(Detector_Type), Intent(InOut) :: d
     Type(Atmosphere_Type), Intent(In) :: atm
     Type(RNG_Type), Intent(InOut) :: RNG
-    Real(dp), Intent(In) :: source_w
     Type(Scatter_Data_Type) :: scat
     Integer :: iso,lev
     Integer :: n_lev
@@ -475,13 +480,13 @@ Subroutine Next_Event_Neutron(n,ScatMod,d,atm,RNG,source_w)
             If (scat%iso_cs(iso) .EQ. 0._dp) Cycle
             Do lev = 0,n_lev
                 Call ScatMod%Set_Scatter_lev(scat,lev,E_cm,i_E_cm)
-                Call Attempt_Next_Event(n,ScatMod,d,atm,scat,source_w*scat%iso_cs(iso)*scat%lev_cs(lev))
+                Call Attempt_Next_Event(n,ScatMod,d,atm,scat,scat%iso_cs(iso)*scat%lev_cs(lev))
             End Do
             Deallocate(scat%lev_cs)
         End Do
     Else
         !compute a single next-event for the already sampled scatter parameters
-        Call Attempt_Next_Event(n,ScatMod,d,atm,ScatMod%scat,source_w)
+        Call Attempt_Next_Event(n,ScatMod,d,atm,ScatMod%scat)
     End If
 End Subroutine Next_Event_Neutron
 
@@ -513,7 +518,7 @@ Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
     Type(Detector_Type), Intent(InOut) :: d
     Type(Atmosphere_Type), Intent(In) :: atm
     Type(Scatter_Data_Type), Intent(In) :: scat
-    Real(dp), Intent(In) :: w_scat
+    Real(dp), Intent(In), Optional :: w_scat
     Real(dp) :: mu0cm  !cosine of polar scatter angle for scatter in CM frame
     Real(dp) :: omega0cm  !rotational scatter angle for scatter in CM frame
     Real(dp) :: Omega_hat1_cm(1:3)  ![1 km/s]  velocity unit vector in CM frameafter collision
@@ -581,7 +586,8 @@ Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
     !DIRECTION AT ARRIVAL
     Omega_hat2_sat = Unit_Vector(v2sat)
     !WEIGHT ADJUSTMENTS... Scattered angle, divergence, absorption & scatter suppression, decay
-    w2 = n%weight * w_scat !initial value (neutron weight multiplied by scatter weight for all mat/mech and/or exoatmospheric weight adjustment where applicable)
+    w2 = n%weight !initial value (neutron weight multiplied by scatter weight for all mat/mech and/or exoatmospheric weight adjustment where applicable)
+    If (Present(w_scat)) w2 = w2 * w_scat
     !Adjust for scatter angle
     Omega_hat1_cm = Unit_Vector(v1cm)
     Call Scattered_Angles(scat%Omega_hat0_cm,Omega_hat1_cm,mu0cm,omega0cm,scat%B_hat,scat%C_hat)
