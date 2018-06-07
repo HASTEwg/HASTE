@@ -190,15 +190,15 @@ t_tot = t_now - t_start
 If (i_img.EQ.1 .AND. detector%shape_data) Call Close_Slice_Files(detector%n_slices,detector%TE_grid(1)%collect_shape,detector%TE_grid(1)%slice_unit,detector%TE_grid(2)%collect_shape,detector%TE_grid(2)%slice_unit)
 !DIR$ IF DEFINED (COA)
     !Write image results to disk
-    Call Image_Result_to_Disk(t_tot,n_p,n_done,TE_Tallies,Dir_Tallies,ScatterModel%n_kills,ScatterModel%next_events,ScatterModel%n_no_tally)
+    Call Image_Result_to_Disk(t_tot,n_p,n_done,TE_Tallies,Dir_Tallies,ScatterModel%n_kills,ScatterModel%next_events,ScatterModel%n_no_tally,ScatterModel%n_uncounted)
     SYNC ALL
     If (i_img .EQ. 1) Then
         !Gather image results from temporary files to image 1
-        Call Image_Results_from_Disk(detector%TE_grid(1)%n_bins,detector%TE_grid(2)%n_bins,detector%Dir_grid(1)%n_bins,detector%Dir_grid(2)%n_bins,t_tot,t_min,t_max,n_hist_run,n_hist_hit,TE_Tallies,Dir_Tallies,ScatterModel%n_kills,ScatterModel%next_events,ScatterModel%n_no_tally)
+        Call Image_Results_from_Disk(detector%TE_grid(1)%n_bins,detector%TE_grid(2)%n_bins,detector%Dir_grid(1)%n_bins,detector%Dir_grid(2)%n_bins,t_tot,t_min,t_max,n_hist_run,n_hist_hit,TE_Tallies,Dir_Tallies,ScatterModel%n_kills,ScatterModel%next_events,ScatterModel%n_no_tally,ScatterModel%n_uncounted)
     End If
 !DIR$ ELSE
     Allocate(n_hist_run(1:1))
-    n_hist_run = n_done
+    n_hist_run = n_done + ScatterModel%n_uncounted  !includes implicity leaked histories from exatmospheric sources
     Allocate(n_hist_hit(1:1))
     n_hist_hit = n_p
     t_min = t_tot
