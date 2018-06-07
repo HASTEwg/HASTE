@@ -318,7 +318,11 @@ Subroutine Write_Source(s,file_name)
     Write(unit,'(A,ES23.16E3,A)') '    Right Ascension = ',Acos(s%r(1)/(Vector_Length(s%r)*Cos(Asin(s%r(3)/Vector_Length(s%r))))) / (Pi/180._dp),' deg'
     Write(unit,'(A,ES23.16E3,A)') '    Declination     = ',Asin(s%r(3)/Vector_Length(s%r)) / (Pi/180._dp),' deg'
     Write(unit,'(A,ES23.16E3,A)') '    Geometric Alt   = ',Vector_Length(s%r)-R_Earth,' km'
-    If (s%exoatmospheric) Write(unit,'(A,ES23.16E3,A)') '    Exatmospheric source: ',s%w,' starting particle weight'
+    If (s%exoatmospheric) Then
+        Write(unit,'(A)') '    Source is EXOatmospheric'
+    Else
+        Write(unit,'(A)') '    Source is ENDOatmospheric'
+    End If
     Write(unit,'(A)') '  Velocity:'
     Write(unit,'(A,ES23.16E3,A)') '    x = ',s%v(1),' km/s'
     Write(unit,'(A,ES23.16E3,A)') '    y = ',s%v(2),' km/s'
