@@ -68,7 +68,7 @@ Module Neutron_Scatter
         Integer(8) :: n_kills(1:6)  !kills due to (1)Time, (2)Energy, (3)Weight, (4)Leakage, (5)Absorption. (6)Collision limit
         Integer(8) :: next_events(1:3)  !next-events at detector (1)Attempted, (2)Found, (3)Tallied
         Integer(8) :: n_no_tally(1:3)  !next-events at detector NOT tallied due to (1)Time & Energy, (2)Time, (3)Energy
-        Integer(8) :: n_uncounted  !histories uncounted due to exoatmospheric source geometries
+        Integer(8) :: n_uncounted  !histories implicitly leaked due to exoatmospheric source geometries
         Type(CS_Type) :: CS
         Type(Scatter_Data_Type) :: scat  !parameters defining the next scatter
         Logical :: Gravity
