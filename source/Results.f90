@@ -14,12 +14,11 @@ Contains
 
 !DIR$ IF DEFINED (COA)
 Subroutine Image_Result_to_Disk(time,n_hit,n_run,t,d,n_kills,next_events,no_tally,uncounted)
-    Use IFPORT, Only: $MAXPATH
-    Use IFPORT, Only: MAKEDIRQQ
     Use Kinds, Only: dp
     Use FileIO_Utilities, Only: slash
     Use Tallies, Only: Contrib_array
-    Use FileIO_Utilities, Only: Get_Working_Directory
+    Use FileIO_Utilities, Only: max_path_len
+    Use FileIO_Utilities, Only: Working_Directory
     Use FileIO_Utilities, Only: Var_to_File
     Implicit None
     Real(dp), Intent(In) :: time
@@ -32,14 +31,14 @@ Subroutine Image_Result_to_Disk(time,n_hit,n_run,t,d,n_kills,next_events,no_tall
     Integer(8), Intent(In) :: no_tally(1:3)
     Integer(8), Intent(In) :: uncounted
     Character(3) :: i_char
-    Character($MAXPATH) :: dir
+    Character(max_path_len) :: dir
     Character(:), Allocatable :: file_name,file_dir
     
-    Call Get_Working_Directory(dir,slash)
-    Allocate(Character($MAXPATH) :: file_dir)
+    Call Working_Directory(GETdir=dir,slash)
+    Allocate(Character(max_path_len) :: file_dir)
     file_dir = Trim(dir)//'temp'//slash
     Write(i_char,'(I3.3)') this_image()
-    Allocate(Character($MAXPATH) :: file_name)
+    Allocate(Character(max_path_len) :: file_name)
     !write elapsed time to file
     file_name = file_dir//'img'//i_char//'_t.tmp'
     Call Var_to_File(time,file_name)
@@ -104,12 +103,11 @@ End Subroutine Image_Result_to_Disk
 
 !DIR$ IF DEFINED (COA)
 Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist_run,n_hist_hit,t,d,n_kills,next_events,no_tally,uncounted)
-    Use IFPORT, Only: $MAXPATH
-    Use IFPORT, Only: DELDIRQQ
     Use Kinds, Only: dp
     Use FileIO_Utilities, Only: slash
     Use Tallies, Only: Contrib_array
-    Use FileIO_Utilities, Only: Get_Working_Directory
+    Use FileIO_Utilities, Only: max_path_len
+    Use FileIO_Utilities, Only: Working_Directory
     Use FileIO_Utilities, Only: Var_from_File
     Implicit None
     Integer, Intent(In) :: nt,nE
@@ -137,11 +135,11 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     Integer, Allocatable :: i1s(:),i2s(:)
     Integer(8) :: n_k(1:6),n_e(1:3),n_t(1:3),n_u
     Character(3) :: i_char
-    Character($MAXPATH) :: dir
+    Character(max_path_len) :: dir
     Character(:), Allocatable :: file_name,file_dir
     
-    Call Get_Working_Directory(dir,slash)
-    Allocate(Character($MAXPATH) :: file_dir)
+    Call Working_Directory(GETdir=dir,slash)
+    Allocate(Character(max_path_len) :: file_dir)
     file_dir = Trim(dir)//'temp'//slash
     !initialize time variables
     Allocate(time(1:num_images()))
@@ -175,7 +173,7 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     no_tally = 0
     uncounted = 0
     !read variables from files and accumulate appropriately
-    Allocate(Character($MAXPATH) :: file_name)
+    Allocate(Character(max_path_len) :: file_name)
     Do i = 1,num_images()
         Write(i_char,'(I3.3)') i
         !read time
