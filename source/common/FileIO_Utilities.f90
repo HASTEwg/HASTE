@@ -849,4 +849,14 @@ Function Date_Time_string() Result(s)
     s = FDATE()
 End Function Date_Time_string
 
+Function Get_Host_Name() Result(s)
+    !Use IFPORT, Only: HASTNAM  !<--IFORT implementation
+    Implicit None
+    Character(30) :: s
+    
+    !stat = HOSTNAM(s)  !<--IFORT implementation
+    stat = HOSTNM(s)
+    If (stat .NE. 0) s = 'UNKNOWN'
+End Function Get_Host_Name
+
 End Module FileIO_Utilities
