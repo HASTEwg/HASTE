@@ -24,31 +24,6 @@ Module Utilities
     
 Contains
 
-Subroutine Thread_Index(i,OMP_threaded,CAF_imaged)
-    Use OMP_LIB, Only: OMP_GET_NUM_THREADS,OMP_GET_THREAD_NUM
-    Implicit None
-    Integer, Intent(Out) :: i
-    Logical, Intent(Out), Optional :: OMP_threaded
-    Logical, Intent(Out), Optional :: CAF_imaged
-
-    If (Present(OMP_threaded)) OMP_threaded = .FALSE.
-    If (Present(CAF_imaged)) CAF_imaged = .FALSE.
-    If (OMP_GET_NUM_THREADS().GT.1 .OR. num_images().GT.1) Then !Parallel threads or images are running
-        If (OMP_GET_NUM_THREADS() .GT. 1) Then  !use the OpenMP thread number to index the thread
-            i = OMP_GET_THREAD_NUM() + 1  !OpenMP threads are numbered starting at zero
-            If (Present(OMP_threaded)) OMP_threaded = .TRUE.
-        Else If (num_images() .GT. 1) Then  !use the coarray image number to index the saved RNG stream
-            i = this_image()  !coarray images are numbered starting at 1
-            If (Present(CAF_imaged)) CAF_imaged = .TRUE.
-        Else
-            Print *,'ERROR:  Utilities: Thread_Index:  Unable to resolve thread or image number.'
-            ERROR STOP
-        End If
-    Else  !A single thread or image is running, index as 0
-        i = 0
-    End If
-End Subroutine Thread_Index
-
 Pure Function Prec_dp(x,y) Result(p)
     Use Kinds, Only: dp
     Implicit None
