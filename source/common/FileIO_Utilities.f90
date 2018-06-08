@@ -84,9 +84,10 @@ Module FileIO_Utilities
     End Interface Output_Message
     
 !  Character & I/O constants for LINUX vs Windows file systems
-    !DIR$ IF DEFINED (MIC)
+    !DIR$ IF DEFINED (LIN_OS)
         Character(1), Parameter :: slash = '/'
         Character(8), Parameter :: fSHARE = 'DENYNONE'
+    !otherwise, assume Windows OS
     !DIR$ ELSE
         Character(1), Parameter :: slash = '\'
         Character(6), Parameter :: fSHARE = 'DENYWR'
@@ -96,6 +97,9 @@ Module FileIO_Utilities
     Character(1), Parameter :: creturn = achar(13)
     Character(1), Parameter :: newline = achar(10)
     Character(1), Parameter :: ding = achar(7)
+    
+!  Arbitrary maximum string length for paths, for portability
+    Integer, Parameter :: max_path_len = 255
     
 Contains
 
@@ -252,15 +256,14 @@ Subroutine I8_2Darray_to_file(i,file_name)
 End Subroutine I8_2Darray_to_file
 
 Subroutine C_to_file(C,file_name)
-    Use IFPORT, Only: $MAXPATH
     Implicit None
     Character(*), Intent(In) :: C
     Character(*), Intent(In) :: file_name
     Integer :: unit
     Integer :: stat
-    Character($MAXPATH) :: Cmax
+    Character(max_path_len) :: Cmax
     
-    If (Len(C) .GT. $MAXPATH) Call Output_Message('ERROR:  Utilities: C_to_file:  Write string is longer than $MAXPATH',kill=.TRUE.)
+    If (Len(C) .GT. max_path_len) Call Output_Message('ERROR:  Utilities: C_to_file:  Write string is longer than MAX_PATH_LEN',kill=.TRUE.)
     Cmax = C
     Call Open_for_Var_to_File(file_name,unit,stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: C_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
@@ -512,14 +515,13 @@ Subroutine I8_2Darray_from_file(i,file_name,delete_file)
 End Subroutine I8_2Darray_from_file
 
 Subroutine C_from_file(C,file_name,delete_file)
-    Use IFPORT, Only: $MAXPATH
     Implicit None
     Character(*), Intent(Out) :: C
     Character(*), Intent(In) :: file_name
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
     Integer :: stat
-    Character($MAXPATH) :: Cmax
+    Character(max_path_len) :: Cmax
     Logical :: del_f
     
     If (Present(delete_file)) Then
@@ -565,33 +567,57 @@ Subroutine L_from_file(L,file_name,delete_file)
     End If
 End Subroutine L_from_file
 
-Subroutine Get_Working_Directory(dir,s)
-    !Gets the current working directory, appending a slash character if supplied
-    Use IFPORT, Only: $MAXPATH
-    Use IFPORT, Only: GETDRIVEDIRQQ
-    Use IFPORT, Only: FILE$CURDRIVE
+Subroutine Working_Directory(GETdir,PUTdir,s)
+    !Gets and/or sets the current working directory, appending a slash character if supplied
+    !GETCWD is an extension and non-standard, the GFORTRAN version is implemented here, but code for IFORT is in-place but commented out
+    !Use IFPORT, Only: GETCWD  !<--IFORT implementation
+    !Use IFPORT, Only: CHDIR  !<--IFORT implementation
     Implicit None
-    Character($MAXPATH), Intent(Out) :: dir
+    Character(max_path_len), Intent(Out), Optional :: GETdir
+    Character(max_path_len), Intent(In), Optional :: PUTdir
     Character(1), Intent(In), Optional :: s
+    Integer :: stat
     Integer :: pathlen
     
-    dir = FILE$CURDRIVE
-    pathlen = GETDRIVEDIRQQ(dir)
-    If (Present(s)) dir = Trim(dir)//s
-End Subroutine Get_Working_Directory
-
-Subroutine Make_Folder(fold)
-    Use IFPORT, Only: MAKEDIRQQ
-    Implicit None
-    Character(*), Intent(In) :: fold
-    Logical :: folder_exists
-
-    INQUIRE(DIRECTORY = fold , EXIST = folder_exists)
-    If (.NOT. folder_exists) Then  !create folder
-        folder_exists = MAKEDIRQQ(fold)
-        If (.NOT. folder_exists) Call Output_Message('ERROR:  Utilities: Make_Folder:  Failed to create directory: '//fold,kill=.TRUE.)
+    If (Present(GETdir)) Then
+        !stat = GETCWD(GETdir)  !<--IFORT implementation
+        Call GETCWD(GETdir , stat)
+        If (Present(s)) GETdir = Trim(GETdir)//s
     End If
-End Subroutine Make_Folder
+    If (Present(PUTdir)) Then
+        stat = CHDIR(PUTdir)
+    End If
+End Subroutine Working_Directory
+
+Subroutine Create_Directory(dirname)
+    !Creates a new directory in the current working directory
+    Implicit None
+    Character(*), Intent(In) :: dirname
+
+    Call EXECUTE_COMMAND_LINE('mkdir '//dirname)
+End Subroutine Create_Directory
+
+Subroutine Delete_Directory(dirname)
+    !Deletes a directory (AND ALL CONTENTS) in the current working directory
+    Implicit None
+    Character(*), Intent(In) :: dirname
+
+    !DIR$ IF DEFINED (LIN_OS)
+        Call EXECUTE_COMMAND_LINE('rm -f -r '//dirname)
+    !otherwise, assume Windows OS
+    !DIR$ ELSE
+        Call EXECUTE_COMMAND_LINE('rmdir /S /Q '//dirname)
+    !DIR$ END IF
+End Subroutine Delete_Directory
+
+Subroutine Clean_Directory(dirname)
+    !Deletes ALL CONTENTS in a directory (works by deleting the entire directory and creating a new directory with the same name)
+    Implicit None
+    Character(*), Intent(In) :: dirname
+
+    Call Delete_Directory(dirname)
+    Call Create_Directory(dirname)
+End Subroutine Clean_Directory
 
 Subroutine Make_Boom()
     Implicit None
