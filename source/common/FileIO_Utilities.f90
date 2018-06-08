@@ -589,12 +589,22 @@ Subroutine Working_Directory(GETdir,PUTdir,s)
     End If
 End Subroutine Working_Directory
 
+Function Check_Directory(dirname) Result(exists)
+    !returns TRUE if the directory exists in the current working directory
+    !DIRECTORY is an extension and non-standard, the GFORTRAN version is implemented here, but code for IFORT is in-place but commented out
+    Implicit None
+    Logical :: exists
+    
+    !INQUIRE(DIRECTORY = dirname , EXIST = exists)  !<--IFORT implementation
+    INQUIRE(FILE = dirname , EXIST = exists)
+End Function Check_Directory
+
 Subroutine Create_Directory(dirname)
     !Creates a new directory in the current working directory
     Implicit None
     Character(*), Intent(In) :: dirname
 
-    Call EXECUTE_COMMAND_LINE('mkdir '//dirname)
+    If (Not(Check_Directory(dirname))) Call EXECUTE_COMMAND_LINE('mkdir '//dirname)
 End Subroutine Create_Directory
 
 Subroutine Delete_Directory(dirname)
@@ -830,5 +840,13 @@ Function Second_of_Month() Result(s)
                               & ,dp ) &
             & + Real(v(8),dp)*ms2sec !milliseconds
 End Function Second_of_Month
+
+Function Date_Time_string() Result(s)
+    !Use IFPORT, Only: FDATE  <--FDATE is an extension supported by GFORTRAN and IFORT: for IFORT, uncomment this use statement
+    Implicit None
+    Character(30) :: s
+    
+    s = FDATE()
+End Function Date_Time_string
 
 End Module FileIO_Utilities
