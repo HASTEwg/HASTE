@@ -15,8 +15,6 @@ Program HATS
 !!          divergence approach.
 !!  0.8     Opened development to HATSwg, migrated project to Github.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-Use IFPORT, Only: DCLOCK
-Use IFPORT, Only: $MAXPATH
 Use Kinds, Only: dp
 Use Random_Numbers, Only: RNG_Type
 Use Random_Numbers, Only: Setup_RNG
@@ -41,6 +39,7 @@ Use Statistics, Only: gMean
 Use Statistics, Only: Std_Err
 Use FileIO_Utilities, Only: Make_Boom
 Use FileIO_Utilities, Only: creturn
+Use FileIO_Utilities, Only: Second_of_Month
 !DIR$ IF DEFINED (COA)
     Use Setups, Only: Setup_info_to_disk
     Use Setups, Only: Setup_info_from_disk
@@ -131,12 +130,12 @@ End If
 p = 0
 n_done = 0
 !start a clock to track processing time
-t_start = Real(Floor(DCLOCK()*1.E3_dp),dp) * 1.E-3_dp  !truncate at millisecond
+t_start = Second_of_Month()
 If (screen_progress) Then  !run histories, periodically updating progress to the display
     t_last = t_start
     Do
         !update progress on screen
-        t_now = Real(Floor(DCLOCK()*1.E3_dp),dp) * 1.E-3_dp  !truncate at millisecond
+        t_now = Second_of_Month()
         If (t_now-t_last .GT. 1._dp) Then  !only update ETTC if elapsed time is more than a second
             t_last = t_now
             If (p .GT. 0) Then
@@ -185,7 +184,7 @@ Else  !run histories, WITHOUT updating progress to the display
     End Do
 End If
 !record final completion time
-t_now = Real(Floor(DCLOCK()*1.E3_dp),dp) * 1.E-3_dp  !truncate at millisecond
+t_now = Second_of_Month()
 t_tot = t_now - t_start
 If (i_img.EQ.1 .AND. detector%shape_data) Call Close_Slice_Files(detector%n_slices,detector%TE_grid(1)%collect_shape,detector%TE_grid(1)%slice_unit,detector%TE_grid(2)%collect_shape,detector%TE_grid(2)%slice_unit)
 !DIR$ IF DEFINED (COA)
