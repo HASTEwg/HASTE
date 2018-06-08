@@ -230,7 +230,7 @@ If (i_img .EQ. 1) Then
     Write(*,'(A)') 'Done.'
     Write(*,*)
 End If
-!DIR$ IF DEFINED(MIC)
+!DIR$ IF DEFINED(LIN_OS)
     If (i_img .EQ. 1) Then
         Call Make_Boom()
         Write(*,'(A)') '--------------------------------------------------------------------------------'
