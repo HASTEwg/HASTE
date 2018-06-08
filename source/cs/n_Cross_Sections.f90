@@ -100,9 +100,9 @@ Module n_Cross_Sections
 Contains
 
 Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,aniso_dist,E_min,E_max) Result(CS)
-    Use IFPORT, Only: $MAXPATH
     Use Kinds, Only: dp
     Use Sorting, Only: Union_Sort
+    Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
     Use FileIO_Utilities, Only: fSHARE
     Use Global, Only: neutron_mass
@@ -144,7 +144,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
     NameList /isoSetupList2/ abs_mode_names
     
     !read namelists from cross sections setup file
-    Allocate(Character($MAXPATH) :: file_name_start)
+    Allocate(Character(max_path_len) :: file_name_start)
     file_name_start = resources_directory//'n_cs'//slash
     Open(NEWUNIT = setup_unit , FILE = file_name_start//cs_setup_file , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
     If (stat .NE. 0) Then
@@ -173,7 +173,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
     Allocate(CS%res_cs(1:CS%n_iso))
     !count the number of energies (including duplicates) in ALL files to be read (not including resonance files)
     !N2H Evaluate whether energies listed in resonance files should be indexed in the unified grid, currently they are not
-    Allocate(Character($MAXPATH) :: cs_file_name)
+    Allocate(Character(max_path_len) :: cs_file_name)
     n_energies = 0
     Do i = 1,CS%n_iso
         !create file name string
