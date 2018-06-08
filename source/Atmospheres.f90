@@ -86,9 +86,9 @@ Module Atmospheres
 Contains
 
 Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_name) Result(atm)
-    Use IFPORT, Only: $MAXPATH
     Use Kinds, Only: dp
     Use Global, Only: R_Earth
+    Ude FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
     Use FileIO_Utilities, Only: fSHARE
     Use US_Std_Atm_1976, Only: Find_base_layer_1976 => Find_base_layer
@@ -155,7 +155,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     End Select
     Allocate(atm%Rb(0:Size(atm%Zb)-1))
     atm%Rb = atm%Zb + R_Earth
-    Allocate(Character($MAXPATH) :: f_name)
+    Allocate(Character(max_path_len) :: f_name)
     Select Case (composition)
         Case ('All')
             f_name = 'n_CS_setup_All.txt'
@@ -464,8 +464,8 @@ Subroutine Define_EPL_Layers(atm,resources_dir)
 End Subroutine Define_EPL_Layers
 
 Subroutine Get_Q_points(dir,n,a,w)
-    Use IFPORT, Only: $MAXPATH
     Use Kinds, Only: dp
+    Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
     Use FileIO_Utilities, Only: fSHARE
     Implicit None
@@ -478,7 +478,7 @@ Subroutine Get_Q_points(dir,n,a,w)
     Integer :: unit,stat
     Integer :: i
     
-    Allocate(Character($MAXPATH) :: file_name)
+    Allocate(Character(max_path_len) :: file_name)
     file_name = dir
     Write(n_char,'(I3.3)') n
     file_name = dir//'QuadPoints'//slash//'Weights_Abscissa-GaussLegendre_n'//n_char//'.txt'
