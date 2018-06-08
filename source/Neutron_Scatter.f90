@@ -608,9 +608,10 @@ Subroutine Scattered_Angles(Omega_hat0,Omega_hat1,mu,omega,B_hat,C_hat)
     omega = Atan2( Dot_Product(Omega_hat1,B_hat) , Dot_Product(Omega_hat1,C_hat) )
 End Subroutine Scattered_Angles
 
+!TODO Are these two routines (save counds and load counts) used anywhere in the project?  
 Subroutine Save_ScatMod_counts(ScatMod,dir,ext_in)
-    Use IFPORT, Only: $MAXPATH
     Use Utilities, Only: Thread_Index
+    Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: Var_to_file
     Implicit None
     Class(Scatter_Model_Type), Intent(In) :: ScatMod
@@ -628,7 +629,7 @@ Subroutine Save_ScatMod_counts(ScatMod,dir,ext_in)
     End If
     Call Thread_Index(i)
     Write(i_char,'(I4.4)') i
-    Allocate(Character($MAXPATH) :: fname)
+    Allocate(Character(max_path_len) :: fname)
     !write couter arrays and values to files
     fname = dir//'ScatMod_'//i_char//'_nk'//ext
     Call Var_to_File(ScatMod%n_kills,fname)
@@ -641,8 +642,8 @@ Subroutine Save_ScatMod_counts(ScatMod,dir,ext_in)
 End Subroutine Save_ScatMod_counts
 
 Subroutine Load_ScatMod_counts(ScatMod,dir,ext_in)
-    Use IFPORT, Only: $MAXPATH
     Use Utilities, Only: Thread_Index
+    Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: Var_from_file
     Implicit None
     Class(Scatter_Model_Type), Intent(InOut) :: ScatMod
@@ -660,7 +661,7 @@ Subroutine Load_ScatMod_counts(ScatMod,dir,ext_in)
     End If
     Call Thread_Index(i)
     Write(i_char,'(I4.4)') i
-    Allocate(Character($MAXPATH) :: fname)
+    Allocate(Character(max_path_len) :: fname)
     !write couter arrays and values to files
     fname = dir//'ScatMod_'//i_char//'_nk'//ext
     Call Var_from_File(ScatMod%n_kills,fname)
