@@ -172,8 +172,8 @@ Subroutine Resize_Contrib_Array(list,n)
 End Subroutine Resize_Contrib_Array
 
 Subroutine Save_Contrib_Array(list,dir,desc,ext_in)
-    Use IFPORT, Only: $MAXPATH
-    Use Utilities, Only: Thread_Index
+    Use FileIO_Utilities, Only: Thread_Index
+    Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: Var_to_file
     Implicit None
     Class(Contrib_Array), Intent(In) :: list
@@ -192,7 +192,7 @@ Subroutine Save_Contrib_Array(list,dir,desc,ext_in)
     End If
     Call Thread_Index(i)
     Write(i_char,'(I4.4)') i
-    Allocate(Character($MAXPATH) :: fname)
+    Allocate(Character(max_path_len) :: fname)
     !write tallies arrays and values to files
     fname = dir//'Contribs_'//desc//i_char//'_s'//ext
     Call Var_to_File(list%size,fname)
@@ -215,9 +215,9 @@ Subroutine Save_Contrib_Array(list,dir,desc,ext_in)
 End Subroutine Save_Contrib_Array
 
 Subroutine Load_Contrib_Array(list,dir,desc,ext_in)
-    Use IFPORT, Only: $MAXPATH
     Use Kinds, Only: dp
-    Use Utilities, Only: Thread_Index
+    Use FileIO_Utilities, Only: max_path_len
+    Use FileIO_Utilities, Only: Thread_Index
     Use FileIO_Utilities, Only: Var_from_file
     Implicit None
     Class(Contrib_Array), Intent(InOut) :: list
@@ -236,7 +236,7 @@ Subroutine Load_Contrib_Array(list,dir,desc,ext_in)
     End If
     Call Thread_Index(i)
     Write(i_char,'(I4.4)') i
-    Allocate(Character($MAXPATH) :: fname)
+    Allocate(Character(max_path_len) :: fname)
     !read tallies arrays and values from files
     fname = dir//'Contribs_'//desc//i_char//'_s'//ext
     Call Var_from_File(list%size,fname)
