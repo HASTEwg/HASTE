@@ -852,7 +852,7 @@ End Function Date_Time_string
 Function Get_Host_Name() Result(s)
     !Use IFPORT, Only: HASTNAM  !<--IFORT implementation
     Implicit None
-    Character(30) :: s
+    Character(80) :: s
     
     !stat = HOSTNAM(s)  !<--IFORT implementation
     stat = HOSTNM(s)
