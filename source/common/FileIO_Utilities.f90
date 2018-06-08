@@ -810,4 +810,25 @@ Subroutine Thread_Index(i,OMP_threaded,CAF_imaged)
     End If
 End Subroutine Thread_Index
 
+Function Second_of_Month() Result(s)
+    !Returns number of seconds since the beginning of the month
+    !(to millisecond resolution, and according to the system clock) 
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: s
+    Integer :: v(8)
+    Integer, Parameter :: days2sec = 24*60*60
+    Integer, Parameter :: hrs2sec  = 60*60
+    Integer, Parameter :: min2sec  = 60
+    Real(dp), Parameter :: ms2sec  = 1.E-3_dp
+    
+    Call DATE_AND_TIME ( values = v )
+    s = Real(   v(3)*days2sec & !day of the month
+            & + v(5)*hrs2sec  & !hour of the day
+            & + v(6)*min2sec  & !minute of the hour
+            & + v(7)          & !seconds
+                              & ,dp ) &
+            & + Real(v(8),dp)*ms2sec !milliseconds
+End Function Second_of_Month
+
 End Module FileIO_Utilities
