@@ -603,7 +603,7 @@ Subroutine Create_Directory(dirname)
     Implicit None
     Character(*), Intent(In) :: dirname
 
-    If (Not(Check_Directory(dirname))) Call EXECUTE_COMMAND_LINE('mkdir '//dirname)
+    If (.NOT.(Check_Directory(dirname))) Call EXECUTE_COMMAND_LINE('mkdir '//dirname)
 End Subroutine Create_Directory
 
 Subroutine Delete_Directory(dirname)
@@ -768,6 +768,7 @@ Subroutine Output_Message_CDPC(message1,r,message2,kill)
     End If
 End Subroutine Output_Message_CDPC
 
+!HACK The following two routines are commented out due to an unknown "interface conflict" compiler error
 !Subroutine Output_Message_CL(message,l,kill)
 !    Implicit None
 !    Character(*), Intent(In) :: message
@@ -803,20 +804,21 @@ Subroutine Thread_Index(i,OMP_threaded,CAF_imaged)
 
     If (Present(OMP_threaded)) OMP_threaded = .FALSE.
     If (Present(CAF_imaged)) CAF_imaged = .FALSE.
-    If (OMP_GET_NUM_THREADS().GT.1 .OR. num_images().GT.1) Then !Parallel threads or images are running
-        If (OMP_GET_NUM_THREADS() .GT. 1) Then  !use the OpenMP thread number to index the thread
-            i = OMP_GET_THREAD_NUM() + 1  !OpenMP threads are numbered starting at zero
-            If (Present(OMP_threaded)) OMP_threaded = .TRUE.
-        Else If (num_images() .GT. 1) Then  !use the coarray image number to index the saved RNG stream
-            i = this_image()  !coarray images are numbered starting at 1
-            If (Present(CAF_imaged)) CAF_imaged = .TRUE.
-        Else
-            Print *,'ERROR:  Utilities: Thread_Index:  Unable to resolve thread or image number.'
-            ERROR STOP
+    i = 0  !default value for single treaded/imaged aaplications
+#   if CAF
+        If (OMP_GET_NUM_THREADS().GT.1 .OR. num_images().GT.1) Then !Parallel threads or images are running
+            If (OMP_GET_NUM_THREADS() .GT. 1) Then  !use the OpenMP thread number to index the thread
+                i = OMP_GET_THREAD_NUM() + 1  !OpenMP threads are numbered starting at zero
+                If (Present(OMP_threaded)) OMP_threaded = .TRUE.
+            Else If (num_images() .GT. 1) Then  !use the coarray image number to index the saved RNG stream
+                i = this_image()  !coarray images are numbered starting at 1
+                If (Present(CAF_imaged)) CAF_imaged = .TRUE.
+            Else
+                Print *,'ERROR:  Utilities: Thread_Index:  Unable to resolve thread or image number.'
+                ERROR STOP
+            End If
         End If
-    Else  !A single thread or image is running, index as 0
-        i = 0
-    End If
+#   endif
 End Subroutine Thread_Index
 
 Function Second_of_Month() Result(s)

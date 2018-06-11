@@ -1,0 +1,11 @@
+./cleanALL
+
+cp ../common/Kinds.f90 Kinds.f90
+cp ../common/Global.f90 Global.f90
+cp ../common/Utilities.f90 Utilities.f90
+cp ../common/FileIO_Utilities.f90 FileIO_Utilities.f90
+
+gfortran -ffree-line-length-0 -c Kinds.f90
+gfortran -ffree-line-length-0 -c Global.f90
+gfortran -ffree-line-length-0 -c Utilities.f90
+gfortran -cpp -DLIN_OS -ffree-line-length-0 -c FileIO_Utilities.f90
