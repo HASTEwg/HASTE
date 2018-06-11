@@ -1,0 +1,6 @@
+./compile_Kinds
+find . -name "Gauss_Legendre_w_a.o" -type f -delete
+find . -name "Gauss_Legendre_w_a.mod" -type f -delete
+find . -name "Gauss_Legendre_w_a.f90" -type f -delete
+cp ../common/Gauss_Legendre_w_a.f90 Gauss_Legendre_w_a.f90
+gfortran -ffree-line-length-0 -c Gauss_Legendre_w_a.f90

@@ -187,6 +187,7 @@ Function RootBisect(f,a,b,rTol,aTol) Result(r)
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances
     Real(dp) :: old_r  !root from previous iteration
     Integer :: i  !counter, counts iterations of the solver
+    Real(dp) :: fa,fb,fr
 
     r = a
     fa = f(a)
@@ -206,7 +207,7 @@ End Function RootBisect
 
 Subroutine Update_Brackets(a,fa,b,fb,r,fr)
     Use Kinds, Only: dp
-    Implcit None
+    Implicit None
     Real(dp), Intent(InOut) :: a,fa
     Real(dp), Intent(InOut) :: b,fb
     Real(dp), Intent(In) :: r,fr
@@ -236,7 +237,7 @@ Function RootFalsePos(f,a,b,rTol,aTol,Illinois) Result(r)
     Real(dp), Intent(InOut) :: a,b  !left and right boundaries bracketing root
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances
     Logical, Intent(In), Optional :: Illinois
-    Logical = ill_fix
+    Logical :: ill_fix
     Real(dp) :: old_r  !root from previous iteration
     Real(dp) :: old_fr  !function at root from previous iteration
     Integer :: i,j  !counters
@@ -308,6 +309,7 @@ Subroutine Do_Illinois(f,a,fa,b,fb,r,fr,old_fr)
     Real(dp), Target :: ma,mb  !function value modifiers for Illinois
     Real(dp), Pointer :: rep,frep,mrep  !pointers to 'repeating' bracket (the one on the side of the root that is repeating)
     Real(dp), Pointer :: far,ffar,mfar  !pointers to 'far' bracket (the one Illinois forces to move)
+    Integer :: j
     
     !check for poor behavior of False-Position
     If (fr*old_fr .GE. 0._dp) Then !fr and old_fr have same sign, False-Position is behaving poorly, apply Illinois
@@ -368,6 +370,6 @@ Function RootIllinois(f,a,b,rTol,aTol) Result(r)
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances
     
     r = RootFalsePos(f,a,b,rTol,aTol,Illinois = .TRUE.)
-Ens Function RootIllinois
+End Function RootIllinois
 
 End Module Root_Solvers

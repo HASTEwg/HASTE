@@ -1,0 +1,6 @@
+./compile_Kinds
+find . -name "Legendre_Utilities.o" -type f -delete
+find . -name "Legendre_Utilities.mod" -type f -delete
+find . -name "Legendre_Utilities.f90" -type f -delete
+cp ../common/Legendre_Utilities.f90 Legendre_Utilities.f90
+gfortran -ffree-line-length-0 -c Legendre_Utilities.f90

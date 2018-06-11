@@ -1,0 +1,8 @@
+./compile_Kinds
+./compile_Utilities
+./compile_Gauss_Legendre_w_a
+find . -name "Quadratures.o" -type f -delete
+find . -name "Quadratures.mod" -type f -delete
+find . -name "Quadratures.f90" -type f -delete
+cp ../common/Quadratures.f90 Quadratures.f90
+gfortran -ffree-line-length-0 -c Quadratures.f90

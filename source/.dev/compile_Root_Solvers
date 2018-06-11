@@ -1,0 +1,7 @@
+./compile_Kinds
+./compile_Utilities
+find . -name "Root_Solvers.o" -type f -delete
+find . -name "Root_Solvers.mod" -type f -delete
+find . -name "Root_Solvers.f90" -type f -delete
+cp ../common/Root_Solvers.f90 Root_Solvers.f90
+gfortran -ffree-line-length-0 -c Root_Solvers.f90

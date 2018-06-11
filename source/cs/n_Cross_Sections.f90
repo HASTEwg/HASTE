@@ -104,7 +104,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
     Use Sorting, Only: Union_Sort
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
-    Use FileIO_Utilities, Only: fSHARE
+    Use FileIO_Utilities, Only: Output_Message
     Use Global, Only: neutron_mass
     Implicit None
     Type(CS_Type) :: CS
@@ -146,11 +146,8 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
     !read namelists from cross sections setup file
     Allocate(Character(max_path_len) :: file_name_start)
     file_name_start = resources_directory//'n_cs'//slash
-    Open(NEWUNIT = setup_unit , FILE = file_name_start//cs_setup_file , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Cross_Sections: Setup_Cross_Sections:  File open error, '//file_name_start//cs_setup_file//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    Open(NEWUNIT = setup_unit , FILE = file_name_start//cs_setup_file , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  Cross_Sections: Setup_Cross_Sections:  File open error, '//file_name_start//cs_setup_file//', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = csSetupList1)
     Allocate(el_fractions(1:n_elements))
     Allocate(n_isotopes(1:n_elements))
@@ -180,11 +177,8 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
         file_name_start = resources_directory//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))
         !count energies in absorption, elastic, and inelastic files
         cs_file_name = file_name_start//'_iso_setup.txt'
-        Open(NEWUNIT = setup_unit , FILE = cs_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
-        If (stat .NE. 0) Then
-            Print *,'ERROR:  Cross_Sections: Setup_Cross_Sections:  File open error, '//cs_file_name//', IOSTAT=',stat
-            ERROR STOP
-        End If
+        Open(NEWUNIT = setup_unit , FILE = cs_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+        If (stat .NE. 0) Call Output_Message('ERROR:  Cross_Sections: Setup_Cross_Sections:  File open error, '//cs_file_name//', IOSTAT=',stat,kill=.TRUE.)
         Read(setup_unit,NML = isoSetupList1)
         Allocate(abs_mode_names(1:n_absorption_modes))
         Read(setup_unit,NML = isoSetupList2)
@@ -227,11 +221,8 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
         file_name_start = resources_directory//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))
         !read energies in absorption, elastic, and inelastic files
         cs_file_name = file_name_start//'_iso_setup.txt'
-        Open(NEWUNIT = setup_unit , FILE = cs_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
-        If (stat .NE. 0) Then
-            Print *,'ERROR:  Cross_Sections: Setup_Cross_Sections:  File open error, '//cs_file_name//', IOSTAT=',stat
-            ERROR STOP
-        End If
+        Open(NEWUNIT = setup_unit , FILE = cs_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+        If (stat .NE. 0) Call Output_Message('ERROR:  Cross_Sections: Setup_Cross_Sections:  File open error, '//cs_file_name//', IOSTAT=',stat,kill=.TRUE.)
         Read(setup_unit,NML = isoSetupList1)
         Allocate(abs_mode_names(1:n_absorption_modes))
         Read(setup_unit,NML = isoSetupList2)
@@ -276,10 +267,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
     End Do
     !E_scratch is now a HUGE list of all the energies in all the files we're going to use, sort and eliminate duplicates
     Call Union_Sort(E_uni_scratch,n_energies,E_min,E_max)
-    If (n_energies .GT. Huge(CS%n_E_uni)) Then
-        Print *,'ERROR:  Cross_Sections: Setup_Cross_Sections:  Length of unified energy grid exceeds available index'
-        ERROR STOP
-    End If
+    If (n_energies .GT. Huge(CS%n_E_uni)) Call Output_Message('ERROR:  Cross_Sections: Setup_Cross_Sections:  Length of unified energy grid exceeds available index',kill=.TRUE.)
     !Allocate and fill the unified energy list
     CS%n_E_uni = n_energies
     Allocate(CS%E_uni(1:n_energies))
@@ -295,11 +283,8 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
         file_name_start = resources_directory//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))
         !read in absorption, elastic, and inelastic files
         cs_file_name = file_name_start//'_iso_setup.txt'
-        Open(NEWUNIT = setup_unit , FILE = cs_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
-        If (stat .NE. 0) Then
-            Print *,'ERROR:  Cross_Sections: Setup_Cross_Sections:  File open error, '//cs_file_name//', IOSTAT=',stat
-            ERROR STOP
-        End If
+        Open(NEWUNIT = setup_unit , FILE = cs_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+        If (stat .NE. 0) Call Output_Message('ERROR:  Cross_Sections: Setup_Cross_Sections:  File open error, '//cs_file_name//', IOSTAT=',stat,kill=.TRUE.)
         Read(setup_unit,NML = isoSetupList1)
         Allocate(abs_mode_names(1:n_absorption_modes))
         Read(setup_unit,NML = isoSetupList2)
@@ -425,7 +410,7 @@ End Function Setup_Cross_Sections
 
 Subroutine Read_CS_file(CS_file_name,Q,An,E_list,CS_list,Int_list,n_p,n_r,just_n)
     Use Kinds, Only: dp
-    Use FileIO_Utilities, Only: fSHARE
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Character(*), Intent(In) :: CS_file_name
     Real(dp), Intent(Out) :: Q
@@ -439,19 +424,13 @@ Subroutine Read_CS_file(CS_file_name,Q,An,E_list,CS_list,Int_list,n_p,n_r,just_n
     Real(dp) :: trash
     Integer :: cs_unit, stat
         
-    Open(NEWUNIT = cs_unit , FILE = CS_file_name , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Cross_Sections: Read_CS_file:  File open error, '//CS_file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    Open(NEWUNIT = cs_unit , FILE = CS_file_name , ACTION = 'READ' , IOSTAT = stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  Cross_Sections: Read_CS_file:  File open error, '//CS_file_name//', IOSTAT=',stat,kill=.TRUE.)
     !the first line's second entry is the mass of the target in neutron masses
     Read(cs_unit,'(2E11.6E1)') trash, An
     !the next line's second entry is the Q-value for the reaction, the fifth and sixth entries are the number of interpolation ranges and energy levels in the file
     Read(cs_unit,'(4E11.6E1,2I11)') trash, Q, trash, trash, n_r, n_p
-    If (n_r .GT. 3) Then
-        Print *,'ERROR:  Cross_Sections: Read_CS_file:  Number of interpolation ranges greater than 3: '//CS_file_name//', n_r=',n_r
-        ERROR STOP
-    End If
+    If (n_r .GT. 3) Call Output_Message('ERROR:  Cross_Sections: Read_CS_file:  Number of interpolation ranges greater than 3: '//CS_file_name//', n_r=',n_r,kill=.TRUE.)
     If (Present(just_n)) Then
         If (just_n) Then
             Close(cs_unit)
@@ -468,10 +447,7 @@ Subroutine Read_CS_file(CS_file_name,Q,An,E_list,CS_list,Int_list,n_p,n_r,just_n
     Else !n_r=3
         Read(cs_unit,'(6I11)') Int_list(1,1), Int_list(1,2), Int_list(2,1), Int_list(2,2), Int_list(3,1), Int_list(3,2)
     End If
-    If (Any(Int_list(:,2).GT.5) .OR. Any(Int_list(:,2).LT.1)) Then
-        Print *,'ERROR:  Cross_Sections: Read_CS_file:  Unknown interpolation scheme: '//CS_file_name
-        ERROR STOP
-    End If
+    If (Any(Int_list(:,2).GT.5) .OR. Any(Int_list(:,2).LT.1)) Call Output_Message('ERROR:  Cross_Sections: Read_CS_file:  Unknown interpolation scheme: '//CS_file_name,kill=.TRUE.)
     !Allocate lists
     Allocate(E_list(1:n_p))
     Allocate(CS_list(1:n_p))
@@ -494,7 +470,7 @@ End Subroutine Read_CS_file
 
 Subroutine Read_Ang_Dist_file(Coeff_file_name,E_list,da_list,n_p,LTT,just_n)
     Use Kinds, Only: dp
-    Use FileIO_Utilities, Only: fSHARE
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Character(*), Intent(In) :: Coeff_file_name
     Real(dp), Allocatable, Intent(Out) :: E_list(:)
@@ -509,18 +485,13 @@ Subroutine Read_Ang_Dist_file(Coeff_file_name,E_list,da_list,n_p,LTT,just_n)
     Integer :: n_p_add
     Logical :: new_line
     
-    Open(NEWUNIT = coeff_unit , FILE = Coeff_file_name , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Cross_Sections: Read_Ang_Dist_file:  File open error, '//Coeff_file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    Open(NEWUNIT = coeff_unit , FILE = Coeff_file_name , ACTION = 'READ' , IOSTAT = stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  Cross_Sections: Read_Ang_Dist_file:  File open error, '//Coeff_file_name//', IOSTAT=',stat,kill=.TRUE.)
     !check the LTT value on the first line to ensure Legendre Coeffs format
     Read(coeff_unit,'(3E11.6E1,I11)') trash, trash, trash, LTT
     Read(coeff_unit,'(3E11.6E1,I11)') trash, trash, trash, LCT
-    If (LCT .NE. 2) Then  !values are NOT in CM frame
-        Print *,'ERROR:  Cross_Sections: Read_Ang_Dist_file:  Incorrectly formatted file, '//Coeff_file_name//', LCT=',LCT
-        ERROR STOP
-    End If
+    !values must be in CM frame, check and thro error if they are not
+    If (LCT .NE. 2) Call Output_Message('ERROR:  Cross_Sections: Read_Ang_Dist_file:  Incorrectly formatted file, '//Coeff_file_name//', LCT=',LCT,kill=.TRUE.)
     !Skip the next line
     Read (coeff_unit,*)
     !the next line begins with the number of energy levels in the file
@@ -1041,6 +1012,7 @@ End Function sig_A
 Function sig_Composite(E,n_E,E_list,lnE_list,E_index,n1,n2,t_list,sig_list) Result(sig)
     Use Kinds, Only: dp
     Use Interpolation, Only: Linear_Interp
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Real(dp) :: sig
     Real(dp), Intent(In) :: E
@@ -1101,8 +1073,7 @@ Function sig_Composite(E,n_E,E_list,lnE_list,E_index,n1,n2,t_list,sig_list) Resu
                 sig2 = sig_list(i)%lnsig( index2 )
                 sig = sig + Exp(Linear_Interp(Log(E),E1,E2,sig1,sig2))
             Case Default
-                Print *,'ERROR:  Cross_Sections: sig_Composite:  Undefined interpolation method'
-                ERROR STOP
+                Call Output_Message('ERROR:  Cross_Sections: sig_Composite:  Undefined interpolation method',kill=.TRUE.)
         End Select
     End Do
 End Function sig_Composite
@@ -1275,6 +1246,7 @@ End Function Broad_Romberg_T_A
 Recursive Subroutine Continue_Broad_Romberg_T_A(CS,iE,vR1,vR2,gamma,v,s1,s2,d,R0,level,sig_T_A)
     Use Kinds, Only: dp
     Use Neutron_Utilities, Only: Neutron_Energy
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(CS_type), Intent(In) :: CS
     Integer, Intent(In) :: iE
@@ -1320,8 +1292,7 @@ Recursive Subroutine Continue_Broad_Romberg_T_A(CS,iE,vR1,vR2,gamma,v,s1,s2,d,R0
         End If
     End Do
     If (level .GT. 5) Then !max allowed recursion depth, interval has been split 50 times...
-        Print *,"ERROR:  Cross_Sections: Continue_Broad_Romberg_T_A:  Failed to converge before reaching max recursion depth."
-        ERROR STOP
+        Call Output_Message('ERROR:  Cross_Sections: Continue_Broad_Romberg_T_A:  Failed to converge before reaching max recursion depth.',kill=.TRUE.)
     End If
     !if we get this far, we failed to converge
     Call Continue_Broad_Romberg_T_A(CS,iE,vR1,vR2,gamma,v,s1,s2,d+10,R(:,:,10),level+1,sig_T_A)
@@ -1412,6 +1383,7 @@ End Function Broad_Romberg_T
 Recursive Subroutine Continue_Broad_Romberg_T(CS,iE,vR1,vR2,gamma,v,s1,s2,d,R0,level,sigT)
     Use Kinds, Only: dp
     Use Neutron_Utilities, Only: Neutron_Energy
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(CS_type), Intent(In) :: CS
     Integer, Intent(In) :: iE
@@ -1455,8 +1427,7 @@ Recursive Subroutine Continue_Broad_Romberg_T(CS,iE,vR1,vR2,gamma,v,s1,s2,d,R0,l
         End If
     End Do
     If (level .GT. 5) Then !max allowed recursion depth, interval has been split 50 times...
-        Print *,"ERROR:  Cross_Sections: Continue_Broad_Romberg_T:  Failed to converge before reaching max recursion depth."
-        ERROR STOP
+        Call Output_Message('ERROR:  Cross_Sections: Continue_Broad_Romberg_T:  Failed to converge before reaching max recursion depth.',kill=.TRUE.)
     End If
     !if we get this far, we failed to converge
     Call Continue_Broad_Romberg_T(CS,iE,vR1,vR2,gamma,v,s1,s2,d+10,R(:,10),level+1,sigT)
@@ -1547,6 +1518,7 @@ End Function Broad_Romberg_S_iso
 Recursive Subroutine Continue_Broad_Romberg_S_iso(CS,iso,iE,vR1,vR2,gamma,v,s1,s2,d,R0,level,sigS)
     Use Kinds, Only: dp
     Use Neutron_Utilities, Only: Neutron_Energy
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(CS_type), Intent(In) :: CS
     Integer, Intent(In) :: iso
@@ -1591,8 +1563,7 @@ Recursive Subroutine Continue_Broad_Romberg_S_iso(CS,iso,iE,vR1,vR2,gamma,v,s1,s
         End If
     End Do
     If (level .GT. 5) Then !max allowed recursion depth, interval has been split 50 times...
-        Print *,"ERROR:  Cross_Sections: Continue_Broad_Romberg_S_iso:  Failed to converge before reaching max recursion depth."
-        ERROR STOP
+        Call Output_Message('ERROR:  Cross_Sections: Continue_Broad_Romberg_S_iso:  Failed to converge before reaching max recursion depth.',kill=.TRUE.)
     End If
     !if we get this far, we failed to converge
     Call Continue_Broad_Romberg_S_iso(CS,iso,iE,vR1,vR2,gamma,v,s1,s2,d+10,R(:,10),level+1,sigS)

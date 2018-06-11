@@ -1,0 +1,6 @@
+./compile_Kinds
+find . -name "Sorting.o" -type f -delete
+find . -name "Sorting.mod" -type f -delete
+find . -name "Sorting.f90" -type f -delete
+cp ../common/Sorting.f90 Sorting.f90
+gfortran -ffree-line-length-0 -c Sorting.f90 

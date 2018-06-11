@@ -1,5 +1,6 @@
 Module GaussLegendre_w_a
     
+	Use Kinds, Only: dp
     Implicit None
     Public
     

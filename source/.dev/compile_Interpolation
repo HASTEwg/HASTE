@@ -1,0 +1,6 @@
+./compile_Kinds
+find . -name "Interpolation.o" -type f -delete
+find . -name "Interpolation.mod" -type f -delete
+find . -name "Interpolation.f90" -type f -delete
+cp ../common/Interpolation.f90 Interpolation.f90
+gfortran -ffree-line-length-0 -c Interpolation.f90

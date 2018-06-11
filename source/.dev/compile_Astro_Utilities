@@ -1,0 +1,8 @@
+./compile_Kinds
+./compile_Global
+./compile_Utilities
+find . -name "Astro_Utilities.o" -type f -delete
+find . -name "Astro_Utilities.mod" -type f -delete
+find . -name "Astro_Utilities.f90" -type f -delete
+cp ../astro/Astro_Utilities.f90 Astro_Utilities.f90
+gfortran -ffree-line-length-0 -c Astro_Utilities.f90 

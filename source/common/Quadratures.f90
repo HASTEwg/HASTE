@@ -688,9 +688,10 @@ Function GaussLegendreN(N,f,a,b) Result(q)
         End Function f
     End Interface
     Real(dp), Intent(In) :: a,b  !limits of integration
+    Real(dp), Allocatable :: wi(:),ai(:)  !weights and abscissa
     
     Allocate(wi(1:n))
-    Allocate(xi(1:n))
+    Allocate(ai(1:n))
     Select Case (N)
         Case (1)
             wi = w001
@@ -1146,7 +1147,7 @@ Function GaussLegendreN(N,f,a,b) Result(q)
             Print *,'ERROR:  Quadratures: GaussLegendreN:  Unknown N, n = ',N
             ERROR STOP
     End Select
-    q = GaussLegendre(f,a,b,n,wi,xi)
+    q = GaussLegendre(f,a,b,n,wi,ai)
 End Function GaussLegendreN
 
 End Module Quadratures

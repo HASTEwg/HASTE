@@ -1,11 +1,49 @@
 ./cleanALL
 
+# COMMON MODULES
 cp ../common/Kinds.f90 Kinds.f90
 cp ../common/Global.f90 Global.f90
 cp ../common/Utilities.f90 Utilities.f90
 cp ../common/FileIO_Utilities.f90 FileIO_Utilities.f90
+cp ../common/Interpolation.f90 Interpolation.f90
+cp ../common/Legendre_Utilities.f90 Legendre_Utilities.f90
+cp ../common/Sorting.f90 Sorting.f90
+cp ../common/Random_Numbers.f90 Random_Numbers.f90
+cp ../common/Statistics.f90 Statistics.f90
+cp ../common/Root_Solvers.f90 Root_Solvers.f90
+cp ../common/Gauss_Legendre_w_a.f90 Gauss_Legendre_w_a.f90
+cp ../common/Quadratures.f90 Quadratures.f90
 
 gfortran -ffree-line-length-0 -c Kinds.f90
 gfortran -ffree-line-length-0 -c Global.f90
 gfortran -ffree-line-length-0 -c Utilities.f90
+# FileIO_Utilities.f90 contains preprocessor definitions for:
+#  - Operating System (default Windows, -DLIN_OS specifies Linux)
+#  - Coarray support (default off, -DCAF enables coarrays)
 gfortran -cpp -DLIN_OS -ffree-line-length-0 -c FileIO_Utilities.f90
+gfortran -ffree-line-length-0 -c Interpolation.f90
+gfortran -ffree-line-length-0 -c Legendre_Utilities.f90
+gfortran -ffree-line-length-0 -c Sorting.f90
+# Random_Numbers.f90 contains preprocessor definitions for:
+#  - Intel MKL PRNGs (default off, -DIMKL specifies use Intel MKL)
+#  - Coarray support (default off, -DCAF enables coarrays)
+gfortran -cpp -ffree-line-length-0 -c Random_Numbers.f90
+gfortran -ffree-line-length-0 -c Statistics.f90
+gfortran -ffree-line-length-0 -c Root_Solvers.f90
+gfortran -ffree-line-length-0 -c Gauss_Legendre_w_a.f90
+gfortran -ffree-line-length-0 -c Quadratures.f90
+
+#ASTRO MODULES
+cp ../astro/Astro_Utilities.f90 Astro_Utilities.f90
+gfortran -ffree-line-length-0 -c Astro_Utilities.f90
+
+#ATMOSPHERE MODULES
+cp ../atm/USSA76.f90 USSA76.f90
+gfortran -ffree-line-length-0 -c USSA76.f90
+
+#Cross Sections MODULES
+cp ../cs/Neutron_Utilities.f90 Neutron_Utilities.f90
+cp ../cs/n_Cross_Sections.f90 n_Cross_Sections.f90
+
+gfortran -ffree-line-length-0 -c Neutron_Utilities.f90
+gfortran -ffree-line-length-0 -c n_Cross_Sections.f90

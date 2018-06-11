@@ -1,0 +1,8 @@
+./compile_Kinds
+./compile_Global
+./compile_Utilities
+find . -name "Neutron_Utilities.o" -type f -delete
+find . -name "Neutron_Utilities.mod" -type f -delete
+find . -name "Neutron_Utilities.f90" -type f -delete
+cp ../cs/Neutron_Utilities.f90 Neutron_Utilities.f90
+gfortran -ffree-line-length-0 -c Neutron_Utilities.f90

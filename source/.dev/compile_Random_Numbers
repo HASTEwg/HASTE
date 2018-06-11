@@ -1,0 +1,7 @@
+./compile_Kinds
+./compile_FileIO_Utilities
+find . -name "Random_Numbers.o" -type f -delete
+find . -name "Random_Numbers.mod" -type f -delete
+find . -name "Random_Numbers.f90" -type f -delete
+cp ../common/Random_Numbers.f90 Random_Numbers.f90
+gfortran -cpp -ffree-line-length-0 -c Random_Numbers.f90 

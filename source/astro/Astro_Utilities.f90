@@ -674,7 +674,7 @@ Subroutine Find_C_S(z,C,S)
                 Si = zi * a
                 S = S + Si
                 If (Abs(Ci) .LT. Abs(C)*tol .AND. Abs(Si) .LT. Abs(S)*tol) Exit
-                zi = zi * -z
+                zi = zi * (-z)
             End Do
         End Subroutine C_S_series
 End Subroutine Find_C_S

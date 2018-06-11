@@ -155,7 +155,7 @@ Module US_Std_Atm_1976
                               & (Lb(9) * (Zb(9)-Zb(8)) + 2._dp * Tb(8) - 2._dp * Tb(9))  !US Standard Atmosphere 1976 equation B-8
     Real(dp), Parameter :: big_A = Tb(8) - Tc  !US Standard Atmosphere 1976 equation B-5
     Real(dp), Parameter :: little_A = (Zb(9)-Zb(8)) * big_A / Sqrt(big_A**2 - (Tb(9)-Tc)**2)  !US Standard Atmosphere 1976 equation B-9
-    Real(dp), PArameter :: T_inf = 1000._dp
+    Real(dp), Parameter :: T_inf = 1000._dp
     Real(dp), Parameter :: lambda = Lb(9) / (T_inf - Tb(10))  !precomputed quantity for 1976 temperature calculations
     Real(dp), Parameter :: R_Z10 = R_Earth + Zb(10)
     Real(dp), Parameter :: Na = 6.022169E26_dp  ![1/kmol] Avagadro's Number

@@ -1,0 +1,7 @@
+./compile_Kinds
+./compile_Utilities
+find . -name "USSA76.o" -type f -delete
+find . -name "USSA76.mod" -type f -delete
+find . -name "USSA76.f90" -type f -delete
+cp ../atm/USSA76.f90 USSA76.f90
+gfortran -ffree-line-length-0 -c USSA76.f90 

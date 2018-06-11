@@ -1,2 +1,5 @@
+find . -name "Kinds.o" -type f -delete
+find . -name "Kinds.mod" -type f -delete
+find . -name "Kinds.f90" -type f -delete
 cp ../common/Kinds.f90 Kinds.f90
-gfortran -ffree-line-length-0 -c Kinds.f90 
+gfortran -ffree-line-length-0 -c Kinds.f90

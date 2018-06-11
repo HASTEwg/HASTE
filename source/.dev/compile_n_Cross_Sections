@@ -1,0 +1,12 @@
+./compile_Kinds
+./compile_Global
+./compile_Utilities
+./compile_FileIO_Utilities
+./compile_Sorting
+./compile_Interpolation
+./compile_Neutron_Utilities
+find . -name "n_Cross_Sections.o" -type f -delete
+find . -name "n_Cross_Sections.mod" -type f -delete
+find . -name "n_Cross_Sections.f90" -type f -delete
+cp ../cs/n_Cross_Sections.f90 n_Cross_Sections.f90
+gfortran -ffree-line-length-0 -c n_Cross_Sections.f90 

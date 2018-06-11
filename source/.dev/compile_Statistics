@@ -1,0 +1,7 @@
+./compile_Kinds
+./compile_Random_Numbers
+find . -name "Statistics.o" -type f -delete
+find . -name "Statistics.mod" -type f -delete
+find . -name "Statistics.f90" -type f -delete
+cp ../common/Statistics.f90 Statistics.f90
+gfortran -ffree-line-length-0 -c Statistics.f90 

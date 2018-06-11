@@ -1,3 +1,6 @@
 ./compile_Kinds
+find . -name "Global.o" -type f -delete
+find . -name "Global.mod" -type f -delete
+find . -name "Global.f90" -type f -delete
 cp ../common/Global.f90 Global.f90
-gfortran -ffree-line-length-0 -c Global.f90 
+gfortran -ffree-line-length-0 -c Global.f90

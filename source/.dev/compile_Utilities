@@ -1,3 +1,6 @@
 ./compile_Kinds
+find . -name "Utilities.o" -type f -delete
+find . -name "Utilities.mod" -type f -delete
+find . -name "Utilities.f90" -type f -delete
 cp ../common/Utilities.f90 Utilities.f90
-gfortran -ffree-line-length-0 -c Utilities.f90 
+gfortran -ffree-line-length-0 -c Utilities.f90
