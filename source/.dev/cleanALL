@@ -1,0 +1,3 @@
+find . -name "*.o" -type f -delete
+find . -name "*.mod" -type f -delete
+find . -name "*.f90" -type f -delete

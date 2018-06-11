@@ -1,0 +1,2 @@
+cp ../common/Kinds.f90 Kinds.f90
+gfortran -ffree-line-length-0 -c Kinds.f90 

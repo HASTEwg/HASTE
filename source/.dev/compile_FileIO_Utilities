@@ -1,0 +1,3 @@
+./compile_Kinds
+cp ../common/FileIO_Utilities.f90 FileIO_Utilities.f90
+gfortran -cpp -DLIN_OS -ffree-line-length-0 -c FileIO_Utilities.f90
