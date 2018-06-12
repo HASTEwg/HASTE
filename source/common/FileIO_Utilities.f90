@@ -38,8 +38,15 @@ Module FileIO_Utilities
     Private :: Output_Message_CSPC  !Public via OUTPUT_MESSAGE
     Private :: Output_Message_CDP   !Public via OUTPUT_MESSAGE
     Private :: Output_Message_CDPC  !Public via OUTPUT_MESSAGE
-    !Private :: Output_Message_CL    !Public via OUTPUT_MESSAGE
-    !Private :: Output_Message_CLC   !Public via OUTPUT_MESSAGE
+    Private :: Log_Message_C     !Public via LOG_MESSAGE
+    Private :: Log_Message_CI4   !Public via LOG_MESSAGE
+    Private :: Log_Message_CI4C  !Public via LOG_MESSAGE
+    Private :: Log_Message_CI8   !Public via LOG_MESSAGE
+    Private :: Log_Message_CI8C  !Public via LOG_MESSAGE
+    Private :: Log_Message_CSP   !Public via LOG_MESSAGE
+    Private :: Log_Message_CSPC  !Public via LOG_MESSAGE
+    Private :: Log_Message_CDP   !Public via LOG_MESSAGE
+    Private :: Log_Message_CDPC  !Public via LOG_MESSAGE
     
     Interface Var_to_file
         Module Procedure DP_to_file
@@ -79,16 +86,25 @@ Module FileIO_Utilities
         Module Procedure Output_Message_CSPC
         Module Procedure Output_Message_CDP
         Module Procedure Output_Message_CDPC
-    !    Module Procedure Output_Message_CL
-    !    Module Procedure Output_Message_CLC
     End Interface Output_Message
-    
+
+    Interface Log_Message
+        Module Procedure Log_Message_C
+        Module Procedure Log_Message_CI4
+        Module Procedure Log_Message_CI4C
+        Module Procedure Log_Message_CI8
+        Module Procedure Log_Message_CI8C
+        Module Procedure Log_Message_CSP
+        Module Procedure Log_Message_CSPC
+        Module Procedure Log_Message_CDP
+        Module Procedure Log_Message_CDPC
+    End Interface Log_Message
+
 !  Character & I/O constants for LINUX vs Windows file systems
 #   if LIN_OS
-        Character(1), Parameter :: slash = '/'
-    !otherwise, assume Windows OS
+        Character(1), Parameter :: slash = '/'  !<--LINUX implementation
 #   else
-        Character(1), Parameter :: slash = '\'
+        Character(1), Parameter :: slash = '\'  !<--WINDOWS implementation
 #   endif
     
 !  Non-printing character constants for portability
@@ -96,11 +112,13 @@ Module FileIO_Utilities
     Character(1), Parameter :: newline = achar(10)
     Character(1), Parameter :: ding = achar(7)
     
-!  Arbitrary maximum string length for paths, for portability
+!  Arbitrary maximum string lengths, for portability
     Integer, Parameter :: max_path_len = 255
+    Integer, Parameter :: max_line_len = 80
     
 Contains
 
+!!!!!!!!!!  VAR_TO_FILE ROUTINES  !!!!!!!!!!
 Subroutine Open_for_Var_to_File(file_name,unit,stat)
     Implicit None
     Character(*), Intent(In) :: file_name
@@ -109,20 +127,6 @@ Subroutine Open_for_Var_to_File(file_name,unit,stat)
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , FORM = 'UNFORMATTED', IOSTAT = stat)
 End Subroutine Open_for_Var_to_File
-
-Subroutine Open_for_Var_from_File(file_name,dont_share,unit,stat)
-    Implicit None
-    Character(*), Intent(In) :: file_name
-    Logical, Intent(In) :: dont_share
-    Integer, Intent(Out) :: unit
-    Integer, Intent(Out) :: stat
-    
-    If (dont_share) Then
-        Open(NEWUNIT = unit , FILE = file_name , STATUS = 'OLD' , ACTION = 'READ' , FORM = 'UNFORMATTED' , IOSTAT = stat)
-    Else
-        Open(NEWUNIT = unit , FILE = file_name , STATUS = 'OLD' , ACTION = 'READ' , FORM = 'UNFORMATTED' , IOSTAT = stat)
-    End If
-End Subroutine Open_for_Var_from_File
 
 Subroutine DP_to_file(r,file_name)
     Use Kinds, Only: dp
@@ -284,6 +288,17 @@ Subroutine L_to_file(L,file_name)
     Close(unit)
 End Subroutine L_to_file
 
+!!!!!!!!!!  VAR_FROM_FILE ROUTINES  !!!!!!!!!!
+
+Subroutine Open_for_Var_from_File(file_name,unit,stat)
+    Implicit None
+    Character(*), Intent(In) :: file_name
+    Integer, Intent(Out) :: unit
+    Integer, Intent(Out) :: stat
+    
+    Open(NEWUNIT = unit , FILE = file_name , STATUS = 'OLD' , ACTION = 'READ' , FORM = 'UNFORMATTED' , IOSTAT = stat)
+End Subroutine Open_for_Var_from_File
+
 Subroutine DP_from_file(r,file_name,delete_file)
     Use Kinds, Only: dp
     Implicit None
@@ -292,19 +307,17 @@ Subroutine DP_from_file(r,file_name,delete_file)
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
     Integer :: stat
-    Logical :: del_f
     
-    If (Present(delete_file)) Then
-        del_f = delete_file
-    Else
-        del_f = .FALSE.
-    End If
-    Call Open_for_Var_from_File(file_name,del_f,unit,stat)
+    Call Open_for_Var_from_File(file_name,unit,stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) r
     If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    If (del_f) Then
-        Close(unit , STATUS = 'DELETE')
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
     Else
         Close(unit)
     End If
@@ -318,19 +331,17 @@ Subroutine DP_1Darray_from_file(r,file_name,delete_file)
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
     Integer :: stat
-    Logical :: del_f
     
-    If (Present(delete_file)) Then
-        del_f = delete_file
-    Else
-        del_f = .FALSE.
-    End If
-    Call Open_for_Var_from_File(file_name,del_f,unit,stat)
+    Call Open_for_Var_from_File(file_name,unit,stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_1Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) r
     If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_1Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    If (del_f) Then
-        Close(unit , STATUS = 'DELETE')
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
     Else
         Close(unit)
     End If
@@ -344,19 +355,17 @@ Subroutine DP_2Darray_from_file(r,file_name,delete_file)
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
     Integer :: stat
-    Logical :: del_f
     
-    If (Present(delete_file)) Then
-        del_f = delete_file
-    Else
-        del_f = .FALSE.
-    End If
-    Call Open_for_Var_from_File(file_name,del_f,unit,stat)
+    Call Open_for_Var_from_File(file_name,unit,stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_2Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) r
     If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_2Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    If (del_f) Then
-        Close(unit , STATUS = 'DELETE')
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
     Else
         Close(unit)
     End If
@@ -369,19 +378,17 @@ Subroutine I4_from_file(i,file_name,delete_file)
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
     Integer :: stat
-    Logical :: del_f
     
-    If (Present(delete_file)) Then
-        del_f = delete_file
-    Else
-        del_f = .FALSE.
-    End If
-    Call Open_for_Var_from_File(file_name,del_f,unit,stat)
+    Call Open_for_Var_from_File(file_name,unit,stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit) i
     If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    If (del_f) Then
-        Close(unit , STATUS = 'DELETE')
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
     Else
         Close(unit)
     End If
@@ -394,19 +401,17 @@ Subroutine I4_1Darray_from_file(i,file_name,delete_file)
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
     Integer :: stat
-    Logical :: del_f
     
-    If (Present(delete_file)) Then
-        del_f = delete_file
-    Else
-        del_f = .FALSE.
-    End If
-    Call Open_for_Var_from_File(file_name,del_f,unit,stat)
+    Call Open_for_Var_from_File(file_name,unit,stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_1Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) i
     If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_1Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    If (del_f) Then
-        Close(unit , STATUS = 'DELETE')
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
     Else
         Close(unit)
     End If
@@ -419,19 +424,17 @@ Subroutine I4_2Darray_from_file(i,file_name,delete_file)
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
     Integer :: stat
-    Logical :: del_f
     
-    If (Present(delete_file)) Then
-        del_f = delete_file
-    Else
-        del_f = .FALSE.
-    End If
-    Call Open_for_Var_from_File(file_name,del_f,unit,stat)
+    Call Open_for_Var_from_File(file_name,unit,stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_2Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) i
     If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_2Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    If (del_f) Then
-        Close(unit , STATUS = 'DELETE')
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
     Else
         Close(unit)
     End If
@@ -444,19 +447,17 @@ Subroutine I8_from_file(i,file_name,delete_file)
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
     Integer :: stat
-    Logical :: del_f
     
-    If (Present(delete_file)) Then
-        del_f = delete_file
-    Else
-        del_f = .FALSE.
-    End If
-    Call Open_for_Var_from_File(file_name,del_f,unit,stat)
+    Call Open_for_Var_from_File(file_name,unit,stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit) i
     If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    If (del_f) Then
-        Close(unit , STATUS = 'DELETE')
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
     Else
         Close(unit)
     End If
@@ -469,19 +470,17 @@ Subroutine I8_1Darray_from_file(i,file_name,delete_file)
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
     Integer :: stat
-    Logical :: del_f
     
-    If (Present(delete_file)) Then
-        del_f = delete_file
-    Else
-        del_f = .FALSE.
-    End If
-    Call Open_for_Var_from_File(file_name,del_f,unit,stat)
+    Call Open_for_Var_from_File(file_name,unit,stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_1Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) i
     If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_1Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    If (del_f) Then
-        Close(unit , STATUS = 'DELETE')
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
     Else
         Close(unit)
     End If
@@ -494,19 +493,17 @@ Subroutine I8_2Darray_from_file(i,file_name,delete_file)
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
     Integer :: stat
-    Logical :: del_f
     
-    If (Present(delete_file)) Then
-        del_f = delete_file
-    Else
-        del_f = .FALSE.
-    End If
-    Call Open_for_Var_from_File(file_name,del_f,unit,stat)
+    Call Open_for_Var_from_File(file_name,unit,stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_2Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) i
     If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_2Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    If (del_f) Then
-        Close(unit , STATUS = 'DELETE')
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
     Else
         Close(unit)
     End If
@@ -520,21 +517,19 @@ Subroutine C_from_file(C,file_name,delete_file)
     Integer :: unit
     Integer :: stat
     Character(max_path_len) :: Cmax
-    Logical :: del_f
     
-    If (Present(delete_file)) Then
-        del_f = delete_file
-    Else
-        del_f = .FALSE.
-    End If
-    Call Open_for_Var_from_File(file_name,del_f,unit,stat)
+    Call Open_for_Var_from_File(file_name,unit,stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: C_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) Cmax
     If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: C_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     If (Len(Trim(Cmax)) .GT. Len(C)) Call Output_Message('ERROR:  FileIO_Utilities: C_from_file:  Read string is longer than requested string',kill=.TRUE.)
     C = Trim(Cmax)
-    If (del_f) Then
-        Close(unit , STATUS = 'DELETE')
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
     Else
         Close(unit)
     End If
@@ -547,29 +542,30 @@ Subroutine L_from_file(L,file_name,delete_file)
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
     Integer :: stat
-    Logical :: del_f
     
-    If (Present(delete_file)) Then
-        del_f = delete_file
-    Else
-        del_f = .FALSE.
-    End If
-    Call Open_for_Var_from_File(file_name,del_f,unit,stat)
+    Call Open_for_Var_from_File(file_name,unit,stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: L_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) L
     If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: L_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    If (del_f) Then
-        Close(unit , STATUS = 'DELETE')
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
     Else
         Close(unit)
     End If
 End Subroutine L_from_file
 
+!!!!!!!!!!  FILE AND DIRECTORY MANAGEMENT ROUTINES  !!!!!!!!!!
 Subroutine Working_Directory(GETdir,PUTdir,s)
     !Gets and/or sets the current working directory, appending a slash character if supplied
-    !GETCWD is an extension and non-standard, the GFORTRAN version is implemented here, but code for IFORT is in-place but commented out
-    !Use IFPORT, Only: GETCWD  !<--IFORT implementation
-    !Use IFPORT, Only: CHDIR  !<--IFORT implementation
+    !UNSTANDARD: GETCWD and CHDIR are extensions
+#   if IFORT
+        Use IFPORT, Only: GETCWD  !<--IFORT implementation
+        Use IFPORT, Only: CHDIR  !<--IFORT implementation
+#   endif
     Implicit None
     Character(max_path_len), Intent(Out), Optional :: GETdir
     Character(max_path_len), Intent(In), Optional :: PUTdir
@@ -578,8 +574,11 @@ Subroutine Working_Directory(GETdir,PUTdir,s)
     Integer :: pathlen
     
     If (Present(GETdir)) Then
-        !stat = GETCWD(GETdir)  !<--IFORT implementation
-        Call GETCWD(GETdir , stat)
+#       if IFORT
+            stat = GETCWD(GETdir)  !<--IFORT implementation
+#       else
+            Call GETCWD(GETdir , stat)  !<--GFORT implementation
+#       endif
         If (Present(s)) GETdir = Trim(GETdir)//s
     End If
     If (Present(PUTdir)) Then
@@ -589,13 +588,16 @@ End Subroutine Working_Directory
 
 Function Check_Directory(dirname) Result(exists)
     !returns TRUE if the directory exists in the current working directory
-    !DIRECTORY is an extension and non-standard, the GFORTRAN version is implemented here, but code for IFORT is in-place but commented out
+    !UNSTANDARD: DIRECTORY is an Intel extension
     Implicit None
     Logical :: exists
     Character(*), Intent(In) :: dirname
     
-    !INQUIRE(DIRECTORY = dirname , EXIST = exists)  !<--IFORT implementation
-    INQUIRE(FILE = dirname , EXIST = exists)
+#   if IFORT
+        INQUIRE(DIRECTORY = dirname , EXIST = exists)  !<--IFORT implementation
+#   else
+        INQUIRE(FILE = dirname , EXIST = exists)  !<--GFORT implementation
+#   endif
 End Function Check_Directory
 
 Subroutine Create_Directory(dirname)
@@ -612,10 +614,9 @@ Subroutine Delete_Directory(dirname)
     Character(*), Intent(In) :: dirname
 
 #   if LIN_OS
-        Call EXECUTE_COMMAND_LINE('rm -f -r '//dirname)
-    !otherwise, assume Windows OS
+        Call EXECUTE_COMMAND_LINE('rm -f -r '//dirname)  !<--LINUX implementation
 #   else
-        Call EXECUTE_COMMAND_LINE('rmdir /S /Q '//dirname)
+        Call EXECUTE_COMMAND_LINE('rmdir /S /Q '//dirname)  !<--WINDOWS implementation
 #   endif
 End Subroutine Delete_Directory
 
@@ -648,6 +649,7 @@ Subroutine Make_Boom()
     Write(*,*)
 End Subroutine Make_Boom
 
+!!!!!!!!!!  LOG_MESSAGE ROUTINES  !!!!!!!!!!
 Subroutine Open_for_Log_Message(file_name,unit,stat)
     Implicit None
     Character(*), Intent(In) :: file_name
@@ -660,26 +662,213 @@ Subroutine Open_for_Log_Message(file_name,unit,stat)
         Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
         If (stat .EQ. 0) Exit  !NORMAL EXIT
         i = i + 1
-        If (i .GT. 1000) Call Output_Message('ERROR:  FileIO_Utilities: Open_for_Log_Message:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+        If (i .GT. 1000) Exit  !FAILED EXIT
         Call Wait(100)  !wait 100 milliseconds before retrying
     End Do
 End Subroutine Open_for_Log_Message
 
-!UNDONE Other log message routines, also consider time and worker stamping for screen outputs
+Subroutine Log_Stamp()
+    Implicit None
+    Character(max_line_len) :: Log_Stamp
+    Character(8) :: d
+    Character(10) :: t
+    
+    Write(Log_Stamp,'(A,I0)') Date_Time_stamp()//' Worker ',Worker_Index()
+End Subroutine Log_Stamp
+
 Subroutine Log_Message_C(message,logfile)
     Implicit None
     Character(*), Intent(In) :: message
     Character(*), Intent(In) :: logfile
-    Integer :: unit,stat,i
+    Integer :: unit,stat
+    Character(max_line_len) :: stamp
     
+    Call Log_Stamp(stamp)
     Call Open_for_Log_Message(logfile,unit,stat)
-    Call Thread_Index(i)
-    Write(unit,'(A,I0)') FDATE()//' Thread/Image ',Thread_Index
+    If (stat .NE. 0) Then
+        Call Output_Message('ERROR:  FileIO_Utilities: Log_Message_C:  File open error, '//logfile//', IOSTAT=',stat)
+        Call Output_Message('MESSAGE NOT LOGGED.')
+        Return
+    End If
+    Write(unit,'(A)') Trim(stamp)
     Write(unit,'(A)') message
     Write(unit,*)
     Close(unit)
 End Subroutine Log_Message_C
 
+Subroutine Log_Message_CI4(message,i,logfile)
+    Implicit None
+    Character(*), Intent(In) :: message
+    Integer(4), Intent(In) :: i
+    Character(*), Intent(In) :: logfile
+    Integer :: unit,stat
+    Character(max_line_len) :: stamp
+    
+    Call Log_Stamp(stamp)
+    Call Open_for_Log_Message(logfile,unit,stat)
+    If (stat .NE. 0) Then
+        Call Output_Message('ERROR:  FileIO_Utilities: Log_Message_CI4:  File open error, '//logfile//', IOSTAT=',stat)
+        Call Output_Message('MESSAGE NOT LOGGED.')
+        Return
+    End If
+    Write(unit,'(A)') Trim(stamp)
+    Write(unit,'(A,I0)') message,i
+    Write(unit,*)
+    Close(unit)
+End Subroutine Log_Message_CI4
+
+Subroutine Log_Message_CI4C(message1,i,message2,logfile)
+    Implicit None
+    Character(*), Intent(In) :: message1,message2
+    Integer(4), Intent(In) :: i
+    Character(*), Intent(In) :: logfile
+    Integer :: unit,stat
+    Character(max_line_len) :: stamp
+    
+    Call Log_Stamp(stamp)
+    Call Open_for_Log_Message(logfile,unit,stat)
+    If (stat .NE. 0) Then
+        Call Output_Message('ERROR:  FileIO_Utilities: Log_Message_CI4C:  File open error, '//logfile//', IOSTAT=',stat)
+        Call Output_Message('MESSAGE NOT LOGGED.')
+        Return
+    End If
+    Write(unit,'(A)') Trim(stamp)
+    Write(unit,'(A,I0,A)') message1,i,message2
+    Write(unit,*)
+    Close(unit)
+End Subroutine Log_Message_CI4C
+
+Subroutine Log_Message_CI8(message,i,logfile)
+    Implicit None
+    Character(*), Intent(In) :: message
+    Integer(8), Intent(In) :: i
+    Character(*), Intent(In) :: logfile
+    Integer :: unit,stat
+    Character(max_line_len) :: stamp
+    
+    Call Log_Stamp(stamp)
+    Call Open_for_Log_Message(logfile,unit,stat)
+    If (stat .NE. 0) Then
+        Call Output_Message('ERROR:  FileIO_Utilities: Log_Message_CI8:  File open error, '//logfile//', IOSTAT=',stat)
+        Call Output_Message('MESSAGE NOT LOGGED.')
+        Return
+    End If
+    Write(unit,'(A)') Trim(stamp)
+    Write(unit,'(A,I0)') message,i
+    Write(unit,*)
+    Close(unit)
+End Subroutine Log_Message_CI8
+
+Subroutine Log_Message_CI8C(message1,i,message2,logfile)
+    Implicit None
+    Character(*), Intent(In) :: message1,message2
+    Integer(8), Intent(In) :: i
+    Character(*), Intent(In) :: logfile
+    Integer :: unit,stat
+    Character(max_line_len) :: stamp
+    
+    Call Log_Stamp(stamp)
+    Call Open_for_Log_Message(logfile,unit,stat)
+    If (stat .NE. 0) Then
+        Call Output_Message('ERROR:  FileIO_Utilities: Log_Message_CI8C:  File open error, '//logfile//', IOSTAT=',stat)
+        Call Output_Message('MESSAGE NOT LOGGED.')
+        Return
+    End If
+    Write(unit,'(A)') Trim(stamp)
+    Write(unit,'(A,I0,A)') message1,i,message2
+    Write(unit,*)
+    Close(unit)
+End Subroutine Log_Message_CI8C
+
+Subroutine Log_Message_CSP(message,r,logfile)
+    Use Kinds, Only: sp
+    Implicit None
+    Character(*), Intent(In) :: message
+    Real(sp), Intent(In) :: r
+    Character(*), Intent(In) :: logfile
+    Integer :: unit,stat
+    Character(max_line_len) :: stamp
+    
+    Call Log_Stamp(stamp)
+    Call Open_for_Log_Message(logfile,unit,stat)
+    If (stat .NE. 0) Then
+        Call Output_Message('ERROR:  FileIO_Utilities: Log_Message_CSP:  File open error, '//logfile//', IOSTAT=',stat)
+        Call Output_Message('MESSAGE NOT LOGGED.')
+        Return
+    End If
+    Write(unit,'(A)') Trim(stamp)
+    Write(unit,'(A,F0.8)') message,r
+    Write(unit,*)
+    Close(unit)
+End Subroutine Log_Message_CSP
+
+Subroutine Log_Message_CSPC(message1,r,message2,logfile)
+    Use Kinds, Only: sp
+    Implicit None
+    Character(*), Intent(In) :: message1,message2
+    Real(sp), Intent(In) :: r
+    Character(*), Intent(In) :: logfile
+    Integer :: unit,stat
+    Character(max_line_len) :: stamp
+    
+    Call Log_Stamp(stamp)
+    Call Open_for_Log_Message(logfile,unit,stat)
+    If (stat .NE. 0) Then
+        Call Output_Message('ERROR:  FileIO_Utilities: Log_Message_CSPC:  File open error, '//logfile//', IOSTAT=',stat)
+        Call Output_Message('MESSAGE NOT LOGGED.')
+        Return
+    End If
+    Write(unit,'(A)') Trim(stamp)
+    Write(unit,'(A,F0.8,A)') message1,r,message2
+    Write(unit,*)
+    Close(unit)
+End Subroutine Log_Message_CSPC
+
+Subroutine Log_Message_CDP(message,r,logfile)
+    Use Kinds, Only: dp
+    Implicit None
+    Character(*), Intent(In) :: message
+    Real(dp), Intent(In) :: r
+    Character(*), Intent(In) :: logfile
+    Integer :: unit,stat
+    Character(max_line_len) :: stamp
+    
+    Call Log_Stamp(stamp)
+    Call Open_for_Log_Message(logfile,unit,stat)
+    If (stat .NE. 0) Then
+        Call Output_Message('ERROR:  FileIO_Utilities: Log_Message_CDP:  File open error, '//logfile//', IOSTAT=',stat)
+        Call Output_Message('MESSAGE NOT LOGGED.')
+        Return
+    End If
+    Write(unit,'(A)') Trim(stamp)
+    Write(unit,'(A,F0.16)') message,r
+    Write(unit,*)
+    Close(unit)
+End Subroutine Log_Message_CDP
+
+Subroutine Log_Message_CDPC(message1,r,message2,logfile)
+    Use Kinds, Only: dp
+    Implicit None
+    Character(*), Intent(In) :: message1,message2
+    Real(dp), Intent(In) :: r
+    Character(*), Intent(In) :: logfile
+    Integer :: unit,stat
+    Character(max_line_len) :: stamp
+    
+    Call Log_Stamp(stamp)
+    Call Open_for_Log_Message(logfile,unit,stat)
+    If (stat .NE. 0) Then
+        Call Output_Message('ERROR:  FileIO_Utilities: Log_Message_CDPC:  File open error, '//logfile//', IOSTAT=',stat)
+        Call Output_Message('MESSAGE NOT LOGGED.')
+        Return
+    End If
+    Write(unit,'(A)') Trim(stamp)
+    Write(unit,'(A,F0.16,A)') message1,r,message2
+    Write(unit,*)
+    Close(unit)
+End Subroutine Log_Message_CDPC
+
+!!!!!!!!!!  OUTPUT_MESSAGE ROUTINES !!!!!!!!!!
 Subroutine Output_Message_C(message,kill)
     Implicit None
     Character(*), Intent(In) :: message
@@ -800,62 +989,61 @@ Subroutine Output_Message_CDPC(message1,r,message2,kill)
     End If
 End Subroutine Output_Message_CDPC
 
-!HACK The following two routines are commented out due to an unknown "interface conflict" compiler error
-!Subroutine Output_Message_CL(message,l,kill)
-!    Implicit None
-!    Character(*), Intent(In) :: message
-!    Logical, Intent(In) :: l
-!    Logical, Intent(In), Optional :: kill
-!    
-!    Write(*,'(A,L)') message,l
-!    Write(*,*) ding
-!    If (Present(kill)) Then
-!        If (kill) ERROR STOP
-!    End If
-!End Subroutine Output_Message_CL
-!
-!Subroutine Output_Message_CLC(message1,l,message2,kill)
-!    Implicit None
-!    Character(*), Intent(In) :: message1,message2
-!    Logical, Intent(In) :: l
-!    Logical, Intent(In), Optional :: kill
-!    
-!    Write(*,'(A,L,A)') message1,l,message2
-!    Write(*,*) ding
-!    If (Present(kill)) Then
-!        If (kill) ERROR STOP
-!    End If
-!End Subroutine Output_Message_CLC
-
-Subroutine Thread_Index(i,OMP_threaded,CAF_imaged)
+!!!!!!!!!!  THREAD, IMAGE, and WORKER INDEXING ROUTINES  !!!!!!!!!!
+Function Worker_Index(OMP_threaded,CAF_imaged) Result(i)
     Use OMP_LIB, Only: OMP_GET_NUM_THREADS,OMP_GET_THREAD_NUM
     Implicit None
-    Integer, Intent(Out) :: i
+    Integer :: i
     Logical, Intent(Out), Optional :: OMP_threaded
     Logical, Intent(Out), Optional :: CAF_imaged
 
     If (Present(OMP_threaded)) OMP_threaded = .FALSE.
     If (Present(CAF_imaged)) CAF_imaged = .FALSE.
-    i = 0  !default value for single treaded/imaged aaplications
 #   if CAF
-        If (OMP_GET_NUM_THREADS().GT.1 .OR. num_images().GT.1) Then !Parallel threads or images are running
-            If (OMP_GET_NUM_THREADS() .GT. 1) Then  !use the OpenMP thread number to index the thread
-                i = OMP_GET_THREAD_NUM() + 1  !OpenMP threads are numbered starting at zero
-                If (Present(OMP_threaded)) OMP_threaded = .TRUE.
-            Else If (num_images() .GT. 1) Then  !use the coarray image number to index the saved RNG stream
+        If (n_Workers().GT.1) Then !Parallel threads or images are running
+            If (num_images() .GT. 1) Then  !use the coarray image number to index the worker
                 i = this_image()  !coarray images are numbered starting at 1
                 If (Present(CAF_imaged)) CAF_imaged = .TRUE.
+            Else If (OMP_GET_NUM_THREADS() .GT. 1) Then  !use the OpenMP thread number to index the worker
+                i = OMP_GET_THREAD_NUM() + 1  !OpenMP threads are numbered starting at zero
+                If (Present(OMP_threaded)) OMP_threaded = .TRUE.
             Else
-                Print *,'ERROR:  Utilities: Thread_Index:  Unable to resolve thread or image number.'
-                ERROR STOP
+                Call Output_Message('ERROR:  FileIO_Utilities: Worker_Index:  Unable to resolve thread or image number.',kill=.TRUE.)
             End If
+        Else
+            i = 0  !default value for single threaded/imaged applications
         End If
+#   else
+        i = 0  !default value for single threaded/imaged applications
 #   endif
-End Subroutine Thread_Index
+End Function Worker_Index
 
+Function n_Workers() Result(n)
+    Use OMP_LIB, Only: OMP_GET_NUM_THREADS
+    Implicit None
+    Integer :: i
+
+#   if CAF
+        If (OMP_GET_NUM_THREADS().GT.1 .OR. num_images().GT.1) Then !Parallel threads or images are running
+            If (num_images() .GT. 1) Then
+                n = num_images()
+            Else If (OMP_GET_NUM_THREADS() .GT. 1) Then  !use the OpenMP thread number to index the thread
+                n = OMP_GET_NUM_THREADS()
+            Else
+                Call Output_Message('ERROR:  FileIO_Utilities: n_Workers:  Unable to resolve number of threads or images.',kill=.TRUE.)
+            End If
+        Else
+            n = 1  !default value for single threaded/imaged applications
+        End If
+#   else
+        n = 1  !default value for single threaded/imaged applications
+#   endif
+End Function n_Workers
+
+!!!!!!!!!!  TIMING ROUTINES  !!!!!!!!!!
 Function Second_of_Month() Result(s)
     !Returns number of seconds since the beginning of the month
-    !(to millisecond resolution, and according to the system clock) 
+    !(to millisecond resolution, and according to the system clock)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: s
@@ -874,36 +1062,108 @@ Function Second_of_Month() Result(s)
             & + Real(v(8),dp)*ms2sec !milliseconds
 End Function Second_of_Month
 
-Function Date_Time_string() Result(s)
-    !Use IFPORT, Only: FDATE  <--FDATE is an extension supported by GFORTRAN and IFORT: for IFORT, uncomment this use statement
+Function Delta_Time(start_clock,clock_then) Result(sec)
+    !Returns number of seconds since an arbitrary start time (set by a previous call to this routine)
+    !(to millisecond resolution, and according to the system clock)
+    Use Kinds, Only: dp
     Implicit None
-    Character(30) :: s
+    Real(dp) :: sec
+    Integer(4), Intent(Out), Optional :: start_clock
+    Integer(4), Intent(In), Optional :: clock_then
+    Integer(4) :: clock_now,clock_delta
+    Real(dp), Parameter :: ms2sec  = 1.E-3_dp
     
-    s = FDATE()
+    If (Present(start_clock)) Then
+        Call SYSTEM_CLOCK(start_clock)
+        sec = 0._dp
+        RETURN
+    Else If (Present(clock_then)) Then
+        Call SYSTEM_CLOCK(clock_now)
+        If (clock_now .LT. clock_then) Then
+            clock_delta = clock_now + (HUGE(clock_then) - clock_then)
+        Else
+            clock_delta = clock_now - clock_then
+        End If
+        sec = Real(clock_delta,dp)*ms2sec
+    End If
+End Function Delta_Time
+
+Function Date_Time_string() Result(s)
+    Implicit None
+    Character(20) :: s
+    Integer :: v(8)
+    Character(5) :: m
+    
+    Call DATE_AND_TIME(VALUES = v)
+    Select Case v(2)
+        Case (1)
+            m = ' Jan '
+        Case (2)
+            m = ' Feb '
+        Case (3)
+            m = ' Mar '
+        Case (4)
+            m = ' Apr '
+        Case (5)
+            m = ' May '
+        Case (6)
+            m = ' Jun '
+        Case (7)
+            m = ' Jul '
+        Case (8)
+            m = ' Aug '
+        Case (9)
+            m = ' Sep '
+        Case (10)
+            m = ' Oct '
+        Case (11)
+            m = ' Nov '
+        Case (12)
+            m = ' Dec '
+    End Select
+    Write(s,'(I2.2,A5,I4.4,A1,I2.2,A1,I2.2,A1,I2.2)') v(3),m,v(1),' ',v(5),':',v(6),':',v(7)
 End Function Date_Time_string
 
-Function Get_Host_Name() Result(s)
-    !Use IFPORT, Only: HOSTNAM  !<--IFORT implementation
+Function Date_Time_stamp() Result(s)
     Implicit None
-    Character(80) :: s
+    Character(20) :: s
+    Character(8) :: d
+    Character(10) :: t
+    
+    Call DATE_AND_TIME(DATE = d, TIME = t)
+    s = d//' '//t//' '
+End Function Date_Time_stamp
+
+Function Get_Host_Name() Result(s)
+    !UNSTANDARD: HOSTNAM (IFORT) and HOSTNM (GFORT) are extensions
+#   if IFORT
+        Use IFPORT, Only: HOSTNAM  !<--IFORT implementation
+#   endif
+    Implicit None
+    Character(max_line_len) :: s
     Integer :: stat
     
-    !stat = HOSTNAM(s)  !<--IFORT implementation
-    Call HOSTNM(s,stat)
+#   if IFORT
+        stat = HOSTNAM(s)  !<--IFORT implementation
+#   else
+        Call HOSTNM(s,stat)  !<--GFORT implementation
+#   endif
     If (stat .NE. 0) s = 'UNKNOWN'
 End Function Get_Host_Name
 
 Subroutine Wait(ms)
     Implicit None
-    Integer, Intent(In) :: ms !number of milliseconds to wait before returning
-    Integer :: t1,t2,u
+    Integer(4), Intent(In) :: ms !number of milliseconds to wait before returning
+    Integer(4) :: t1,t2,u
 
     Call SYSTEM_CLOCK(count = t1)
     u = 0
     Do
         Call SYSTEM_CLOCK(count = t2)
-        If (t2 - t1 + u .GT. ms) Return
-        If (t2 .LT. t1) Then !clock has wrapped around
+        If (t2 - t1 + u .GT. ms) Then
+            Return
+        Else If (t2 .LT. t1) Then !clock has wrapped around
+        !this is rare (about once per 25 days), but would cause the loop to stall
             u = HUGE(t1) - t1
             t1 = 0
         End If
