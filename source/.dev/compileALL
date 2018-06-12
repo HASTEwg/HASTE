@@ -9,6 +9,7 @@
 #  - Operating System (default Windows, -DLIN_OS specifies Linux)
 #  - Intel MKL PRNGs (default off, -DIMKL specifies use Intel MKL)
 #  - Coarray support (default off, -DCAF enables coarrays)
+#  - Compiler vendor (default gFortran, -DIFORT for Intel)
 PREP_FLAGS="-cpp -DLIN_OS"
 GFORT_FLAGS_DEBUG="${PREP_FLAGS} -Og -fmax-errors=5 -Wall -ffree-line-length-0 -fimplicit-none -fcheck=all -pedantic -fbacktrace -fcoarray=none"
 GFORT_FLAGS_o="${GFORT_FLAGS_DEBUG} -c"
@@ -49,9 +50,13 @@ cp ../atmo/USSA76.f90 USSA76.f90
 gfortran $GFORT_FLAGS_o USSA76.f90
 
 #PARTICLE UTILITIES MODULES
-cp ../cs/Neutron_Utilities.f90 Neutron_Utilities.f90
-cp ../cs/n_Cross_Sections.f90 n_Cross_Sections.f90
+cp ../parts/Random_Directions.f90 Random_Directions.f90
+cp ../parts/Particle_Piles.f90 Particle_Piles.f90
+cp ../parts/Neutron_Utilities.f90 Neutron_Utilities.f90
+cp ../parts/n_Cross_Sections.f90 n_Cross_Sections.f90
 
+gfortran $GFORT_FLAGS_o Random_Directions.f90
+gfortran $GFORT_FLAGS_o Particle_Piles.f90
 gfortran $GFORT_FLAGS_o Neutron_Utilities.f90
 gfortran $GFORT_FLAGS_o n_Cross_Sections.f90
 
