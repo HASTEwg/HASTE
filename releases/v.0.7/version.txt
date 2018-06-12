@@ -1,3 +1,0 @@
-HATS v0.7.04
-
-This version is depreciated and unsupported.  The source includes non-standard Fortran and Intel compiler-specific implementations.  More recent versions (v1.0+) are moving toward better Fortran standard compliance (Fortran 2008), and discarding compiler-specific practices.
