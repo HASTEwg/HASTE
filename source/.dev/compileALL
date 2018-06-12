@@ -1,4 +1,17 @@
-./cleanALL
+#!/usr/bin/sh
+
+# CLEAN OLD BUILD FILES
+#./cleanALL
+./clean -o -m -f
+
+# COMPILER FLAGS
+# Peprocessor definitions for conditional compilation:
+#  - Operating System (default Windows, -DLIN_OS specifies Linux)
+#  - Intel MKL PRNGs (default off, -DIMKL specifies use Intel MKL)
+#  - Coarray support (default off, -DCAF enables coarrays)
+PREP_FLAGS="-cpp -DLIN_OS"
+GFORT_FLAGS_DEBUG="${PREP_FLAGS} -Og -fmax-errors=5 -Wall -ffree-line-length-0 -fimplicit-none -fcheck=all -pedantic -fbacktrace -fcoarray=none"
+GFORT_FLAGS_o="${GFORT_FLAGS_DEBUG} -c"
 
 # COMMON MODULES
 cp ../common/Kinds.f90 Kinds.f90
@@ -14,44 +27,35 @@ cp ../common/Root_Solvers.f90 Root_Solvers.f90
 cp ../common/Gauss_Legendre_w_a.f90 Gauss_Legendre_w_a.f90
 cp ../common/Quadratures.f90 Quadratures.f90
 
-gfortran -ffree-line-length-0 -c Kinds.f90
-gfortran -ffree-line-length-0 -c Global.f90
-gfortran -ffree-line-length-0 -c Utilities.f90
-# FileIO_Utilities.f90 contains preprocessor definitions for:
-#  - Operating System (default Windows, -DLIN_OS specifies Linux)
-#  - Coarray support (default off, -DCAF enables coarrays)
-gfortran -cpp -DLIN_OS -ffree-line-length-0 -c FileIO_Utilities.f90
-gfortran -ffree-line-length-0 -c Interpolation.f90
-gfortran -ffree-line-length-0 -c Legendre_Utilities.f90
-gfortran -ffree-line-length-0 -c Sorting.f90
-# Random_Numbers.f90 contains preprocessor definitions for:
-#  - Intel MKL PRNGs (default off, -DIMKL specifies use Intel MKL)
-#  - Coarray support (default off, -DCAF enables coarrays)
-gfortran -cpp -ffree-line-length-0 -c Random_Numbers.f90
-gfortran -ffree-line-length-0 -c Statistics.f90
-gfortran -ffree-line-length-0 -c Root_Solvers.f90
-gfortran -ffree-line-length-0 -c Gauss_Legendre_w_a.f90
-gfortran -ffree-line-length-0 -c Quadratures.f90
+gfortran $GFORT_FLAGS_o Kinds.f90
+gfortran $GFORT_FLAGS_o Global.f90
+gfortran $GFORT_FLAGS_o Utilities.f90
+gfortran $GFORT_FLAGS_o FileIO_Utilities.f90
+gfortran $GFORT_FLAGS_o Interpolation.f90
+gfortran $GFORT_FLAGS_o Legendre_Utilities.f90
+gfortran $GFORT_FLAGS_o Sorting.f90
+gfortran $GFORT_FLAGS_o Random_Numbers.f90
+gfortran $GFORT_FLAGS_o Statistics.f90
+gfortran $GFORT_FLAGS_o Root_Solvers.f90
+gfortran $GFORT_FLAGS_o Gauss_Legendre_w_a.f90
+gfortran $GFORT_FLAGS_o Quadratures.f90
 
 #ASTRO MODULES
 cp ../astro/Astro_Utilities.f90 Astro_Utilities.f90
-gfortran -ffree-line-length-0 -c Astro_Utilities.f90
+gfortran $GFORT_FLAGS_o Astro_Utilities.f90
 
 #ATMOSPHERE MODULES
 cp ../atmo/USSA76.f90 USSA76.f90
-gfortran -ffree-line-length-0 -c USSA76.f90
+gfortran $GFORT_FLAGS_o USSA76.f90
 
-#CROSS SECTIONS MODULES
+#PARTICLE UTILITIES MODULES
 cp ../cs/Neutron_Utilities.f90 Neutron_Utilities.f90
 cp ../cs/n_Cross_Sections.f90 n_Cross_Sections.f90
 
-gfortran -ffree-line-length-0 -c Neutron_Utilities.f90
-gfortran -ffree-line-length-0 -c n_Cross_Sections.f90
+gfortran $GFORT_FLAGS_o Neutron_Utilities.f90
+gfortran $GFORT_FLAGS_o n_Cross_Sections.f90
 
 #MAIN CODE MODULES
 cp ../Setups.f90 Setups.f90
 
-# Setups.f90 contains preprocessor definitions for:
-#  - Operating System (default Windows, -DLIN_OS specifies Linux)
-#  - Coarray support (default off, -DCAF enables coarrays)
-gfortran -cpp -DLIN_OS -ffree-line-length-0 -c Setups.f90
+gfortran $GFORT_FLAGS_o Setups.f90
