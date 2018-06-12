@@ -133,9 +133,9 @@ Subroutine DP_to_file(r,file_name)
     Integer :: stat
     
     Call Open_for_Var_to_File(file_name,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: DP_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit , IOSTAT = stat) r
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: DP_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Close(unit)
 End Subroutine DP_to_file
 
@@ -148,9 +148,9 @@ Subroutine DP_1Darray_to_file(r,file_name)
     Integer :: stat
     
     Call Open_for_Var_to_File(file_name,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: DP_1Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_1Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit , IOSTAT = stat) r
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: DP_1Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_1Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Close(unit)
 End Subroutine DP_1Darray_to_file
 
@@ -163,9 +163,9 @@ Subroutine DP_2Darray_to_file(r,file_name)
     Integer :: stat
     
     Call Open_for_Var_to_File(file_name,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: DP_2Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_2Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit , IOSTAT = stat) r
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: DP_2Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_2Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Close(unit)
 End Subroutine DP_2Darray_to_file
 
@@ -177,9 +177,9 @@ Subroutine I4_to_file(i,file_name)
     Integer :: stat
     
     Call Open_for_Var_to_File(file_name,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I4_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit , IOSTAT = stat) i
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I4_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Close(unit)
 End Subroutine I4_to_file
 
@@ -191,9 +191,9 @@ Subroutine I4_1Darray_to_file(i,file_name)
     Integer :: stat
     
     Call Open_for_Var_to_File(file_name,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I4_1Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_1Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit , IOSTAT = stat) i
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I4_1Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_1Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Close(unit)
 End Subroutine I4_1Darray_to_file
 
@@ -205,9 +205,9 @@ Subroutine I4_2Darray_to_file(i,file_name)
     Integer :: stat
     
     Call Open_for_Var_to_File(file_name,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I4_2Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_2Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit , IOSTAT = stat) i
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I4_2Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_2Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Close(unit)
 End Subroutine I4_2Darray_to_file
 
@@ -219,9 +219,9 @@ Subroutine I8_to_file(i,file_name)
     Integer :: stat
     
     Call Open_for_Var_to_File(file_name,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I8_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit , IOSTAT = stat) i
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I8_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Close(unit)
 End Subroutine I8_to_file
 
@@ -233,9 +233,9 @@ Subroutine I8_1Darray_to_file(i,file_name)
     Integer :: stat
     
     Call Open_for_Var_to_File(file_name,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I8_1Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_1Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit , IOSTAT = stat) i
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I8_1Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_1Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Close(unit)
 End Subroutine I8_1Darray_to_file
 
@@ -247,9 +247,9 @@ Subroutine I8_2Darray_to_file(i,file_name)
     Integer :: stat
     
     Call Open_for_Var_to_File(file_name,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I8_2Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_2Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit , IOSTAT = stat) i
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I8_2Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_2Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Close(unit)
 End Subroutine I8_2Darray_to_file
 
@@ -261,12 +261,12 @@ Subroutine C_to_file(C,file_name)
     Integer :: stat
     Character(max_path_len) :: Cmax
     
-    If (Len(C) .GT. max_path_len) Call Output_Message('ERROR:  Utilities: C_to_file:  Write string is longer than MAX_PATH_LEN',kill=.TRUE.)
+    If (Len(C) .GT. max_path_len) Call Output_Message('ERROR:  FileIO_Utilities: C_to_file:  Write string is longer than MAX_PATH_LEN',kill=.TRUE.)
     Cmax = C
     Call Open_for_Var_to_File(file_name,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: C_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: C_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit , IOSTAT = stat) Cmax
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: C_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: C_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Close(unit)
 End Subroutine C_to_file
 
@@ -278,9 +278,9 @@ Subroutine L_to_file(L,file_name)
     Integer :: stat
 
     Call Open_for_Var_to_File(file_name,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: L_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: L_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit , IOSTAT = stat) L
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: L_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: L_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Close(unit)
 End Subroutine L_to_file
 
@@ -300,9 +300,9 @@ Subroutine DP_from_file(r,file_name,delete_file)
         del_f = .FALSE.
     End If
     Call Open_for_Var_from_File(file_name,del_f,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: DP_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) r
-    If (stat .GT. 0) Call Output_Message('ERROR:  Utilities: DP_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     If (del_f) Then
         Close(unit , STATUS = 'DELETE')
     Else
@@ -326,9 +326,9 @@ Subroutine DP_1Darray_from_file(r,file_name,delete_file)
         del_f = .FALSE.
     End If
     Call Open_for_Var_from_File(file_name,del_f,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: DP_1Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_1Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) r
-    If (stat .GT. 0) Call Output_Message('ERROR:  Utilities: DP_1Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_1Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     If (del_f) Then
         Close(unit , STATUS = 'DELETE')
     Else
@@ -352,9 +352,9 @@ Subroutine DP_2Darray_from_file(r,file_name,delete_file)
         del_f = .FALSE.
     End If
     Call Open_for_Var_from_File(file_name,del_f,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: DP_2Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_2Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) r
-    If (stat .GT. 0) Call Output_Message('ERROR:  Utilities: DP_2Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: DP_2Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     If (del_f) Then
         Close(unit , STATUS = 'DELETE')
     Else
@@ -377,9 +377,9 @@ Subroutine I4_from_file(i,file_name,delete_file)
         del_f = .FALSE.
     End If
     Call Open_for_Var_from_File(file_name,del_f,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I4_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit) i
-    If (stat .GT. 0) Call Output_Message('ERROR:  Utilities: I4_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     If (del_f) Then
         Close(unit , STATUS = 'DELETE')
     Else
@@ -402,9 +402,9 @@ Subroutine I4_1Darray_from_file(i,file_name,delete_file)
         del_f = .FALSE.
     End If
     Call Open_for_Var_from_File(file_name,del_f,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I4_1Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_1Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) i
-    If (stat .GT. 0) Call Output_Message('ERROR:  Utilities: I4_1Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_1Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     If (del_f) Then
         Close(unit , STATUS = 'DELETE')
     Else
@@ -427,9 +427,9 @@ Subroutine I4_2Darray_from_file(i,file_name,delete_file)
         del_f = .FALSE.
     End If
     Call Open_for_Var_from_File(file_name,del_f,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I4_2Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_2Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) i
-    If (stat .GT. 0) Call Output_Message('ERROR:  Utilities: I4_2Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: I4_2Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     If (del_f) Then
         Close(unit , STATUS = 'DELETE')
     Else
@@ -452,9 +452,9 @@ Subroutine I8_from_file(i,file_name,delete_file)
         del_f = .FALSE.
     End If
     Call Open_for_Var_from_File(file_name,del_f,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I8_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit) i
-    If (stat .GT. 0) Call Output_Message('ERROR:  Utilities: I8_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     If (del_f) Then
         Close(unit , STATUS = 'DELETE')
     Else
@@ -477,9 +477,9 @@ Subroutine I8_1Darray_from_file(i,file_name,delete_file)
         del_f = .FALSE.
     End If
     Call Open_for_Var_from_File(file_name,del_f,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I8_1Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_1Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) i
-    If (stat .GT. 0) Call Output_Message('ERROR:  Utilities: I8_1Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_1Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     If (del_f) Then
         Close(unit , STATUS = 'DELETE')
     Else
@@ -502,9 +502,9 @@ Subroutine I8_2Darray_from_file(i,file_name,delete_file)
         del_f = .FALSE.
     End If
     Call Open_for_Var_from_File(file_name,del_f,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: I8_2Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_2Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) i
-    If (stat .GT. 0) Call Output_Message('ERROR:  Utilities: I8_2Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: I8_2Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     If (del_f) Then
         Close(unit , STATUS = 'DELETE')
     Else
@@ -528,10 +528,10 @@ Subroutine C_from_file(C,file_name,delete_file)
         del_f = .FALSE.
     End If
     Call Open_for_Var_from_File(file_name,del_f,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: C_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: C_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) Cmax
-    If (stat .GT. 0) Call Output_Message('ERROR:  Utilities: C_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    If (Len(Trim(Cmax)) .GT. Len(C)) Call Output_Message('ERROR:  Utilities: C_from_file:  Read string is longer than requested string',kill=.TRUE.)
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: C_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (Len(Trim(Cmax)) .GT. Len(C)) Call Output_Message('ERROR:  FileIO_Utilities: C_from_file:  Read string is longer than requested string',kill=.TRUE.)
     C = Trim(Cmax)
     If (del_f) Then
         Close(unit , STATUS = 'DELETE')
@@ -555,9 +555,9 @@ Subroutine L_from_file(L,file_name,delete_file)
         del_f = .FALSE.
     End If
     Call Open_for_Var_from_File(file_name,del_f,unit,stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Utilities: L_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: L_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(unit , IOSTAT = stat) L
-    If (stat .GT. 0) Call Output_Message('ERROR:  Utilities: L_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: L_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     If (del_f) Then
         Close(unit , STATUS = 'DELETE')
     Else
@@ -647,6 +647,38 @@ Subroutine Make_Boom()
     Write(*,*) ding
     Write(*,*)
 End Subroutine Make_Boom
+
+Subroutine Open_for_Log_Message(file_name,unit,stat)
+    Implicit None
+    Character(*), Intent(In) :: file_name
+    Integer, Intent(Out) :: unit
+    Integer, Intent(Out) :: stat
+    Integer :: i
+    
+    i = 0
+    Do
+        Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
+        If (stat .EQ. 0) Exit  !NORMAL EXIT
+        i = i + 1
+        If (i .GT. 1000) Call Output_Message('ERROR:  FileIO_Utilities: Open_for_Log_Message:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+        Call Wait(100)  !wait 100 milliseconds before retrying
+    End Do
+End Subroutine Open_for_Log_Message
+
+!UNDONE Other log message routines, also consider time and worker stamping for screen outputs
+Subroutine Log_Message_C(message,logfile)
+    Implicit None
+    Character(*), Intent(In) :: message
+    Character(*), Intent(In) :: logfile
+    Integer :: unit,stat,i
+    
+    Call Open_for_Log_Message(logfile,unit,stat)
+    Call Thread_Index(i)
+    Write(unit,'(A,I0)') FDATE()//' Thread/Image ',Thread_Index
+    Write(unit,'(A)') message
+    Write(unit,*)
+    Close(unit)
+End Subroutine Log_Message_C
 
 Subroutine Output_Message_C(message,kill)
     Implicit None
@@ -860,5 +892,22 @@ Function Get_Host_Name() Result(s)
     Call HOSTNM(s,stat)
     If (stat .NE. 0) s = 'UNKNOWN'
 End Function Get_Host_Name
+
+Subroutine Wait(ms)
+    Implicit None
+    Integer, Intent(In) :: ms !number of milliseconds to wait before returning
+    Integer :: t1,t2,u
+
+    Call SYSTEM_CLOCK(count = t1)
+    u = 0
+    Do
+        Call SYSTEM_CLOCK(count = t2)
+        If (t2 - t1 + u .GT. ms) Return
+        If (t2 .LT. t1) Then !clock has wrapped around
+            u = HUGE(t1) - t1
+            t1 = 0
+        End If
+    End Do
+End Subroutine Wait
 
 End Module FileIO_Utilities

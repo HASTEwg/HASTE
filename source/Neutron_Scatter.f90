@@ -94,7 +94,7 @@ Contains
 Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,run_file_name) Result(ScatMod)
     Use Cross_Sections, Only: Setup_Cross_Sections
     Use Global, Only: n_kill_weight
-    Use FileIO_Utilities, Only: fSHARE
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Scatter_Model_Type) :: ScatMod
     Character(*), Intent(In) :: setup_file_name
@@ -121,37 +121,26 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
                                   & Gravity,neutron_decay,doppler_broaden,thermal_motion, &
                                   & Diatomic_Atm,Rotating_Earth,Wind
     
-    Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Neutron_Scatter: Setup_Scatter_Model:  File open error, '//setup_file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  File open error, '//setup_file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = NeutronScatterList)
     Close(setup_unit)
-    If (n_scatters.EQ.-1 .AND. .NOT.estimate_each_scatter) Then
-        Print *,'ERROR:  Neutron_Scatter: Setup_Scatter_Model:  estimate_each_scatter must be .TRUE. for n_scatters = -1 (unlimited)'
-        ERROR STOP
-    End If
-    If (n_scatters.EQ.0 .AND. .NOT.direct_contribution) Then
-        Print *,'ERROR:  Neutron_Scatter: Setup_Scatter_Model:  direct_contribution must be .TRUE. for n_scatters = 0'
-        ERROR STOP
-    End If
+    If (n_scatters.EQ.-1 .AND. .NOT.estimate_each_scatter) Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  estimate_each_scatter must be .TRUE. for n_scatters = -1 (unlimited)',kill=.TRUE.)
+    If (n_scatters.EQ.0 .AND. .NOT.direct_contribution) Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  direct_contribution must be .TRUE. for n_scatters = 0',kill=.TRUE.)
     Select Case (scatter_model)
         Case('IsoCM')
             ScatMod%aniso_dist = .FALSE.
         Case('AnIsoCM')
             ScatMod%aniso_dist = .TRUE.
         Case Default
-            Print *,'ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Undefined scatter model'
-            ERROR STOP
+            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Undefined scatter model',kill=.TRUE.)
     End Select
     ScatMod%n_scatters = n_scatters
     If (direct_contribution) Then
         If (n_scatters.EQ.0 .OR. estimate_each_scatter) Then
             ScatMod%direct_contribution = direct_contribution
         Else
-            Print *,'ERROR:  Neutron_Scatter: Setup_Scatter_Model:  direct_contribution cannot be TRUE w/ n_scatters.NE.0 or estimate_each_scatter=FALSE '
-            ERROR STOP
+            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  direct_contribution cannot be TRUE w/ n_scatters.NE.0 or estimate_each_scatter=FALSE ',kill=.TRUE.)
         End If
     End If
     ScatMod%estimate_each_scatter = estimate_each_scatter
@@ -165,11 +154,10 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
         Case('An-fast')
             !UNDONE Fast analog option not yet implemented
             !ScatMod%fast_analog = .TRUE.
-            Print *,'ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Fast Analog Monte-Carlo game not yet implemented'
+            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Fast Analog Monte-Carlo game not yet implemented',kill=.TRUE.)
             ERROR STOP
         Case Default
-            Print *,'ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Undefined Monte-Carlo game'
-            ERROR STOP
+            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Undefined Monte-Carlo game',kill=.TRUE.)
     End Select
     ScatMod%roulette = roulette
     If (roulette) Then
@@ -206,16 +194,17 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
     ScatMod%scat%a_tab2 = 0._dp
     Allocate(ScatMod%scat%iso_cs(1:ScatMod%CS%n_iso))
     ScatMod%scat%iso_cs = 0._dp
-    If (this_image() .EQ. 1) Then
+#   if CAF
+        If (this_image() .EQ. 1) Then
+#   endif
         Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
-        If (stat .NE. 0) Then
-            Print *,'ERROR:  Neutron_Scatter: Setup_Scatter_Model:  File open error, '//run_file_name//', IOSTAT=',stat
-            ERROR STOP
-        End If
+        If (stat .NE. 0) Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  File open error, '//run_file_name//', IOSTAT=',stat,kill=.TRUE.)
         Write(setup_unit,NML = NeutronScatterList)
         Write(setup_unit,*)
         Close(setup_unit)
-    End If
+#   if CAF
+        End If
+#   endif
 End Function Setup_Scatter_Model
 
 Subroutine Sample_Scatter(ScatMod,n,atm,RNG)
@@ -675,16 +664,14 @@ End Subroutine Load_ScatMod_counts
 
 Subroutine Write_Scatter_Model(s,file_name)
     Use Cross_Sections, Only: Write_Cross_Sections
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Scatter_Model_Type), Intent(In) :: s
     Character(*), Intent(In) :: file_name
     Integer :: unit,stat
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Neutron_Scatter: Write_Scatter_Model:  File open error, '//file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    If (stat .NE. 0) Call Output_Message('ERROR:  Neutron_Scatter: Write_Scatter_Model:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit,'(A)') '--------------------------------------------------'
     Write(unit,'(A)') 'SCATTER MODEL INFORMATION'
     Write(unit,'(A)') '--------------------------------------------------'

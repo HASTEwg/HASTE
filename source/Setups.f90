@@ -6,11 +6,11 @@ Module Setups
     Public :: Paths_Files_Type
     Public :: Write_Setup_Information
     Public :: Create_Output_File_names
-    !DIR$ IF DEFINED (COA)
+#   if CAF
         Public :: Setup_Info_to_disk
         Public :: Setup_Info_from_disk
         Public :: Cleanup_temp_files
-    !DIR$ END IF
+#   endif
     
     Type :: Paths_Files_Type
         Character(:), Allocatable :: app_title  !name and version of program
@@ -44,6 +44,7 @@ Subroutine Setup_HATS(prompt_for_exit,screen_progress,paths_files,n_neutron_hist
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
     Use FileIO_Utilities, Only: Working_Directory
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Logical, Intent(Out) :: prompt_for_exit
     Logical, Intent(Out) :: screen_progress
@@ -70,28 +71,22 @@ Subroutine Setup_HATS(prompt_for_exit,screen_progress,paths_files,n_neutron_hist
     Allocate(Character(max_path_len) :: file_suffix)
     !Get path and name of executable
     Call GET_COMMAND_ARGUMENT(0, path, pathlen, status)
-    If (status .NE. 0) Then
-        Print *,'ERROR:  Setups: Setup_HATS:  Read command line argument 0 failed'
-        ERROR STOP
-    End If
+    If (status .NE. 0) Call Output_Message('ERROR:  Setups: Setup_HATS:  Read command line argument 0 failed',kill=.TRUE.)
     paths_files%program_exe = Trim(path)
     !default values for files and directories
-    Call Working_Directory(GETdir=path,slash)
+    Call Working_Directory(GETdir=path,s=slash)
     paths_files%setup_file = Trim(path)//'HATS_Setup.txt'
     paths_files%resources_directory = Trim(path)//'Resources'//slash
     paths_files%results_directory = Trim(path)//'Results'//slash
     If (Present(setup_file)) paths_files%setup_file = setup_file
     !open setup file and read namelist
     Open(NEWUNIT = setup_unit , FILE = paths_files%setup_file , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Setups: Setup_HATS:  File open error, '//paths_files%setup_file//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    If (stat .NE. 0) Call Output_Message('ERROR:  Setups: Setup_HATS:  File open error, '//paths_files%setup_file//', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = ProgramSetupList)
     Close(setup_unit)
-    !DIR$ IF DEFINED (LIN_OS)
+#   if LIN_OS
         prompt_for_exit = .FALSE.
-    !DIR$ END IF
+#   endif
     !Trim output folder and file suffix character strings
     output_folder = Trim(output_folder)
     file_suffix = Trim(file_suffix)
@@ -121,17 +116,18 @@ Subroutine Setup_HATS(prompt_for_exit,screen_progress,paths_files,n_neutron_hist
     paths_files%s_file_name = ''
     Call Create_Output_File_names(paths_files%results_directory,paths_files%file_suffix,paths_files%log_file_name,paths_files%TE_file_name,paths_files%t_file_name,paths_files%E_file_name,paths_files%f_file_name,paths_files%d_file_name,paths_files%m_file_name,paths_files%o_file_name,paths_files%s_file_name,paths_files%run_file_name)
     !Create backup setup file in results folder and write namelist
-    If (this_image() .EQ. 1) Then
+#   if CAF
+        If (this_image() .EQ. 1) Then
+#   endif
         !the backup setup file will not contain any continuation or study set configuration information
         Open(NEWUNIT = setup_unit , FILE = paths_files%run_file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
-        If (stat .NE. 0) Then
-            Print *,'ERROR:  Setups: Setup_HATS:  File open error, '//paths_files%run_file_name//', IOSTAT=',stat
-            ERROR STOP
-        End If
+        If (stat .NE. 0) Call Output_Message('ERROR:  Setups: Setup_HATS:  File open error, '//paths_files%run_file_name//', IOSTAT=',stat,kill=.TRUE.)
         Write(setup_unit,NML = ProgramSetupList)
         Write(setup_unit,*)
         Close(setup_unit)
-    End If
+#   if CAF
+        End If
+#   endif
     !Read in the next setup namelist
     Call Setup_Estimator(paths_files%setup_file,paths_files%run_file_name,n_neutron_histories,absolute_n_histories)
 End Subroutine Setup_HATS
@@ -184,65 +180,65 @@ Subroutine Check_files_exist(overwrite,n_cmd_args,paths_files)
             INQUIRE(FILE = file_name(i) , EXIST = file_exists(i))
         End Do
         If (Any(file_exists)) Then
-            Print *,'WARNING:  One or more files already exist.'
-            Print *,'    Output Folder: '//paths_files%results_directory//paths_files%output_folder
-            Print *,'    File suffix:   '//paths_files%file_suffix
+            Write(*,'(A)') 'WARNING:  One or more files already exist.'
+            Write(*,'(A)') '    Output Folder: '//paths_files%results_directory//paths_files%output_folder
+            Write(*,'(A)') '    File suffix:   '//paths_files%file_suffix
             If (overwrite) Then !file overwrite is forced by input settings
-                Print *,'WARNING:  Automatic overwrite selected by setup inputs.'
+                Write(*,'(A)') 'WARNING:  Automatic overwrite selected by setup inputs.'
                 Exit Do_CheckFiles
             Else If (n_cmd_args .GT. 0) Then  !command line specified path cannot be changed, prompt for overwrite or abort
-                Print *,'WARNING:  Command line specified results files already exist.'
+                Write(*,'(A)') 'WARNING:  Command line specified results files already exist.'
                 Do_cmd_line_overwrite: Do
-                    Print *,'Press:  O to overwrite'
-                    Print *,'        A to abort the simulation'
+                    Write(*,'(A)') 'Press:  O to overwrite'
+                    Write(*,'(A)') '        A to abort the simulation'
                     Read (*,*) user_inp
                     Select Case (user_inp)
                         Case ('O','o')
                             Exit Do_CheckFiles
                         Case ('A','a')
-                            Print *,'  Confirm:  Abort simulation? (Y/N)'
+                            Write(*,'(A)') '  Confirm:  Abort simulation? (Y/N)'
                             Read (*,*) user_inp
                             Select Case (user_inp)
                                 Case ('Y','y')
-                                    Print *
-                                    Print *,'Simulation aborted by user.'
+                                    Write(*,*) 
+                                    Write(*,'(A)') 'Simulation aborted by user.'
                                     ERROR STOP
                             End Select
                         Case Default
-                            Print *,'Invalid response.'
+                            Write(*,'(A)') 'Invalid response.'
                     End Select
                 End Do Do_cmd_line_overwrite
             End If
             Do_GetInput: Do
-                Print *,'Press:  O to overwrite'
-                Print *,'        D to enter a new directory for the new files'
-                Print *,'        S to enter a different file suffix for the new files'
-                Print *,'        A to abort the simulation'
+                Write(*,'(A)') 'Press:  O to overwrite'
+                Write(*,'(A)') '        D to enter a new directory for the new files'
+                Write(*,'(A)') '        S to enter a different file suffix for the new files'
+                Write(*,'(A)') '        A to abort the simulation'
                 Read (*,*) user_inp
                 Select Case (user_inp)
                     Case ('O','o')
                         Exit Do_CheckFiles
                     Case ('D','d')
-                        Print *,'  Enter new directory (omit ''Results'//slash//''', omit trailing '''//slash//'''):'
+                        Write(*,'(A)') '  Enter new directory (omit ''Results'//slash//''', omit trailing '''//slash//'''):'
                         Read (*,*) user_inp
                         paths_files%output_folder = Trim(user_inp)
                         Exit Do_GetInput
                     Case ('S','s')
-                        Print *,'  Enter new file suffix (recommend 1st character delimiter (''_'','' '',''-'',etc):'
+                        Write(*,'(A)') '  Enter new file suffix (recommend 1st character delimiter (''_'','' '',''-'',etc):'
                         Read (*,*) user_inp
                         paths_files%file_suffix = Trim(user_inp)
                         Exit Do_GetInput
                     Case ('A','a')
-                        Print *,'  Confirm:  Abort simulation? (Y/N)'
+                        Write(*,'(A)') '  Confirm:  Abort simulation? (Y/N)'
                         Read (*,*) user_inp
                         Select Case (user_inp)
                             Case ('Y','y')
-                                Print *
-                                Print *,'Simulation aborted by user.'
+                                Write(*,*) 
+                                Write(*,'(A)') 'Simulation aborted by user.'
                                 ERROR STOP
                         End Select
                     Case Default
-                        Print *,'Invalid response.'
+                        Write(*,'(A)') 'Invalid response.'
                 End Select
             End Do Do_GetInput
         Else
@@ -254,14 +250,12 @@ End Subroutine Check_files_exist
 Subroutine Check_folders_exist(paths_files)
     Use FileIO_Utilities, Only: Check_Directory
     Use FileIO_Utilities, Only: Create_Directory
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(paths_files_type), Intent(In) :: paths_files
     
     !Check if resources directories exist
-    If (.NOT. Check_Directory(paths_files%resources_directory)) Then
-        Print *,'ERROR:  Setups: Setup_HATS:  Resources directory not found: '//paths_files%resources_directory
-        ERROR STOP
-    End If
+    If (.NOT. Check_Directory(paths_files%resources_directory)) Call Output_Message('ERROR:  Setups: Setup_HATS:  Resources directory not found: '//paths_files%resources_directory,kill=.TRUE.)
     !Check if results directories exist
     If (.NOT. Check_Directory(paths_files%results_directory)) Call Create_Directory(paths_files%results_directory)
     If (paths_files%output_folder .NE. '')  Then !output folder is specified
@@ -270,6 +264,7 @@ Subroutine Check_folders_exist(paths_files)
 End Subroutine Check_folders_exist
 
 Subroutine Setup_Estimator(setup_file_name,run_file_name,n_neutron_histories,absolute_n_histories)
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Character(*), Intent(In) :: setup_file_name,run_file_name
     Integer(8), Intent(Out) :: n_neutron_histories
@@ -280,23 +275,17 @@ Subroutine Setup_Estimator(setup_file_name,run_file_name,n_neutron_histories,abs
     
     !open setup file and read namelist
     Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Setups: Setup_Estimator:  File open error, '//setup_file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    If (stat .NE. 0) Call Output_Message('ERROR:  Setups: Setup_Estimator:  File open error, '//setup_file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = EstimatorSetupList)
     Close(setup_unit)
     Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Setups: Setup_Estimator:  File open error, '//run_file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    If (stat .NE. 0) Call Output_Message('ERROR:  Setups: Setup_Estimator:  File open error, '//run_file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(setup_unit,NML = EstimatorSetupList)
     Write(setup_unit,*)
     Close(setup_unit)
 End Subroutine Setup_Estimator
 
-!DIR$ IF DEFINED (COA)
+# if CAF
 Subroutine Setup_Info_to_disk(n_histories,abs_n_histories,prompt_for_exit,screen_progress,paths_files)
     Use Kinds, Only: dp
     Use FileIO_Utilities, Only: max_path_len
@@ -369,9 +358,9 @@ Subroutine Setup_Info_to_disk(n_histories,abs_n_histories,prompt_for_exit,screen
     file_name = file_dir//'pf_s_f.tmp'
     Call Var_to_File(paths_files%s_file_name,file_name)
 End Subroutine Setup_Info_to_disk
-!DIR$ END IF
+# endif
 
-!DIR$ IF DEFINED (COA)
+# if CAF
 Subroutine Setup_Info_from_disk(n_histories,abs_n_histories,prompt_for_exit,screen_progress,paths_files)
     Use Kinds, Only: dp
     Use FileIO_Utilities, Only: max_path_len
@@ -462,9 +451,9 @@ Subroutine Setup_Info_from_disk(n_histories,abs_n_histories,prompt_for_exit,scre
     Call Var_from_File(C_tmp,file_name)
     paths_files%s_file_name = Trim(C_tmp)
 End Subroutine Setup_Info_from_disk
-!DIR$ END IF
+# endif
 
-!DIR$ IF DEFINED (COA)
+# if CAF
 Subroutine Cleanup_temp_files()
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
@@ -477,7 +466,7 @@ Subroutine Cleanup_temp_files()
     !delete the temp directory
     Call Delete_Directory(Trim(dir)//'temp')
 End Subroutine Cleanup_temp_files
-!DIR$ END IF
+# endif
 
 Subroutine Initialize_Paths_Files(paths_files)
     Use FileIO_Utilities, Only: max_path_len
@@ -529,6 +518,7 @@ Subroutine Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n
     Use Random_Numbers, Only: RNG_Type
     Use FileIO_Utilities, Only: Date_Time_string
     Use FileIO_Utilities, Only: Get_Host_Name
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Integer, Intent(In) :: n_img
     Real(dp), Intent(In) :: t_process,t_elapsed_min,t_elapsed_max
@@ -537,15 +527,12 @@ Subroutine Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n
     Type(RNG_Type), Intent(In) :: RNG
     Type(Paths_Files_Type), Intent(In) :: paths_files
     Character(*), Intent(In) :: file_name
-    Character(MAX_HOSTNAM_LENGTH+1) :: hostname
+    Character(80) :: hostname
     Integer :: unit,stat
     Integer :: i
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Setups: Write_Setup_Information:  File open error, '//file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    If (stat .NE. 0) Call Output_Message('ERROR:  Setups: Write_Setup_Information:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit,'(A)') '------------------------------------------------------------------------'
     Write(unit,'(A)') paths_files%app_title
     Write(unit,'(A)') '------------------------------------------------------------------------'

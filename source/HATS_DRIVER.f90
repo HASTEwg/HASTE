@@ -40,13 +40,13 @@ Use Statistics, Only: Std_Err
 Use FileIO_Utilities, Only: Make_Boom
 Use FileIO_Utilities, Only: creturn
 Use FileIO_Utilities, Only: Second_of_Month
-!DIR$ IF DEFINED (COA)
+# if CAF
     Use Setups, Only: Setup_info_to_disk
     Use Setups, Only: Setup_info_from_disk
     Use Setups, Only: Cleanup_temp_files
     Use Results, Only: Image_Result_to_Disk
     Use Results, Only: Image_Results_from_Disk
-!DIR$ END IF
+# endif
 
 Implicit None
 
@@ -74,7 +74,9 @@ Integer(8), Allocatable :: n_hist_run(:),n_hist_hit(:)
 
 n_img = num_images()
 i_img = this_image()
-If (i_img .EQ. 1) Then
+# if CAF
+    If (i_img .EQ. 1) Then
+# endif
     !UNSTANDARD Carriage control is no longer part of the Fortran standard, and its use here is specific to the implementation in Intel compilers ONLY.
     !Set carriage control to 'FORTRAN' so that console screen updates can be in-place
     !Open(6,CARRIAGECONTROL ='FORTRAN')
@@ -84,13 +86,15 @@ If (i_img .EQ. 1) Then
     Write(*,'(A)') 'Setting up... '
     Call Setup_HATS(prompt_exit,screen_progress,paths_files,n_histories,absolute_n_histories)
     paths_files%app_title = title
-    !DIR$ IF DEFINED (COA)
+#   if CAF
         Write(*,'(I6,A)') n_img,' images sharing histories'
         !Write processed setup info to disk for other images
         Call Setup_Info_to_disk(n_histories,absolute_n_histories,prompt_exit,screen_progress,paths_files)
-    !DIR$ END IF
-End If
-!DIR$ IF DEFINED (COA)
+#   endif
+# if CAF
+    End If
+# endif
+# if CAF
     !Sync so that setup info is available on disk for images other than 1
     SYNC ALL
     !Read setup info processed by image 1 from disk
@@ -98,7 +102,7 @@ End If
         Call Setup_Info_from_disk(n_histories,absolute_n_histories,prompt_exit,screen_progress,paths_files)
         screen_progress = .FALSE.
     End If
-!DIR$ END IF
+# endif
 RNG = Setup_RNG(paths_files%setup_file,paths_files%run_file_name)
 atmosphere = Setup_Atmosphere(paths_files%setup_file,paths_files%resources_directory,paths_files%run_file_name,paths_files%cs_setup_file)
 ScatterModel = Setup_Scatter_Model(paths_files%setup_file,paths_files%resources_directory,paths_files%cs_setup_file,paths_files%run_file_name)
@@ -107,14 +111,14 @@ detector = Setup_Detector(paths_files%setup_file,paths_files%run_file_name,paths
 TE_Tallies = Setup_Tallies(detector%TE_grid(1)%n_bins,detector%TE_grid(2)%n_bins)
 Dir_Tallies = Setup_Tallies(detector%Dir_grid(1)%n_bins,detector%Dir_grid(2)%n_bins)
 If (continuation) Call Setup_Continuation(paths_files%results_directory,ScatterModel,TE_Tallies,Dir_Tallies)
-!DIR$ IF DEFINED (COA)
+# if CAF
     !divide n_histories equally among images
     n_p = n_histories / n_img  !integer divide
     If (i_img .EQ. n_img) n_p = n_p + Mod(n_histories,n_img)  !remainder added to last image
-!DIR$ ELSE
+# else
     !all histories will be executed on a single image
     n_p = n_histories
-!DIR$ END IF
+# endif
 !run a set of histories
 If (i_img .EQ. 1) Then
     Write(*,'(A)') 'Running histories:  '
@@ -187,7 +191,7 @@ End If
 t_now = Second_of_Month()
 t_tot = t_now - t_start
 If (i_img.EQ.1 .AND. detector%shape_data) Call Close_Slice_Files(detector%n_slices,detector%TE_grid(1)%collect_shape,detector%TE_grid(1)%slice_unit,detector%TE_grid(2)%collect_shape,detector%TE_grid(2)%slice_unit)
-!DIR$ IF DEFINED (COA)
+# if CAF
     !Write image results to disk
     Call Image_Result_to_Disk(t_tot,n_p,n_done,TE_Tallies,Dir_Tallies,ScatterModel%n_kills,ScatterModel%next_events,ScatterModel%n_no_tally,ScatterModel%n_uncounted)
     SYNC ALL
@@ -195,14 +199,14 @@ If (i_img.EQ.1 .AND. detector%shape_data) Call Close_Slice_Files(detector%n_slic
         !Gather image results from temporary files to image 1
         Call Image_Results_from_Disk(detector%TE_grid(1)%n_bins,detector%TE_grid(2)%n_bins,detector%Dir_grid(1)%n_bins,detector%Dir_grid(2)%n_bins,t_tot,t_min,t_max,n_hist_run,n_hist_hit,TE_Tallies,Dir_Tallies,ScatterModel%n_kills,ScatterModel%next_events,ScatterModel%n_no_tally,ScatterModel%n_uncounted)
     End If
-!DIR$ ELSE
+# else
     Allocate(n_hist_run(1:1))
     n_hist_run = n_done + ScatterModel%n_uncounted  !includes implicity leaked histories from exatmospheric sources
     Allocate(n_hist_hit(1:1))
     n_hist_hit = n_p
     t_min = t_tot
     t_max = t_tot
-!DIR$ END IF
+# endif
 If (i_img .EQ. 1) Then
     If (screen_progress) Then !finalize progress to screen
         !Write(6,'("+",F9.2,A2,I3.2,A,I2.2,A,I2.2,3ES11.3E2,A2,F7.2,A2)') 100._dp,'% ', & !Percent Complete
@@ -223,26 +227,26 @@ If (i_img .EQ. 1) Then
     Write(*,'(A)', ADVANCE = 'NO') 'Writing output... '
     Call Write_Run_Summary(n_img,t_tot,t_min,t_max,n_hist_hit,n_hist_run,RNG,paths_files,atmosphere,ScatterModel,source,detector,TE_Tallies,Dir_Tallies,paths_files%log_file_name)
     Call Write_Tally_Grids(TE_Tallies,Dir_Tallies,detector,Sum(n_hist_run),paths_files%F_file_name,paths_files%TE_file_name,paths_files%t_file_name,paths_files%E_file_name,paths_files%d_file_name,paths_files%m_file_name,paths_files%o_file_name)
-    !DIR$ IF DEFINED (COA)
+#   if CAF
         !cleanup temp files
         Call Cleanup_temp_files()
-    !DIR$ END IF
+#   endif
     Write(*,'(A)') 'Done.'
     Write(*,*)
 End If
-!DIR$ IF DEFINED(LIN_OS)
+# if LIN_OS
     If (i_img .EQ. 1) Then
         Call Make_Boom()
         Write(*,'(A)') '--------------------------------------------------------------------------------'
         Write(*,*)
         Write(*,*)
     End If
-!DIR$ ELSE
+# else
     If (i_img .EQ. 1) Then
         Call Make_Boom()
         Write(*,'(A)') '--------------------------------------------------------------------------------'
         If (prompt_exit) Pause 'Finished.  Press RETURN to exit...'
     End If
-!DIR$ END IF
+# endif
 
 End Program HATS

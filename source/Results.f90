@@ -330,6 +330,7 @@ Subroutine Write_Run_Summary(n_img,t_process,t_elapsed_min,t_elapsed_max,n_h_hit
     Use Detectors, Only: Detector_Type
     Use Detectors, Only: Write_Detector
     Use Tallies, Only: Contrib_array
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Integer, Intent(In) :: n_img
     Real(dp), Intent(In) :: t_process,t_elapsed_min,t_elapsed_max
@@ -347,10 +348,7 @@ Subroutine Write_Run_Summary(n_img,t_process,t_elapsed_min,t_elapsed_max,n_h_hit
     Integer :: unit,stat
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Results: Write_Run_Summary:  File open error, '//file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    If (stat .NE. 0) Call Output_Message('ERROR:  Results: Write_Run_Summary:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Close(unit)
     Call Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n_h_hit,n_h_run,RNG,paths_files,file_name)
     Call Write_Atmosphere(a,file_name)
@@ -365,7 +363,8 @@ Subroutine Write_Tally_Grids(TE_list,Dir_list,d,n_h,F_file_name,TE_file_name,t_f
     Use Tallies, Only: Contrib_array
     Use Detectors, Only: Detector_Type
     Use Statistics, Only: Std_Err
-    Implicit None
+    Use FileIO_Utilities, Only: Output_Message
+   Implicit None
     Type(Contrib_array), Intent(In) :: TE_list
     Type(Contrib_array), Intent(In) :: Dir_list
     Type(Detector_Type), Intent(In) :: d
@@ -385,20 +384,14 @@ Subroutine Write_Tally_Grids(TE_list,Dir_list,d,n_h,F_file_name,TE_file_name,t_f
         !write the total fluence file
         If (Present(F_file_name)) Then
             Open(NEWUNIT = unit , FILE = F_file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , IOSTAT = stat)
-            If (stat .NE. 0) Then
-                Print *,'ERROR:  Results: Write_Tally_Grids:  File open error, '//F_file_name//', IOSTAT=',stat
-                ERROR STOP
-            End If
+            If (stat .NE. 0) Call Output_Message('ERROR:  Results: Write_Tally_Grids:  File open error, '//F_file_name//', IOSTAT=',stat,kill=.TRUE.)
             Call Write_tot_Tallies(unit,N_hist,TE_list%index,TE_list%contribs(1:TE_list%index),TE_list%tot_f_sq)
             Close(unit)
         End If
         !write the complete TE file
         If (Present(TE_file_name)) Then
             Open(NEWUNIT = unit , FILE = TE_file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , IOSTAT = stat)
-            If (stat .NE. 0) Then
-                Print *,'ERROR:  Results: Write_Tally_Grids:  File open error, '//TE_file_name//', IOSTAT=',stat
-                ERROR STOP
-            End If
+            If (stat .NE. 0) Call Output_Message('ERROR:  Results: Write_Tally_Grids:  File open error, '//TE_file_name//', IOSTAT=',stat,kill=.TRUE.)
             !write each time-energy bin's contribution and its standard error
             Call Write_2D_Tallies(unit,N_hist,TE_list%index,TE_list%contribs(1:TE_list%index),d%TE_grid(1),d%TE_grid(2))
             Close(unit)
@@ -407,20 +400,14 @@ Subroutine Write_Tally_Grids(TE_list,Dir_list,d,n_h,F_file_name,TE_file_name,t_f
             If (Present(t_file_name)) Then
                 !write the time integrated results to file
                 Open(NEWUNIT = unit , FILE = t_file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , IOSTAT = stat)
-                If (stat .NE. 0) Then
-                    Print *,'ERROR:  Results: Write_Tally_Grids:  File open error, '//t_file_name//', IOSTAT=',stat
-                    ERROR STOP
-                End If
+                If (stat .NE. 0) Call Output_Message('ERROR:  Results: Write_Tally_Grids:  File open error, '//t_file_name//', IOSTAT=',stat,kill=.TRUE.)
                 Call Write_1D_Tallies(unit,N_hist,TE_list%index,TE_list%contribs(1:TE_list%index),d%TE_grid(1),d%TE_grid(2),1,d%TE_grid(1)%n_bins,TE_list%f_sq_1)
                 Close(unit)
             End If
             If (Present(E_file_name)) Then
                 !write the energy integrated results to file
                 Open(NEWUNIT = unit , FILE = E_file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , IOSTAT = stat)
-                If (stat .NE. 0) Then
-                    Print *,'ERROR:  Results: Write_Tally_Grids:  File open error, '//E_file_name//', IOSTAT=',stat
-                    ERROR STOP
-                End If
+                If (stat .NE. 0) Call Output_Message('ERROR:  Results: Write_Tally_Grids:  File open error, '//E_file_name//', IOSTAT=',stat,kill=.TRUE.)
                 Call Write_1D_Tallies(unit,N_hist,TE_list%index,TE_list%contribs(1:TE_list%index),d%TE_grid(1),d%TE_grid(2),2,d%TE_grid(2)%n_bins,TE_list%f_sq_2)
                 Close(unit)
             End If
@@ -430,10 +417,7 @@ Subroutine Write_Tally_Grids(TE_list,Dir_list,d,n_h,F_file_name,TE_file_name,t_f
         !write the complete direction file
         If (Present(d_file_name)) Then
             Open(NEWUNIT = unit , FILE = d_file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , IOSTAT = stat)
-            If (stat .NE. 0) Then
-                Print *,'ERROR:  Results: Write_Tally_Grids:  File open error, '//d_file_name//', IOSTAT=',stat
-                ERROR STOP
-            End If
+            If (stat .NE. 0) Call Output_Message('ERROR:  Results: Write_Tally_Grids:  File open error, '//d_file_name//', IOSTAT=',stat,kill=.TRUE.)
             !write each arrival direction bin's contribution and its standard error
             Call Write_2D_Tallies(unit,N_hist,Dir_list%index,Dir_list%contribs(1:Dir_list%index),d%Dir_grid(1),d%Dir_grid(2))
             Close(unit)
@@ -442,20 +426,14 @@ Subroutine Write_Tally_Grids(TE_list,Dir_list,d,n_h,F_file_name,TE_file_name,t_f
             If (Present(m_file_name)) Then
                 !write the time integrated results to file
                 Open(NEWUNIT = unit , FILE = m_file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , IOSTAT = stat)
-                If (stat .NE. 0) Then
-                    Print *,'ERROR:  Results: Write_Tally_Grids:  File open error, '//m_file_name//', IOSTAT=',stat
-                    ERROR STOP
-                End If
+                If (stat .NE. 0) Ca;; Output_Message('ERROR:  Results: Write_Tally_Grids:  File open error, '//m_file_name//', IOSTAT=',stat,kill=.TRUE.)
                 Call Write_1D_Tallies(unit,N_hist,Dir_list%index,Dir_list%contribs(1:Dir_list%index),d%Dir_grid(1),d%Dir_grid(2),1,d%Dir_grid(1)%n_bins,Dir_list%f_sq_1)
                 Close(unit)
             End If
             If (Present(o_file_name)) Then
                 !write the energy integrated results to file
                 Open(NEWUNIT = unit , FILE = o_file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , IOSTAT = stat)
-                If (stat .NE. 0) Then
-                    Print *,'ERROR:  Results: Write_Tally_Grids:  File open error, '//o_file_name//', IOSTAT=',stat
-                    ERROR STOP
-                End If
+                If (stat .NE. 0) Call Output_Message('ERROR:  Results: Write_Tally_Grids:  File open error, '//o_file_name//', IOSTAT=',stat,kill=.TRUE.)
                 Call Write_1D_Tallies(unit,N_hist,Dir_list%index,Dir_list%contribs(1:Dir_list%index),d%Dir_grid(1),d%Dir_grid(2),2,d%Dir_grid(2)%n_bins,Dir_list%f_sq_2)
                 Close(unit)
             End If
@@ -576,6 +554,7 @@ Subroutine Write_Results_summary(TE_list,Dir_List,d,n_h,file_name)
     Use Tallies, Only: Contrib_array
     Use Detectors, Only: Detector_Type
     Use Statistics, Only: Std_Err
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Contrib_array), Intent(In) :: TE_list
     Type(Contrib_array), Intent(In) :: Dir_list
@@ -587,10 +566,7 @@ Subroutine Write_Results_summary(TE_list,Dir_List,d,n_h,file_name)
     
     N_hist = Real(n_h,dp)
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Results: Write_Results:  File open error, '//file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    If (stat .NE. 0) Call Output_Message('ERROR:  Results: Write_Results:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit,'(A)') '--------------------------------------------------'
     Write(unit,'(A)') 'TALLIES'
     Write(unit,'(A)') '--------------------------------------------------'

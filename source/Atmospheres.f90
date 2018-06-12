@@ -88,9 +88,9 @@ Contains
 Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_name) Result(atm)
     Use Kinds, Only: dp
     Use Global, Only: R_Earth
-    Ude FileIO_Utilities, Only: max_path_len
+    Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
-    Use FileIO_Utilities, Only: fSHARE
+    Use FileIO_Utilities, Only: Output_Message
     Use US_Std_Atm_1976, Only: Find_base_layer_1976 => Find_base_layer
     Use US_Std_Atm_1976, Only: Zb_1976 => Zb
     Implicit None
@@ -123,11 +123,8 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     NameList /isoSetupList1/ iso_fraction,n_absorption_modes,n_inelastic_lev,has_resonance
 
     
-    Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//setup_file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//setup_file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = AtmosphereList)
     Close(setup_unit)
     Select Case (atmosphere_model)
@@ -150,8 +147,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
             atm%Zb(0) = Z_bot_atm
             atm%Zb(1) = Z_top_atm
         Case Default
-            Print *,'ERROR:  Atmospheres: Setup_Atmosphere:  Undefined atmosphere model'
-            ERROR STOP
+            Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  Undefined atmosphere model',kill=.TRUE.)
     End Select
     Allocate(atm%Rb(0:Size(atm%Zb)-1))
     atm%Rb = atm%Zb + R_Earth
@@ -185,17 +181,12 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
             f_name = 'n_CS_setup_Ar40.txt'
             atm%comp_index = atm_comp_Ar40
         Case Default
-            Print *,'ERROR:  Atmospheres: Setup_Atmosphere:  Undefined composition'
-            ERROR STOP
+            Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  Undefined composition',kill=.TRUE.)
     End Select
     If (Present(cs_file_name)) cs_file_name = f_name
-
     !read number of elements, isotopes, and fractions from cross sections setup file
-    Open(NEWUNIT = setup_unit , FILE = resources_dir//'n_cs'//slash//f_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//resources_dir//'n_cs'//slash//f_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    Open(NEWUNIT = setup_unit , FILE = resources_dir//'n_cs'//slash//f_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//resources_dir//'n_cs'//slash//f_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = csSetupList1)
     atm%n_el = n_elements
     Allocate(el_fractions(1:n_elements))
@@ -224,7 +215,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     Close(setup_unit)
     Do i = 1,n_iso
         f_name = resources_dir//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))//'_iso_setup.txt'
-        Open(NEWUNIT = setup_unit , FILE = f_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
+        Open(NEWUNIT = setup_unit , FILE = f_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
         Read(setup_unit,NML = isoSetupList1)
         atm%iso_frac(i) = iso_fraction
         Close(setup_unit)
@@ -247,10 +238,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     If (this_image() .EQ. 1) Then
         If (Present(run_file_name)) Then
             Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
-            If (stat .NE. 0) Then
-                Print *,'ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//run_file_name//', IOSTAT=',stat
-                ERROR STOP
-            End If
+            If (stat .NE. 0) Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//run_file_name//', IOSTAT=',stat,kill=.TRUE.)
             Write(setup_unit,NML = AtmosphereList)
             Write(setup_unit,*)
             Close(setup_unit)
@@ -260,6 +248,7 @@ End Function Setup_Atmosphere
 
 Subroutine Write_Atmosphere(a,file_name)
     Use Kinds, Only: dp
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Atmosphere_Type), Intent(In) :: a
     Character(*), Intent(In) :: file_name
@@ -268,10 +257,7 @@ Subroutine Write_Atmosphere(a,file_name)
     Real(dp) :: z
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Atmospheres: Write_Atmosphere:  File open error, '//file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    If (stat .NE. 0) Call Output_Message('ERROR:  Atmospheres: Write_Atmosphere:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit,'(A)') '--------------------------------------------------'
     Write(unit,'(A)') 'ATMOSPHERE INFORMATION'
     Write(unit,'(A)') '--------------------------------------------------'
@@ -302,8 +288,7 @@ Subroutine Write_Atmosphere(a,file_name)
             End Do
             Write(unit,*)
         Case Default
-            Print *,'ERROR:  Atmospheres: Write_Atmosphere: Undefined atmosphere model'
-            ERROR STOP
+            Call Output_Message('ERROR:  Atmospheres: Write_Atmosphere: Undefined atmosphere model',kill=.TRUE.)
     End Select
     Select Case (a%comp_index)
         Case (atm_comp_ALL)
@@ -325,8 +310,7 @@ Subroutine Write_Atmosphere(a,file_name)
         Case (atm_comp_Ar40)
             Write(unit,'(A)') '  Composition:  Ar40'
         Case Default
-            Print *,'ERROR:  Atmospheres: Write_Atmosphere: Undefined atmosphere composition'
-            ERROR STOP
+            Call Output_Message('ERROR:  Atmospheres: Write_Atmosphere: Undefined atmosphere composition',kill=.TRUE.)
     End Select
     Write(unit,'(A,ES23.16E3,A)') '  Global Winds:  ',a%wind_AF(1),' [km/s] northerly'
     Write(unit,'(A,ES23.16E3,A)') '                 ',a%wind_AF(2),' [km/s] westerly'
@@ -380,6 +364,7 @@ End Function Atm_Density
 Subroutine Define_EPL_Layers(atm,resources_dir)
     Use Kinds, Only: dp
     Use FileIO_Utilities, Only: slash
+    Use FileIO_Utilities, Only: Output_Message
     Use Global, Only: R_earth
     Implicit None
     !number of quadrature points for 12 digits of precision on STRAIGHT paths
@@ -423,8 +408,7 @@ Subroutine Define_EPL_Layers(atm,resources_dir)
                 atm%EPL_lay(b)%nRk = EPL_Quad_nIsoT_largeZeta_orbit_p12
                 atm%EPL_lay(b)%nTk = EPL_Quad_nIsoT_smallZeta_orbit_p12
             Case Default
-                Print *,'ERROR:  Amospheres: Define_EPL_Layers: Quad points for this atmosphere model are not implemented'
-                ERROR STOP
+                Call Output_Message('ERROR:  Amospheres: Define_EPL_Layers: Quad points for this atmosphere model are not implemented',kill=.TRUE.)
         End Select
         !Read in weights and abscissa
         Call Get_Q_points(resources_dir,atm%EPL_lay(b)%nZ,atm%EPL_lay(b)%uZ,atm%EPL_lay(b)%wZ)
@@ -467,7 +451,7 @@ Subroutine Get_Q_points(dir,n,a,w)
     Use Kinds, Only: dp
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
-    Use FileIO_Utilities, Only: fSHARE
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Character(*), Intent(In) :: dir
     Integer, Intent(In) :: n
@@ -482,11 +466,8 @@ Subroutine Get_Q_points(dir,n,a,w)
     file_name = dir
     Write(n_char,'(I3.3)') n
     file_name = dir//'QuadPoints'//slash//'Weights_Abscissa-GaussLegendre_n'//n_char//'.txt'
-    Open(NEWUNIT = unit , FILE = file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Atmospheres: Define_EPL_Layer:  File open error, '//file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    Open(NEWUNIT = unit , FILE = file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  Atmospheres: Define_EPL_Layer:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Allocate(w(1:n))
     w = 0._dp
     Allocate(a(1:n))

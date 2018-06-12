@@ -46,6 +46,7 @@ Subroutine Initialize_Satellite_Motion(motion_type,sat)
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Cross_Product
     Use Utilities, Only: Cube_Root
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Character(10), Intent(In) :: motion_type
     Type(Satellite_Position_Type), Intent(InOut) :: sat
@@ -85,8 +86,7 @@ Subroutine Initialize_Satellite_Motion(motion_type,sat)
             sat%vp = Velocity_of_Perigee(sat%r0,sat%v0)
             sat%per = Period(sat%r0,sat%v0)
         Case Default
-            Print *,'ERROR:  Satellite_Motion: Initialize_Satellite_Motion:  Unknown motion type.'
-            ERROR STOP
+            Call Output_Message('ERROR:  Satellite_Motion: Initialize_Satellite_Motion:  Unknown motion type.',kill=.TRUE.)
     End Select
 End Subroutine Initialize_Satellite_Motion
 

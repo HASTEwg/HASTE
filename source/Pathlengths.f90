@@ -859,6 +859,7 @@ Function L_to_S_from_top_of_segment(atm,b,L,Lmax,Smax,r1,z1,zeta1) Result(S)
     Use Atmospheres, Only: Atmosphere_Type
     Use Atmospheres, Only: rho_SL
     Use Utilities, Only: Converged
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Real(dp) :: S
     Type(Atmosphere_Type), Intent(In) :: atm
@@ -939,8 +940,7 @@ Function L_to_S_from_top_of_segment(atm,b,L,Lmax,Smax,r1,z1,zeta1) Result(S)
         S_old = S
     End Do
     !If we get this far, we failed to converge using Newton AND bisection
-    Print *,'ERROR:  Pathlengths: L_to_S_from_top_of_segment:  Failed to converge on a root for S.'
-    ERROR STOP
+    Call Output_Message('ERROR:  Pathlengths: L_to_S_from_top_of_segment:  Failed to converge on a root for S.',kill=.TRUE.)
 End Function L_to_S_from_top_of_segment
 
 End Module Pathlengths

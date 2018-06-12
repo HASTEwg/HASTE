@@ -38,12 +38,20 @@ cp ../astro/Astro_Utilities.f90 Astro_Utilities.f90
 gfortran -ffree-line-length-0 -c Astro_Utilities.f90
 
 #ATMOSPHERE MODULES
-cp ../atm/USSA76.f90 USSA76.f90
+cp ../atmo/USSA76.f90 USSA76.f90
 gfortran -ffree-line-length-0 -c USSA76.f90
 
-#Cross Sections MODULES
+#CROSS SECTIONS MODULES
 cp ../cs/Neutron_Utilities.f90 Neutron_Utilities.f90
 cp ../cs/n_Cross_Sections.f90 n_Cross_Sections.f90
 
 gfortran -ffree-line-length-0 -c Neutron_Utilities.f90
 gfortran -ffree-line-length-0 -c n_Cross_Sections.f90
+
+#MAIN CODE MODULES
+cp ../Setups.f90 Setups.f90
+
+# Setups.f90 contains preprocessor definitions for:
+#  - Operating System (default Windows, -DLIN_OS specifies Linux)
+#  - Coarray support (default off, -DCAF enables coarrays)
+gfortran -cpp -DLIN_OS -ffree-line-length-0 -c Setups.f90

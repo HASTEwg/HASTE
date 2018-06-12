@@ -78,6 +78,7 @@ Function Neutron_Anisotropic_mu0cm_Legendre(a,n,RNG) Result(mu0cm)
     Use Kinds, Only: dp
     Use Legendre_Utilities, Only: Legendre_CDF_Coefficients, Legendre_P
     Use Random_Numbers, Only: RNG_Type
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Real(dp) :: mu0cm                    ! [] scattering deflection angle cosine in CM frame
     Real(dp), Intent(In) :: a(0:n)       ! [] Legendre coefficients of pdf: a(j) = ((2j+1)/2) sigma(j)
@@ -105,8 +106,7 @@ Function Neutron_Anisotropic_mu0cm_Legendre(a,n,RNG) Result(mu0cm)
         Else If (Abs(x) .LE. 1._dp + 10._dp * Spacing(1._dp)) Then
             mu0cm = Sign(1._dp, x)
         Else
-            Print *, "ERROR:  Random_Directions: Neutron_Anisotropic_mu0cm_Legendre:  Linearly-anisotropic scatter out of range."
-            Stop
+            Call Output_Message("ERROR:  Random_Directions: Neutron_Anisotropic_mu0cm_Legendre:  Linearly-anisotropic scatter out of range.",kill=.TRUE.)
         End If
         Return
     End If
@@ -139,8 +139,7 @@ Function Neutron_Anisotropic_mu0cm_Legendre(a,n,RNG) Result(mu0cm)
         i = i + 1
     End Do
     !If we get this far, no normal exit
-    Print *, "ERROR:  Random_Directions: Neutron_Anisotropic_mu0cm_Legendre:  Failed to converge in",i," iterations."
-    Stop
+    Call Output_Message('ERROR:  Random_Directions: Neutron_Anisotropic_mu0cm_Legendre:  Failed to converge in',i,' iterations.',kill=.TRUE.)
 End Function Neutron_Anisotropic_mu0cm_Legendre
 
 Function Neutron_Anisotropic_mu0cm_tablePDF(n1,ua1,n2,ua2,Econv,RNG) Result(mu0cm)
@@ -197,7 +196,7 @@ Function Photon_Aniosotropic_mu_Incoherent(RNG,a) Result(mu)
     
     Do  !sampling by geometric rejection
         !sample mu from coherent scattering distribution
-        mu = Photon_Aniosotropic_mu_Rayleigh(RNG)
+        mu = Photon_Aniosotropic_mu_Coherent(RNG)
         !compute the value of the KN distribution at this mu 
         !this is the KN distributon scaled on 0 < f(mu) < TWO  (using this scaled value eliminates a multiplication here and a multiplication in the following check for acceptance)
         mu2p1 = 1._dp + mu**2
@@ -206,7 +205,7 @@ Function Photon_Aniosotropic_mu_Incoherent(RNG,a) Result(mu)
         !mu2p1amamup1 = mu2p1 * amamup1
         !kn = mu2p1amamup1**2 * amamup1 * (mu2p1amamup1 + a**2 * (mu2p1 - 2._dp*mu))  !alternate formulation?  Need to check, might be cheaper to compute
         !if the probability of KN at this mu, exceeds the probability of the sampled distribution
-        If ( kn .GT. RNG%Get_Random(mu2p1) ) Exit  !If ( kn .GT. RNG%Get_Random(0.5_dp*(1._dp + mu**2)) ) Exit
+        If ( kn .GT. mu2p1*RNG%Get_Random() ) Exit  !If ( kn .GT. (0.5_dp*(1._dp + mu**2))*RNG%Get_Random() ) Exit
     End Do
 End Function Photon_Aniosotropic_mu_Incoherent
 
