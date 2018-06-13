@@ -12,9 +12,8 @@ echo "  $COMP_FLAGS"
 
 # COMMON MODULES
 cp ../common/Kinds.f90 Kinds.f90
-cp ../common/Utilities.f90 Utilities.f90
-cp ../common/Root_Solvers.f90 Root_Solvers.f90
-
 gfortran $GFORT_FLAGS_o Kinds.f90
-gfortran $GFORT_FLAGS_o Utilities.f90
-gfortran $GFORT_FLAGS_o Root_Solvers.f90
+
+# PARTICLE UTILITIES MODULES
+cp ../parts/Particle_Piles.f90 Particle_Piles.f90
+gfortran $GFORT_FLAGS_o Particle_Piles.f90

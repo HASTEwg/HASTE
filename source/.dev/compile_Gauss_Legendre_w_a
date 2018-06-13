@@ -1,6 +1,18 @@
-./compile_Kinds
-find . -name "Gauss_Legendre_w_a.o" -type f -delete
-find . -name "Gauss_Legendre_w_a.mod" -type f -delete
-find . -name "Gauss_Legendre_w_a.f90" -type f -delete
+#!/bin/sh
+
+# CLEAN OLD BUILD FILES
+./clean -o -m -f
+
+# SET COMPILER FLAGS
+. ./set_flags
+echo "Preprocessor Flags:"
+echo "  $PREP_FLAGS"
+echo "Compiler Flags:"
+echo "  $COMP_FLAGS"
+
+# COMMON MODULES
+cp ../common/Kinds.f90 Kinds.f90
 cp ../common/Gauss_Legendre_w_a.f90 Gauss_Legendre_w_a.f90
-gfortran -ffree-line-length-0 -c Gauss_Legendre_w_a.f90
+
+gfortran $GFORT_FLAGS_o Kinds.f90
+gfortran $GFORT_FLAGS_o Gauss_Legendre_w_a.f90

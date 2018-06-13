@@ -40,7 +40,7 @@ Module Random_Numbers
 Contains
     
 Function Setup_RNG(setup_file_name,run_file_name) Result(RNG)
-    Use FileIO_Utilities, Only: Thread_Index
+    Use FileIO_Utilities, Only: Worker_Index
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(RNG_Type) :: RNG
@@ -62,7 +62,7 @@ Function Setup_RNG(setup_file_name,run_file_name) Result(RNG)
         RNG_seed = Create_Random_Seed()
         RNG_seed_random = .TRUE.
     End If
-    Call Thread_Index(t)
+    t = Worker_Index()
     If (t .GT. 0) Then !setup is being called from inside a parallel region
         Call RNG%Initialize(seed = RNG_seed , thread = t-1)
     Else  !initialize for serial execution
@@ -94,7 +94,9 @@ Subroutine Initialize_RNG(RNG,seed,thread,size)  !Initializes a RNG and returns 
     Integer, Intent(In), Optional :: seed  !RNG seed to initialize RNG stream, omission indicates a random seed
     Integer, Intent(In), Optional :: thread  !index of calling thread, omission indicates serial execution
     Integer, Intent(In), Optional :: size  !size of random number array to pre-fill, default 2**12
-    Integer :: rng_stat  !status returns from MKL RNG operations
+#   if IMKL
+        Integer :: rng_stat  !status returns from MKL RNG operations
+#   endif
     
     If (Present(size)) Then
         RNG%q_size = size
@@ -234,7 +236,9 @@ Subroutine Refresh_Random_Array(RNG)
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(RNG_Type), Intent(InOut) :: RNG
-    Integer :: rng_stat  !status returns from MKL RNG operations
+#   if IMKL
+        Integer :: rng_stat  !status returns from MKL RNG operations
+#   endif
     
 #   if IMKL
         rng_stat = vdrnguniform(VSL_RNG_METHOD_UNIFORM_STD,RNG%stream,RNG%q_size,RNG%q,0._dp,1._dp)
@@ -290,7 +294,9 @@ Subroutine Cleanup_RNG(RNG)
 #   endif
     Implicit None
     Class(RNG_Type), Intent(InOut) :: RNG
-    Integer :: rng_stat  !status returns from MKL RNG operations
+#   if IMKL
+        Integer :: rng_stat  !status returns from MKL RNG operations
+#   endif
     
 #   if IMKL
         rng_stat = vsldeletestream(RNG%stream)
@@ -306,19 +312,22 @@ Subroutine Save_RNG(RNG,dir)
 #   if IMKL
         Use MKL_VSL, Only: vslsavestreamF
 #   endif
-    Use FileIO_Utilities, Only: Thread_Index
+    Use FileIO_Utilities, Only: Worker_Index
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: Var_to_file
+#   if IMKL
+        Use FileIO_Utilities, Only: Output_Message
+#   endif
     Implicit None
     Class(RNG_Type), Intent(In) :: RNG
     Character(*), Intent(In) :: dir
-    Integer :: i
     Character(4) :: i_char
     Character(:), Allocatable :: fname
-    Integer :: stat
+#   if IMKL
+        Integer :: stat
+#   endif
     
-    Call Thread_Index(i)
-    Write(i_char,'(I4.4)') i
+    Write(i_char,'(I4.4)') Worker_Index()
     Allocate(Character(max_path_len) :: fname)
     fname = dir//'RNGstate'//i_char//'.bin'
 #   if IMKL
@@ -343,19 +352,17 @@ Subroutine Load_RNG(RNG,dir)
 #   if IMKL
         Use MKL_VSL, Only: vslloadstreamF
 #   endif
-    Use FileIO_Utilities, Only: Thread_Index
+    Use FileIO_Utilities, Only: Worker_Index
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: Var_from_file
     Implicit None
     Class(RNG_Type), Intent(Out) :: RNG
     Character(*), Intent(In) :: dir
-    Integer :: i
     Character(4) :: i_char
     Character(:), Allocatable :: fname
-    Integer :: stat
+    Integer :: stat,j
     
-    Call Thread_Index(i)
-    Write(i_char,'(I4.4)') i
+    Write(i_char,'(I4.4)') Worker_Index()
     Allocate(Character(max_path_len) :: fname)
     fname = dir//'RNGstate'//i_char//'.bin'
 #   if IMKL
@@ -384,7 +391,7 @@ Subroutine Load_RNG(RNG,dir)
         !need to re-seed and advance the intrinsic RNG back to the stored state
         Call RANDOM_SEED(RNG%seed)
         Allocate(RNG%q(1:RNG%q_size))
-        Do i = 1,RNG%q_refreshed
+        Do j = 1,RNG%q_refreshed
             Call RANDOM_NUMBER(RNG%q)
         End Do
 #   endif

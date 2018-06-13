@@ -249,13 +249,13 @@ Contains
         If (SME(Vector_Length(r1),s1cm-u_speed) .GE. 0._dp) Then  !neutron must be on a parabolic or hyperbolic trajectory, max TOF occurs where transfer SME is zero
             !find transfer orbit TOF where SME=0 (parabolic transfer)
             !initial guess is parabolic flight time from r1 to sat at time of scatter
-            tof_2 = Parabolic_TOF(r1,r2)
+            max_TOF = Parabolic_TOF(r1,r2)
             If (.NOT. sat%is_stationary) Then  !need to iterate to refine
                 Do
-                    tof = tof_2
-                    r2 = sat%R(t1+tof_2)  !target position after tof_2
-                    tof_2 = Parabolic_TOF(r1,r2)
-                    If (Converged(tof_2,tof,rTol=1.E-9_dp,aTol=1.E-3_dp)) Exit  !w/in 1 millisecond of TOF for transfer with SME=0
+                    tof = max_TOF
+                    r2 = sat%R(t1+max_TOF)  !target position after tof_2
+                    max_TOF = Parabolic_TOF(r1,r2)
+                    If (Converged(max_TOF,tof,rTol=1.E-9_dp,aTol=1.E-3_dp)) Exit  !w/in 1 millisecond of TOF for transfer with SME=0
                 End Do
             End If
         Else  !transfer orbits include elliptical 
@@ -263,13 +263,13 @@ Contains
             !UNDONE The elliptical cases in this routine also do not account for complication of the available velocity function, multiple roots could pose problems...
             !find transfer orbit TOF where minV TOF is same as Lambert TOF
             !initial guess is minimum energy flight time from r1 to sat at time of scatter
-            Call Lambert_minV(r1,r2,tof = tof_2)
+            Call Lambert_minV(r1,r2,tof = max_TOF)
             If (.NOT. sat%is_stationary) Then  !need to iterate to refine
                 Do
-                    tof = tof_2
-                    r2 = sat%R(t1+tof_2)  !target position after tof_max
-                    Call Lambert_minV(r1,r2,tof = tof_2)
-                    If (Converged(tof_2,tof,rTol=1.E-9_dp,aTol=1.E-3_dp)) Exit  !w/in 1 millisecond of TOF for transfer where minV TOF is same as Lambert TOF
+                    tof = max_TOF
+                    r2 = sat%R(t1+max_TOF)  !target position after tof_max
+                    Call Lambert_minV(r1,r2,tof = max_TOF)
+                    If (Converged(max_TOF,tof,rTol=1.E-9_dp,aTol=1.E-3_dp)) Exit  !w/in 1 millisecond of TOF for transfer where minV TOF is same as Lambert TOF
                 End Do
             End If
         End If

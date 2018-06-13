@@ -38,12 +38,12 @@ Function Isotropic_mu(RNG) Result(mu)
     mu = 2._dp * RNG%Get_Random() - 1._dp
 End Function Isotropic_mu
 
-Function mu_omega_2_OmegaHat(xi,w) Result(Omega_hat)
+Function mu_omega_2_OmegaHat(xi,w) Result(Omegahat)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: OmegaHat
+    Real(dp) :: OmegaHat(1:3)
     Real(dp), Intent(In) :: xi,w
-    Real(dp) :: nu,nu,eta
+    Real(dp) :: nu,mu,eta
     
     nu = Sqrt(1._dp - xi**2)
     mu = nu * Cos(w)
@@ -146,7 +146,7 @@ Function Neutron_Anisotropic_mu0cm_tablePDF(n1,ua1,n2,ua2,Econv,RNG) Result(mu0c
     ! Draws random mu0cm from tabular pdf of anisotropic distribution in CM frame:
     !   Uses geometric rejection on the tabulated pdf (interpolated via log-linear in mu, and linear-linear in energy)
     Use Kinds, Only: dp
-    Use Cross_Sections, Only: Tabular_Cosine_pdf
+    Use n_Cross_Sections, Only: Tabular_Cosine_pdf
     Use Random_Numbers, Only: RNG_Type
     Implicit None
     Real(dp):: mu0cm                    ! [] scattering deflection angle cosine in CM frame

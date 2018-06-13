@@ -16,18 +16,28 @@ cp ../common/Global.f90 Global.f90
 cp ../common/Utilities.f90 Utilities.f90
 cp ../common/FileIO_Utilities.f90 FileIO_Utilities.f90
 cp ../common/Interpolation.f90 Interpolation.f90
+cp ../common/Legendre_Utilities.f90 Legendre_Utilities.f90
 cp ../common/Sorting.f90 Sorting.f90
+cp ../common/Random_Numbers.f90 Random_Numbers.f90
 
 gfortran $GFORT_FLAGS_o Kinds.f90
 gfortran $GFORT_FLAGS_o Global.f90
 gfortran $GFORT_FLAGS_o Utilities.f90
 gfortran $GFORT_FLAGS_o FileIO_Utilities.f90
 gfortran $GFORT_FLAGS_o Interpolation.f90
+gfortran $GFORT_FLAGS_o Legendre_Utilities.f90
 gfortran $GFORT_FLAGS_o Sorting.f90
+gfortran $GFORT_FLAGS_o Random_Numbers.f90
 
 # PARTICLE UTILITIES MODULES
 cp ../parts/Neutron_Utilities.f90 Neutron_Utilities.f90
 cp ../parts/n_Cross_Sections.f90 n_Cross_Sections.f90
+cp ../parts/Random_Directions.f90 Random_Directions.f90
 
 gfortran $GFORT_FLAGS_o Neutron_Utilities.f90
 gfortran $GFORT_FLAGS_o n_Cross_Sections.f90
+gfortran $GFORT_FLAGS_o Random_Directions.f90
+
+# MAIN CODE MODULES
+cp ../Target_Motion.f90 Target_Motion.f90
+gfortran $GFORT_FLAGS_o Target_Motion.f90

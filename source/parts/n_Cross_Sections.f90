@@ -15,8 +15,8 @@ Module n_Cross_Sections
         Integer :: n_sig
         Real(dp), Allocatable :: sig(:) ![barns]  has dimension 1:n_sig
         Real(dp), Allocatable :: lnsig(:) ![barns]  has dimension 1:n_sig
-        Integer(2), Allocatable :: E_map(:)  !has dimension 1:n_E_uni, indexes for each value in unified energy grid to indexes in sig
-        Integer(2), Allocatable :: E_key(:)  !has dimension 1:n_sig, indexes for each value in sig to an energy in unified energy list
+        Integer, Allocatable :: E_map(:)  !has dimension 1:n_E_uni, indexes for each value in unified energy grid to indexes in sig
+        Integer, Allocatable :: E_key(:)  !has dimension 1:n_sig, indexes for each value in sig to an energy in unified energy list
         Integer :: n_interp_r  !number of interpolation ranges
         Integer, Allocatable :: interp(:,:)  !has dimension 1:n_interp_r and 1:2, dim 1 is sig index up to which to use the interpolation method specified in dim 2
     End Type
@@ -32,8 +32,8 @@ Module n_Cross_Sections
     Type :: da_Type
         Integer :: n_da
         Type(da_List_Type), Allocatable :: da(:) ![barns]  has dimension 1:n_da
-        Integer(2), Allocatable :: E_map(:)  !has dimension 1:n_E_uni, indexes for each value in unified energy grid to indexes in da
-        Integer(2), Allocatable :: E_key(:)  !has dimension 1:n_da, indexes for each value in da to an energy in unified energy list
+        Integer, Allocatable :: E_map(:)  !has dimension 1:n_E_uni, indexes for each value in unified energy grid to indexes in da
+        Integer, Allocatable :: E_key(:)  !has dimension 1:n_da, indexes for each value in da to an energy in unified energy list
     End Type
     
     Type :: lev_sig_Type

@@ -12,9 +12,17 @@ echo "  $COMP_FLAGS"
 
 # COMMON MODULES
 cp ../common/Kinds.f90 Kinds.f90
+cp ../common/Global.f90 Global.f90
 cp ../common/Utilities.f90 Utilities.f90
-cp ../common/Root_Solvers.f90 Root_Solvers.f90
 
 gfortran $GFORT_FLAGS_o Kinds.f90
+gfortran $GFORT_FLAGS_o Global.f90
 gfortran $GFORT_FLAGS_o Utilities.f90
-gfortran $GFORT_FLAGS_o Root_Solvers.f90
+
+# ASTRO MODULES
+cp ../astro/Astro_Utilities.f90 Astro_Utilities.f90
+gfortran $GFORT_FLAGS_o Astro_Utilities.f90
+
+# MAIN CODE MODULES
+cp ../Diverge_approx.f90 Diverge_approx.f90
+gfortran $GFORT_FLAGS_o Diverge_approx.f90

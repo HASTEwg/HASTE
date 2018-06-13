@@ -1,18 +1,14 @@
-#!/usr/bin/sh
+#!/bin/sh
 
 # CLEAN OLD BUILD FILES
-#./cleanALL
 ./clean -o -m -f
 
-# COMPILER FLAGS
-# Peprocessor definitions for conditional compilation:
-#  - Operating System (default Windows, -DLIN_OS for Linux)
-#  - Intel MKL PRNGs (default off, -DIMKL for Intel MKL)
-#  - Coarray support (default off, -DCAF enables coarrays)
-#  - Compiler vendor (default gFortran, -DIFORT for Intel)
-PREP_FLAGS="-cpp -DLIN_OS"
-GFORT_FLAGS_DEBUG="${PREP_FLAGS} -Og -fmax-errors=5 -Wall -ffree-line-length-0 -fimplicit-none -fcheck=all -pedantic -fbacktrace -fcoarray=none"
-GFORT_FLAGS_o="${GFORT_FLAGS_DEBUG} -c"
+# SET COMPILER FLAGS
+. ./set_flags
+echo "Preprocessor Flags:"
+echo "  $PREP_FLAGS"
+echo "Compiler Flags:"
+echo "  $COMP_FLAGS"
 
 # COMMON MODULES
 cp ../common/Kinds.f90 Kinds.f90
@@ -50,17 +46,29 @@ cp ../atmo/USSA76.f90 USSA76.f90
 gfortran $GFORT_FLAGS_o USSA76.f90
 
 # PARTICLE UTILITIES MODULES
-cp ../parts/Random_Directions.f90 Random_Directions.f90
 cp ../parts/Particle_Piles.f90 Particle_Piles.f90
 cp ../parts/Neutron_Utilities.f90 Neutron_Utilities.f90
 cp ../parts/n_Cross_Sections.f90 n_Cross_Sections.f90
+cp ../parts/Random_Directions.f90 Random_Directions.f90
 
-gfortran $GFORT_FLAGS_o Random_Directions.f90
 gfortran $GFORT_FLAGS_o Particle_Piles.f90
 gfortran $GFORT_FLAGS_o Neutron_Utilities.f90
 gfortran $GFORT_FLAGS_o n_Cross_Sections.f90
+gfortran $GFORT_FLAGS_o Random_Directions.f90
 
 # MAIN CODE MODULES
 cp ../Setups.f90 Setups.f90
+cp ../Atmospheres.f90 Atmospheres.f90
+cp ../Satellite_Motion.f90 Satellite_Motion.f90
+cp ../Diverge_approx.f90 Diverge_approx.f90
+cp ../Find_Trajectory.f90 Find_Trajectory.f90
+cp ../Pathlengths.f90 Pathlengths.f90
+cp ../Target_Motion.f90 Target_Motion.f90
 
 gfortran $GFORT_FLAGS_o Setups.f90
+gfortran $GFORT_FLAGS_o Atmospheres.f90
+gfortran $GFORT_FLAGS_o Satellite_Motion.f90
+gfortran $GFORT_FLAGS_o Diverge_approx.f90
+gfortran $GFORT_FLAGS_o Find_Trajectory.f90
+gfortran $GFORT_FLAGS_o Pathlengths.f90
+gfortran $GFORT_FLAGS_o Target_Motion.f90

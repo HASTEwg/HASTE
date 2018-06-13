@@ -16,18 +16,20 @@ cp ../common/Global.f90 Global.f90
 cp ../common/Utilities.f90 Utilities.f90
 cp ../common/FileIO_Utilities.f90 FileIO_Utilities.f90
 cp ../common/Interpolation.f90 Interpolation.f90
-cp ../common/Sorting.f90 Sorting.f90
 
 gfortran $GFORT_FLAGS_o Kinds.f90
 gfortran $GFORT_FLAGS_o Global.f90
 gfortran $GFORT_FLAGS_o Utilities.f90
 gfortran $GFORT_FLAGS_o FileIO_Utilities.f90
 gfortran $GFORT_FLAGS_o Interpolation.f90
-gfortran $GFORT_FLAGS_o Sorting.f90
 
-# PARTICLE UTILITIES MODULES
-cp ../parts/Neutron_Utilities.f90 Neutron_Utilities.f90
-cp ../parts/n_Cross_Sections.f90 n_Cross_Sections.f90
+# ATMOSPHERE MODULES
+cp ../atmo/USSA76.f90 USSA76.f90
+gfortran $GFORT_FLAGS_o USSA76.f90
 
-gfortran $GFORT_FLAGS_o Neutron_Utilities.f90
-gfortran $GFORT_FLAGS_o n_Cross_Sections.f90
+# MAIN CODE MODULES
+cp ../Atmospheres.f90 Atmospheres.f90
+cp ../Pathlengths.f90 Pathlengths.f90
+
+gfortran $GFORT_FLAGS_o Atmospheres.f90
+gfortran $GFORT_FLAGS_o Pathlengths.f90

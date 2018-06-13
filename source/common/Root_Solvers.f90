@@ -240,7 +240,7 @@ Function RootFalsePos(f,a,b,rTol,aTol,Illinois) Result(r)
     Logical :: ill_fix
     Real(dp) :: old_r  !root from previous iteration
     Real(dp) :: old_fr  !function at root from previous iteration
-    Integer :: i,j  !counters
+    Integer :: i  !counters
     Real(dp) :: fr  !function value at current root guess
     Real(dp) :: fa,fb  !function values at left/right brackets
 

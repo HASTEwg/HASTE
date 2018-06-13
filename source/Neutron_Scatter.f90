@@ -599,14 +599,13 @@ End Subroutine Scattered_Angles
 
 !TODO Are these two routines (save counds and load counts) used anywhere in the project?  
 Subroutine Save_ScatMod_counts(ScatMod,dir,ext_in)
-    Use Utilities, Only: Thread_Index
+    Use Utilities, Only: Worker_Index
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: Var_to_file
     Implicit None
     Class(Scatter_Model_Type), Intent(In) :: ScatMod
     Character(*), Intent(In) :: dir
     Character(3), Intent(In), Optional :: ext_in
-    Integer :: i
     Character(4) :: i_char
     Character(:), Allocatable :: fname
     Character(4) :: ext
@@ -616,8 +615,7 @@ Subroutine Save_ScatMod_counts(ScatMod,dir,ext_in)
     Else  !default file extension is .BIN for unformatted binary files
         ext = '.bin'
     End If
-    Call Thread_Index(i)
-    Write(i_char,'(I4.4)') i
+    Write(i_char,'(I4.4)') Worker_Index()
     Allocate(Character(max_path_len) :: fname)
     !write couter arrays and values to files
     fname = dir//'ScatMod_'//i_char//'_nk'//ext
@@ -631,14 +629,13 @@ Subroutine Save_ScatMod_counts(ScatMod,dir,ext_in)
 End Subroutine Save_ScatMod_counts
 
 Subroutine Load_ScatMod_counts(ScatMod,dir,ext_in)
-    Use Utilities, Only: Thread_Index
+    Use FileIO_Utilities, Only: Worker_Index
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: Var_from_file
     Implicit None
     Class(Scatter_Model_Type), Intent(InOut) :: ScatMod
     Character(*), Intent(In) :: dir
     Character(3), Intent(In), Optional :: ext_in
-    Integer :: i
     Character(4) :: i_char
     Character(:), Allocatable :: fname
     Character(4) :: ext
@@ -648,8 +645,7 @@ Subroutine Load_ScatMod_counts(ScatMod,dir,ext_in)
     Else  !default file extension is .BIN for unformatted binary files
         ext = '.bin'
     End If
-    Call Thread_Index(i)
-    Write(i_char,'(I4.4)') i
+    Write(i_char,'(I4.4)') Worker_Index()
     Allocate(Character(max_path_len) :: fname)
     !write couter arrays and values to files
     fname = dir//'ScatMod_'//i_char//'_nk'//ext

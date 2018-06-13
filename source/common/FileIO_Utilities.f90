@@ -571,7 +571,6 @@ Subroutine Working_Directory(GETdir,PUTdir,s)
     Character(max_path_len), Intent(In), Optional :: PUTdir
     Character(1), Intent(In), Optional :: s
     Integer :: stat
-    Integer :: pathlen
     
     If (Present(GETdir)) Then
 #       if IFORT
@@ -667,13 +666,11 @@ Subroutine Open_for_Log_Message(file_name,unit,stat)
     End Do
 End Subroutine Open_for_Log_Message
 
-Subroutine Log_Stamp()
+Subroutine Log_Stamp(s)
     Implicit None
-    Character(max_line_len) :: Log_Stamp
-    Character(8) :: d
-    Character(10) :: t
+    Character(max_line_len) :: s
     
-    Write(Log_Stamp,'(A,I0)') Date_Time_stamp()//' Worker ',Worker_Index()
+    Write(s,'(A,I0)') Date_Time_stamp()//' Worker ',Worker_Index()
 End Subroutine Log_Stamp
 
 Subroutine Log_Message_C(message,logfile)
@@ -1021,7 +1018,7 @@ End Function Worker_Index
 Function n_Workers() Result(n)
     Use OMP_LIB, Only: OMP_GET_NUM_THREADS
     Implicit None
-    Integer :: i
+    Integer :: n
 
 #   if CAF
         If (OMP_GET_NUM_THREADS().GT.1 .OR. num_images().GT.1) Then !Parallel threads or images are running
@@ -1092,36 +1089,10 @@ Function Date_Time_string() Result(s)
     Implicit None
     Character(20) :: s
     Integer :: v(8)
-    Character(5) :: m
+    Character(5), Parameter :: months(12) = (/ ' Jan ',' Feb ',' Mar ',' Apr ',' May ',' Jun ',' Jul ',' Aug ',' Sep ',' Oct ',' Nov ',' Dec ' /)
     
     Call DATE_AND_TIME(VALUES = v)
-    Select Case v(2)
-        Case (1)
-            m = ' Jan '
-        Case (2)
-            m = ' Feb '
-        Case (3)
-            m = ' Mar '
-        Case (4)
-            m = ' Apr '
-        Case (5)
-            m = ' May '
-        Case (6)
-            m = ' Jun '
-        Case (7)
-            m = ' Jul '
-        Case (8)
-            m = ' Aug '
-        Case (9)
-            m = ' Sep '
-        Case (10)
-            m = ' Oct '
-        Case (11)
-            m = ' Nov '
-        Case (12)
-            m = ' Dec '
-    End Select
-    Write(s,'(I2.2,A5,I4.4,A1,I2.2,A1,I2.2,A1,I2.2)') v(3),m,v(1),' ',v(5),':',v(6),':',v(7)
+    Write(s,'(I2.2,A5,I4.4,A1,I2.2,A1,I2.2,A1,I2.2)') v(3),months(v(2)),v(1),' ',v(5),':',v(6),':',v(7)
 End Function Date_Time_string
 
 Function Date_Time_stamp() Result(s)

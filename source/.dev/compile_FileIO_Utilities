@@ -1,6 +1,18 @@
-./compile_Kinds
-find . -name "FileIO_Utilities.o" -type f -delete
-find . -name "FileIO_Utilities.mod" -type f -delete
-find . -name "FileIO_Utilities.f90" -type f -delete
+#!/bin/sh
+
+# CLEAN OLD BUILD FILES
+./clean -o -m -f
+
+# SET COMPILER FLAGS
+. ./set_flags
+echo "Preprocessor Flags:"
+echo "  $PREP_FLAGS"
+echo "Compiler Flags:"
+echo "  $COMP_FLAGS"
+
+# COMMON MODULES
+cp ../common/Kinds.f90 Kinds.f90
 cp ../common/FileIO_Utilities.f90 FileIO_Utilities.f90
-gfortran -cpp -DLIN_OS -ffree-line-length-0 -c FileIO_Utilities.f90
+
+gfortran $GFORT_FLAGS_o Kinds.f90
+gfortran $GFORT_FLAGS_o FileIO_Utilities.f90

@@ -1,8 +1,24 @@
-./compile_Kinds
-./compile_Global
-./compile_Utilities
-find . -name "Neutron_Utilities.o" -type f -delete
-find . -name "Neutron_Utilities.mod" -type f -delete
-find . -name "Neutron_Utilities.f90" -type f -delete
-cp ../cs/Neutron_Utilities.f90 Neutron_Utilities.f90
-gfortran -ffree-line-length-0 -c Neutron_Utilities.f90
+#!/bin/sh
+
+# CLEAN OLD BUILD FILES
+./clean -o -m -f
+
+# SET COMPILER FLAGS
+. ./set_flags
+echo "Preprocessor Flags:"
+echo "  $PREP_FLAGS"
+echo "Compiler Flags:"
+echo "  $COMP_FLAGS"
+
+# COMMON MODULES
+cp ../common/Kinds.f90 Kinds.f90
+cp ../common/Global.f90 Global.f90
+cp ../common/Utilities.f90 Utilities.f90
+
+gfortran $GFORT_FLAGS_o Kinds.f90
+gfortran $GFORT_FLAGS_o Global.f90
+gfortran $GFORT_FLAGS_o Utilities.f90
+
+# PARTICLE UTILITIES MODULES
+cp ../parts/Neutron_Utilities.f90 Neutron_Utilities.f90
+gfortran $GFORT_FLAGS_o Neutron_Utilities.f90

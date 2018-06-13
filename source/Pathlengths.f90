@@ -245,12 +245,11 @@ Function zeta_orbit_upward(rp,vp,p,e,r1) Result(zeta)
     Real(dp) :: zeta
     Real(dp), Intent(In) :: rp,vp,p,e
     Real(dp), Intent(In) :: r1
-    Real(dp) :: k
     Real(dp) :: v1
     
     v1 =  Sqrt(mu * (2._dp / r1 - (1._dp - e**2) / p))
     zeta = 1._dp - (rp*vp / (r1*v1))**2
-    End Function zeta_orbit_upward
+End Function zeta_orbit_upward
 
 Function zeta_downward_r1r_ca(r1,r_ca) Result(zeta1)
     Use Kinds, Only: dp
@@ -446,7 +445,8 @@ Subroutine EPL_orbit_upward_layers(atm,z0,zeta0,h,xi,p,e,rp,nb,bb,Lb,z1_in)
     Logical :: partial_last_layer
     Real(dp) :: z1
     Integer :: i
-    Real(dp) :: k0,vp
+    !Real(dp) :: k0
+    Real(dp) :: vp
 
     b0 = (atm%iZb(1)-1) + Bisection_Search(z0,atm%Zb(atm%iZb(1):atm%iZb(2)-1),atm%iZb(3)-1)
     If (Present(z1_in)) Then  !not going all the way to top of atm
@@ -636,7 +636,6 @@ Function EPL_Tk_partial_layer(z1,z2,p,e,b,n,atm) Result(L)
     Real(dp) :: cos_ts(1:n)
     Real(dp) :: dZs(1:n)
     Integer :: i
-    Real(dp) :: rp,vp,v1,zeta1
     
     !UNDONE small delta theta will result in poorly conditioned limits of integration, need to find well conditioned formulae for limits or change variables
     r1 = R_earth + z1

@@ -235,7 +235,9 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
                    & wind_N, &
                    & 0._dp /)
     Call Define_EPL_Layers(atm,resources_dir)
-    If (this_image() .EQ. 1) Then
+#   if CAF
+        If (this_image() .EQ. 1) Then
+#   endif
         If (Present(run_file_name)) Then
             Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
             If (stat .NE. 0) Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//run_file_name//', IOSTAT=',stat,kill=.TRUE.)
@@ -243,7 +245,9 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
             Write(setup_unit,*)
             Close(setup_unit)
         End If
-    End If
+#   if CAF
+        End If
+#   endif
 End Function Setup_Atmosphere
 
 Subroutine Write_Atmosphere(a,file_name)
