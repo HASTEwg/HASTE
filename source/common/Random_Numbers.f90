@@ -182,9 +182,9 @@ End Function Get_1_Random_scaled2
 Function Get_n_Randoms(RNG,n) Result(r)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: r(n)
     Class(RNG_Type), Intent(InOut) :: RNG
     Integer,Intent(In) :: n  !number of elements in r
+    Real(dp) :: r(n)
     Integer :: m
     
     m = RNG%q_index + n - 1  !index of the final q needed to fill r
@@ -207,10 +207,10 @@ Function Get_n_Randoms_scaled1(RNG,n,x) Result(r)
     !Same as Get_n_Randoms, but maps result onto [0,x)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: r(n)
     Class(RNG_Type), Intent(InOut) :: RNG
     Integer,Intent(In) :: n  !number of elements in r
     Real(dp), Intent(In) :: x
+    Real(dp) :: r(n)
     
     r = x * RNG%Get_Randoms(n)  !get random numbers from the array and map onto [0,x)
 End Function Get_n_Randoms_scaled1
@@ -219,10 +219,10 @@ Function Get_n_Randoms_scaled2(RNG,n,x,y) Result(r)
     !Same as Get_n_Randoms, but maps result onto [x,y)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: r(n)
     Class(RNG_Type), Intent(InOut) :: RNG
     Integer,Intent(In) :: n  !number of elements in r
     Real(dp), Intent(In) :: x,y
+    Real(dp) :: r(n)
     
     r = x + RNG%Get_Randoms(n) * (y - x)  !get random numbers from the array and map onto [x,y)
 End Function Get_n_Randoms_scaled2
@@ -351,6 +351,7 @@ End Subroutine Save_RNG
 Subroutine Load_RNG(RNG,dir)
 #   if IMKL
         Use MKL_VSL, Only: vslloadstreamF
+        Use FileIO_Utilities, Only: Output_Message
 #   endif
     Use FileIO_Utilities, Only: Worker_Index
     Use FileIO_Utilities, Only: max_path_len
@@ -360,7 +361,10 @@ Subroutine Load_RNG(RNG,dir)
     Character(*), Intent(In) :: dir
     Character(4) :: i_char
     Character(:), Allocatable :: fname
-    Integer :: stat,j
+#   if IMKL
+        Integer :: stat
+#   endif
+    Integer(8) :: j
     
     Write(i_char,'(I4.4)') Worker_Index()
     Allocate(Character(max_path_len) :: fname)

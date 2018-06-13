@@ -5,14 +5,14 @@ Module Results
 
     Public :: Write_Run_Summary
     Public :: Write_Tally_Grids
-    !DIR$ IF DEFINED (COA)
+#   if CAF
         Public :: Image_Result_to_Disk
         Public :: Image_Results_from_Disk
-    !DIR$ END IF
+#   endif
     
 Contains
 
-!DIR$ IF DEFINED (COA)
+# if CAF
 Subroutine Image_Result_to_Disk(time,n_hit,n_run,t,d,n_kills,next_events,no_tally,uncounted)
     Use Kinds, Only: dp
     Use FileIO_Utilities, Only: slash
@@ -99,9 +99,9 @@ Subroutine Image_Result_to_Disk(time,n_hit,n_run,t,d,n_kills,next_events,no_tall
     file_name = file_dir//'img'//i_char//'_n_u.tmp'
     Call Var_to_File(uncounted,file_name)
 End Subroutine Image_Result_to_Disk
-!DIR$ END IF
+# endif
 
-!DIR$ IF DEFINED (COA)
+# if CAF
 Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist_run,n_hist_hit,t,d,n_kills,next_events,no_tally,uncounted)
     Use Kinds, Only: dp
     Use FileIO_Utilities, Only: slash
@@ -314,7 +314,7 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     End Do
     Deallocate(Dir_tmp)
 End Subroutine Image_Results_from_Disk
-!DIR$ END IF
+# endif
 
 Subroutine Write_Run_Summary(n_img,t_process,t_elapsed_min,t_elapsed_max,n_h_hit,n_h_run,RNG,paths_files,a,sm,s,d,TE_tallies,Dir_tallies,file_name)
     Use Kinds, Only: dp

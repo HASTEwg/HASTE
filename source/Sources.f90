@@ -19,8 +19,8 @@ Module Sources
         Logical :: has_velocity  !T indicates source has velocity to be added to new neutrons
         Logical :: exoatmospheric  !T indicates source is outside atmosphere, F indicates source IN the atmosphere
         Integer :: E_dist_index,A_dist_index
-        Logical :: E_A_dist_coupled
-        Logical :: aniso_dist
+        Logical :: E_A_dist_coupled  !T indicates that the energy and direction distributions (in the rest frame of the source) are coupled
+        Logical :: aniso_dist  !T indicates a source with a non-uniform direction distribution of emitted particles (in the rest frame of the source)
         Real(dp) :: E_high   ![keV] energy description, E_high=E_low for 'Point', specifies energy range for 'Uniform', specifies cutoff energies for 'Watt235'
         Real(dp) :: E_low
         Real(dp) :: w  !weight of particles as they are created at the source, always equal to 1 for atmospheric source, varies for exoatmospheric sources
@@ -55,7 +55,7 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm,gravity) Result(s)
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Cross_Product
-    Use FileIO_Utilities, Only: fSHARE
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Source_Type) :: s
     Character(*), Intent(In) :: setup_file_name,run_file_name
@@ -76,11 +76,8 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm,gravity) Result(s)
                                  & d_E_source,d_N_source,d_U_source, &
                                  & source_E_dist,E_high,E_low
     
-    Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Neutron_Source: Initialize_Neutron_Source:  File open error, '//setup_file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source:  File open error, '//setup_file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = NeutronSourceList)
     Close(setup_unit)
     Select Case(position_geometry)
@@ -89,8 +86,7 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm,gravity) Result(s)
         Case('Cartesian')
             s%r = (/ x_source, y_source, z_source /)
         Case Default
-            Print *,'ERROR:  Sources: Setup_Source:  Unknown position geometry.'
-            ERROR STOP
+            Call Output_Message('ERROR:  Sources: Setup_Source:  Unknown position geometry.',kill=.TRUE.)
     End Select
     s%big_r = Vector_Length(s%r)
     s%z = s%big_r - R_earth
@@ -143,8 +139,7 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm,gravity) Result(s)
             s%Aniso_source = .TRUE.
         !UNDONE Tabulated angular source distribution type
         Case Default
-            Print *,'ERROR:  Neutron_Source: Initialize_Neutron_Source: Undefined source angular distribution'
-            ERROR STOP
+            Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source: Undefined source angular distribution',kill=.TRUE.)
     End Select
     !Set source direction
     s%d = (/ d_E_source, &
@@ -159,10 +154,7 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm,gravity) Result(s)
             & N_hat * Dot_Product(s%d,N_hat) + &
             & U_hat * Dot_Product(s%d,U_hat)
     Else
-        If (s%source_A_dist .NE. source_A_dist_Iso) Then
-            Print *,'ERROR:  Neutron_Source: Initialize_Neutron_Source: Source forward direction must be specified for angular distributions'
-            ERROR STOP        
-        End If
+        If (s%source_A_dist .NE. source_A_dist_Iso) Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source: Source forward direction must be specified for angular distributions',kill=.TRUE.)
     End If
     Select Case (source_E_dist)
         Case ('Line')
@@ -181,19 +173,19 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm,gravity) Result(s)
             s%E_dist_index = source_E_dist_tab
         !UNDONE Source distributions for Type 3, 5, 8, and 13
         Case Default
-            Print *,'ERROR:  Neutron_Source: Initialize_Neutron_Source: Undefined source energy distribution'
-            ERROR STOP
+            Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source: Undefined source energy distribution',kill=.TRUE.)
     End Select
-    If (this_image() .EQ. 1) Then
+#   if CAF
+        If (this_image() .EQ. 1) Then
+#   endif
         Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
-        If (stat .NE. 0) Then
-            Print *,'ERROR:  Sources: Setup_Source:  File open error, '//run_file_name//', IOSTAT=',stat
-            ERROR STOP
-        End If
+        If (stat .NE. 0) Call Output_Message('ERROR:  Sources: Setup_Source:  File open error, '//run_file_name//', IOSTAT=',stat,kill=.TRUE.)
         Write(setup_unit,NML = NeutronSourceList)
         Write(setup_unit,*)
         Close(setup_unit)
-    End If
+#   if CAF
+        End If
+#   endif
 End Function Setup_Source
 
 Function Celest_to_XYZ(alt,RA_deg,DEC_deg) Result(r)
@@ -298,16 +290,14 @@ Subroutine Write_Source(s,file_name)
     Use Global, Only: Pi
     Use Global, Only: R_Earth
     Use Utilities, Only: Vector_Length
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Source_Type), Intent(In) :: s
     Character(*), Intent(In) :: file_name
     Integer :: unit,stat
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Sources: Write_Source:  File open error, '//file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    If (stat .NE. 0) Call Output_Message('ERROR:  Sources: Write_Source:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit,'(A)') '--------------------------------------------------'
     Write(unit,'(A)') 'SOURCE INFORMATION'
     Write(unit,'(A)') '--------------------------------------------------'

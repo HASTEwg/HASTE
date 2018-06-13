@@ -1,7 +1,7 @@
 Module Neutron_Scatter
     
     Use Kinds, Only: dp
-    Use Cross_Sections, Only: CS_Type
+    Use n_Cross_Sections, Only: CS_Type
     Implicit None
     
     Private
@@ -92,7 +92,7 @@ Module Neutron_Scatter
 Contains
 
 Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,run_file_name) Result(ScatMod)
-    Use Cross_Sections, Only: Setup_Cross_Sections
+    Use n_Cross_Sections, Only: Setup_Cross_Sections
     Use Global, Only: n_kill_weight
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
@@ -213,7 +213,7 @@ Subroutine Sample_Scatter(ScatMod,n,atm,RNG)
     Use Global, Only: Z_hat,X_hat
     Use Atmospheres, Only: Atmosphere_Type
     Use Random_Numbers, Only: RNG_Type
-    Use Cross_Sections, Only: sig_composite
+    Use n_Cross_Sections, Only: sig_composite
     Use Utilities, Only: Bisection_Search
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Unit_Vector
@@ -395,7 +395,7 @@ Subroutine Set_Scatter_iso(ScatMod,n,atm,RNG,scat,iso,n_lev,E_cm,i_E_cm)
     Use Global, Only: X_hat,Z_hat
     Use Atmospheres, Only: Atmosphere_Type
     Use Random_Numbers, Only: RNG_Type
-    Use Cross_Sections, Only: sig_composite
+    Use n_Cross_Sections, Only: sig_composite
     Use Utilities, Only: Bisection_Search
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Unit_Vector
@@ -599,7 +599,7 @@ End Subroutine Scattered_Angles
 
 !TODO Are these two routines (save counds and load counts) used anywhere in the project?  
 Subroutine Save_ScatMod_counts(ScatMod,dir,ext_in)
-    Use Utilities, Only: Worker_Index
+    Use FileIO_Utilities, Only: Worker_Index
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: Var_to_file
     Implicit None
@@ -659,7 +659,7 @@ Subroutine Load_ScatMod_counts(ScatMod,dir,ext_in)
 End Subroutine Load_ScatMod_counts
 
 Subroutine Write_Scatter_Model(s,file_name)
-    Use Cross_Sections, Only: Write_Cross_Sections
+    Use n_Cross_Sections, Only: Write_Cross_Sections
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Scatter_Model_Type), Intent(In) :: s
@@ -702,17 +702,17 @@ Subroutine Write_Scatter_Model(s,file_name)
     Else
         Write(unit,'(A)') '    Collision Distance Estimator:  Analog'
     End If
-    Write(unit,'(A,L)') '    Absorption suppression: ',s%suppress_absorption
-    Write(unit,'(A,L)') '    Leakage suppression:    ',s%suppress_leakage
-    Write(unit,'(A,L)') '    All Materials & Mech:   ',s%all_mat_mech
-    Write(unit,'(A,L)') '    Gravity:                ',s%Gravity
-    Write(unit,'(A,L)') '    Neutron Decay:          ',s%Neutron_Decay
-    Write(unit,'(A,L)') '    OTF Doppler Broaden:    ',s%Doppler_Broaden
-    Write(unit,'(A,L)') '    Target Motion:          ',s%Target_Motion
-    Write(unit,'(A,L)') '      Thermal Motion:         ',s%Thermal_Motion
-    Write(unit,'(A,L)') '      Diatomic Atm:           ',s%Diatomic_atm
-    Write(unit,'(A,L)') '      Rotating Earth:         ',s%Rotating_Earth
-    Write(unit,'(A,L)') '      Global Wind:            ',s%wind
+    Write(unit,'(A,L1)') '    Absorption suppression: ',s%suppress_absorption
+    Write(unit,'(A,L1)') '    Leakage suppression:    ',s%suppress_leakage
+    Write(unit,'(A,L1)') '    All Materials & Mech:   ',s%all_mat_mech
+    Write(unit,'(A,L1)') '    Gravity:                ',s%Gravity
+    Write(unit,'(A,L1)') '    Neutron Decay:          ',s%Neutron_Decay
+    Write(unit,'(A,L1)') '    OTF Doppler Broaden:    ',s%Doppler_Broaden
+    Write(unit,'(A,L1)') '    Target Motion:          ',s%Target_Motion
+    Write(unit,'(A,L1)') '      Thermal Motion:         ',s%Thermal_Motion
+    Write(unit,'(A,L1)') '      Diatomic Atm:           ',s%Diatomic_atm
+    Write(unit,'(A,L1)') '      Rotating Earth:         ',s%Rotating_Earth
+    Write(unit,'(A,L1)') '      Global Wind:            ',s%wind
     Write(unit,*)
     Write(unit,'(A,I15)') '  Histories killed on:  Time:     ',s%n_kills(1)
     Write(unit,'(A,I15)') '                        Energy:   ',s%n_kills(2)

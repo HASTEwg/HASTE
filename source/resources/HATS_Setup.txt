@@ -118,19 +118,22 @@ v_U_source = 0.                  ![km/s]  Upward velocity of source
 d_E_source = 0.                  ![km/s]  Easterly direction of 'front' of source
 d_N_source = 0.                  ![km/s]  Northerly direction of 'front' source
 d_U_source = -1.                 ![km/s]  Upward direction of 'front' source
-source_E_dist = 'Watt235'           !<'Line','Uniform','Watt235','Type03','Type05','Type08','Type13'>
+source_E_dist = 'Watt235'           !<'Line','Uniform','Watt235','Type03','Type05','Type08','Type13',
+                                 !'Egroups','EAgroups'>
                                  ! 'Line' energy = E_high, 'Uniform' energy uniformly distributed
                                  ! E_high to E_low, 'Watt235' watt distribution with for fission
                                  ! of U-235 from Kneif, 'Type03' fission, 'Type05' boosted fision, 
 								 ! 'Type08' thermonuclear, 'Type13' enhanced rad thermonuclear,
-								 ! 'Tabulated' list of tabulated energy bins and densities
+								 ! 'Egroups' list of tabulated energy bins and densities, 
+                                 ! 'EAgroups' 2-D list of tabulated energy and angle bins
 E_high = 20000.                  ![keV]  Value for 'Line', max value for 'Uniform' or 'Watt235'
 E_low = 0.                   ![keV]  Min value for 'Uniform'
-source _A_dist = 'Iso'           !<'Iso','Top','Side','Bottom','Tabulated'>
+source _A_dist = 'Iso'           !<'Iso','Top','Side','Bottom','Agroups','EAgroups'>
                                  ! 'Iso' isotropic, 'Top' upward 1/3 of solid angle only, 'Side' 
 								 ! 1/3 of solid angle closest to perpendicular to Earth's surface 
 								 ! beneath the source, 'Bottom' downward 1/3 of solid angle, 
-								 ! 'Tabulated' list of tabulated angle bins and densities
+								 ! 'Agroups' list of tabulated angle bins and densities,
+                                 ! 'EAgroups' 2-D list of tabulated energy and angle bins
 !---------------------------------------------------------------------------------------------------
 /
 

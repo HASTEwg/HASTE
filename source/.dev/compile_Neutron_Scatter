@@ -19,10 +19,6 @@ cp ../common/Interpolation.f90 Interpolation.f90
 cp ../common/Legendre_Utilities.f90 Legendre_Utilities.f90
 cp ../common/Sorting.f90 Sorting.f90
 cp ../common/Random_Numbers.f90 Random_Numbers.f90
-cp ../common/Statistics.f90 Statistics.f90
-cp ../common/Root_Solvers.f90 Root_Solvers.f90
-cp ../common/Gauss_Legendre_w_a.f90 Gauss_Legendre_w_a.f90
-cp ../common/Quadratures.f90 Quadratures.f90
 
 gfortran $GFORT_FLAGS_o Kinds.f90
 gfortran $GFORT_FLAGS_o Global.f90
@@ -32,51 +28,25 @@ gfortran $GFORT_FLAGS_o Interpolation.f90
 gfortran $GFORT_FLAGS_o Legendre_Utilities.f90
 gfortran $GFORT_FLAGS_o Sorting.f90
 gfortran $GFORT_FLAGS_o Random_Numbers.f90
-gfortran $GFORT_FLAGS_o Statistics.f90
-gfortran $GFORT_FLAGS_o Root_Solvers.f90
-gfortran $GFORT_FLAGS_o Gauss_Legendre_w_a.f90
-gfortran $GFORT_FLAGS_o Quadratures.f90
-
-# ASTRO MODULES
-cp ../astro/Astro_Utilities.f90 Astro_Utilities.f90
-gfortran $GFORT_FLAGS_o Astro_Utilities.f90
 
 # ATMOSPHERE MODULES
 cp ../atmo/USSA76.f90 USSA76.f90
 gfortran $GFORT_FLAGS_o USSA76.f90
 
 # PARTICLE UTILITIES MODULES
-cp ../parts/Particle_Piles.f90 Particle_Piles.f90
 cp ../parts/Neutron_Utilities.f90 Neutron_Utilities.f90
 cp ../parts/n_Cross_Sections.f90 n_Cross_Sections.f90
 cp ../parts/Random_Directions.f90 Random_Directions.f90
 
-gfortran $GFORT_FLAGS_o Particle_Piles.f90
 gfortran $GFORT_FLAGS_o Neutron_Utilities.f90
 gfortran $GFORT_FLAGS_o n_Cross_Sections.f90
 gfortran $GFORT_FLAGS_o Random_Directions.f90
 
 # MAIN CODE MODULES
-cp ../Setups.f90 Setups.f90
 cp ../Atmospheres.f90 Atmospheres.f90
-cp ../Satellite_Motion.f90 Satellite_Motion.f90
-cp ../Diverge_approx.f90 Diverge_approx.f90
-cp ../Diverge_exact.f90 Diverge_exact.f90
-cp ../Find_Trajectory.f90 Find_Trajectory.f90
-cp ../Pathlengths.f90 Pathlengths.f90
 cp ../Target_Motion.f90 Target_Motion.f90
-cp ../Tallies.f90 Tallies.f90
-cp ../Detectors.f90 Detectors.f90
 cp ../Neutron_Scatter.f90 Neutron_Scatter.f90
 
-gfortran $GFORT_FLAGS_o Setups.f90
 gfortran $GFORT_FLAGS_o Atmospheres.f90
-gfortran $GFORT_FLAGS_o Satellite_Motion.f90
-gfortran $GFORT_FLAGS_o Diverge_approx.f90
-gfortran $GFORT_FLAGS_o Diverge_exact.f90
-gfortran $GFORT_FLAGS_o Find_Trajectory.f90
-gfortran $GFORT_FLAGS_o Pathlengths.f90
 gfortran $GFORT_FLAGS_o Target_Motion.f90
-gfortran $GFORT_FLAGS_o Tallies.f90
-gfortran $GFORT_FLAGS_o Detectors.f90
 gfortran $GFORT_FLAGS_o Neutron_Scatter.f90

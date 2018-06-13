@@ -172,7 +172,7 @@ Subroutine Resize_Contrib_Array(list,n)
 End Subroutine Resize_Contrib_Array
 
 Subroutine Save_Contrib_Array(list,dir,desc,ext_in)
-    Use FileIO_Utilities, Only: Thread_Index
+    Use FileIO_Utilities, Only: Worker_Index
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: Var_to_file
     Implicit None
@@ -180,7 +180,6 @@ Subroutine Save_Contrib_Array(list,dir,desc,ext_in)
     Character(*), Intent(In) :: dir
     Character(2), Intent(In) :: desc
     Character(3), Intent(In), Optional :: ext_in
-    Integer :: i
     Character(4) :: i_char
     Character(:), Allocatable :: fname
     Character(4) :: ext
@@ -190,8 +189,7 @@ Subroutine Save_Contrib_Array(list,dir,desc,ext_in)
     Else  !default file extension is .BIN for unformatted binary files
         ext = '.bin'
     End If
-    Call Thread_Index(i)
-    Write(i_char,'(I4.4)') i
+    Write(i_char,'(I4.4)') Worker_Index()
     Allocate(Character(max_path_len) :: fname)
     !write tallies arrays and values to files
     fname = dir//'Contribs_'//desc//i_char//'_s'//ext
@@ -217,14 +215,13 @@ End Subroutine Save_Contrib_Array
 Subroutine Load_Contrib_Array(list,dir,desc,ext_in)
     Use Kinds, Only: dp
     Use FileIO_Utilities, Only: max_path_len
-    Use FileIO_Utilities, Only: Thread_Index
+    Use FileIO_Utilities, Only: Worker_Index
     Use FileIO_Utilities, Only: Var_from_file
     Implicit None
     Class(Contrib_Array), Intent(InOut) :: list
     Character(*), Intent(In) :: dir
     Character(2), Intent(In) :: desc
     Character(3), Intent(In), Optional :: ext_in
-    Integer :: i
     Character(4) :: i_char
     Character(:), Allocatable :: fname
     Character(4) :: ext
@@ -234,8 +231,7 @@ Subroutine Load_Contrib_Array(list,dir,desc,ext_in)
     Else  !default file extension is .BIN for unformatted binary files
         ext = '.bin'
     End If
-    Call Thread_Index(i)
-    Write(i_char,'(I4.4)') i
+    Write(i_char,'(I4.4)') Worker_Index()
     Allocate(Character(max_path_len) :: fname)
     !read tallies arrays and values from files
     fname = dir//'Contribs_'//desc//i_char//'_s'//ext

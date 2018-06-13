@@ -64,7 +64,7 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Cross_Product
     Use Satellite_Motion, Only: Initialize_Satellite_Motion
-    Use FileIO_Utilities, Only: fSHARE
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Detector_Type) :: d
     Character(*), Intent(In) :: setup_file_name,run_file_name,slice_file_name
@@ -99,11 +99,8 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
                                    & n_mu_bins,n_omega_bins,collect_shape_data,shape_data_n_slices, &
                                    & shape_data_limit
     
-    Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat , SHARE = fSHARE)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Detectors: Setup_Detector:  File open error, '//setup_file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  Detectors: Setup_Detector:  File open error, '//setup_file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = NeutronDetectorList)
     Close(setup_unit)
     Select Case(position_geometry)
@@ -117,15 +114,13 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
         Case('Cartesian')
             d%sat%r0 = (/ x_detector, y_detector, z_detector /)
         Case Default
-            Print *,'ERROR:  Detectors: Setup_Detector:  Unknown position geometry.'
-            ERROR STOP
+            Call Output_Message('ERROR:  Detectors: Setup_Detector:  Unknown position geometry.',kill=.TRUE.)
     End Select
     !check for exoatmospheric detector
     If (Vector_Length(d%sat%r0) .LT. R_top_atm) Then
         d%exoatmospheric = .FALSE.
         !UNDONE In-atmosphere detector currently unsupported, will need to implement batching or some other scheme for variance estimation for this
-        Print *,'ERROR:  Detectors: Setup_Detector:  Endo-atmospheric detector not supported.'
-        ERROR STOP
+        Call Output_Message('ERROR:  Detectors: Setup_Detector:  Endo-atmospheric detector not supported.',kill=.TRUE.)
     Else
         d%exoatmospheric = .TRUE.
     End If
@@ -163,8 +158,7 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
             ForAll(i = 0:n_bins) d%TE_grid(1)%bounds(i) = t_min + Real(i,dp) * t_res
             d%TE_grid(1)%res = t_res
         Case Default
-            Print *,'ERROR:  Detectors: Setup_Detector:  Undefined t grid spacing'
-            ERROR STOP
+            Call Output_Message('ERROR:  Detectors: Setup_Detector:  Undefined t grid spacing',kill=.TRUE.)
     End Select
     d%TE_grid(1)%min = t_min
     d%TE_grid(1)%max = t_max
@@ -192,8 +186,7 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
             ForAll(i = 0:n_bins) d%TE_grid(2)%bounds(i) = E_min + Real(i,dp) * E_res
             d%TE_grid(2)%res = E_res
         Case Default
-            Print *,'ERROR:  Detectors: Setup_Detector:  Undefined E grid spacing'
-            ERROR STOP
+            Call Output_Message('ERROR:  Detectors: Setup_Detector:  Undefined E grid spacing',kill=.TRUE.)
     End Select
     d%TE_grid(2)%min = E_min
     d%TE_grid(2)%max = E_max
@@ -235,7 +228,9 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
     d%Dir_contribs_mu = 0._dp
     Allocate(d%Dir_contribs_omega(1:d%Dir_grid(2)%n_bins))
     d%Dir_contribs_omega = 0._dp
-    If (this_image() .EQ. 1) Then
+#   if CAF
+        If (this_image() .EQ. 1) Then
+#   endif
         !set up shape data collection
         If (collect_shape_data) Then
             d%shape_data = .TRUE.
@@ -266,16 +261,17 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
         End If
         !Write setup info to file
         Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
-        If (stat .NE. 0) Then
-            Print *,'ERROR:  Detectors: Setup_Detector:  File open error, '//run_file_name//', IOSTAT=',stat
-            ERROR STOP
-        End If
+        If (stat .NE. 0) Call Output_Message('ERROR:  Detectors: Setup_Detector:  File open error, '//run_file_name//', IOSTAT=',stat,kill=.TRUE.)
         Write(setup_unit,NML = NeutronDetectorList)
         Write(setup_unit,*)
         Close(setup_unit)
-    Else
+#   if CAF
+        Else
+#   endif
         d%shape_data = .FALSE.
-    End If
+#   if CAF
+        End If
+#   endif
 End Function Setup_Detector
 
 Subroutine Tally_Scatter(d,E,Omega_Hat,t,weight)
@@ -427,7 +423,7 @@ Subroutine Sort_Combine_Triplets(size,list,index)
     Integer :: i,j,k,n_1,n_2
     
     !Sort the list of contributions for this history on 1st index
-    Call Contribution_Cocktail_Sort_i1(list,index)
+    Call Contribution_Cocktail_Sort_i1(index,list)
     !Within each 1st index bin: sort in 2nd index and then consolidate duplicate contributions
     i = 1
     Do While (i .LT. index)
@@ -443,7 +439,7 @@ Subroutine Sort_Combine_Triplets(size,list,index)
                 End If
             End Do
             !sort the list of contributions in this 1st index bin on 2nd index
-            Call Contribution_Cocktail_Sort_i2(list(i:i+n_1-1),n_1)
+            Call Contribution_Cocktail_Sort_i2(n_1,list(i:i+n_1-1))
             !Search for and sum duplicates
             j = i
             Do While (j .LT. i+n_1-1)
@@ -476,10 +472,10 @@ Subroutine Sort_Combine_Triplets(size,list,index)
     End Do
 End Subroutine Sort_Combine_Triplets
 
-Subroutine Contribution_Cocktail_Sort_i1(c,n)
+Subroutine Contribution_Cocktail_Sort_i1(n,c)
     Implicit None
-    Type(Contrib_triplet), Intent(InOut) :: c(1:n)  !list of contribution triplets to sort
     Integer, Intent(In) :: n  !length of contribution triplet list
+    Type(Contrib_triplet), Intent(InOut) :: c(1:n)  !list of contribution triplets to sort
     Type(Contrib_triplet)  :: swap
     Logical :: no_swaps
     Integer :: i,j
@@ -510,10 +506,10 @@ Subroutine Contribution_Cocktail_Sort_i1(c,n)
     End Do
 End Subroutine Contribution_Cocktail_Sort_i1
 
-Subroutine Contribution_Cocktail_Sort_i2(c,n)
+Subroutine Contribution_Cocktail_Sort_i2(n,c)
     Implicit None
-    Type(Contrib_triplet), Intent(InOut) :: c(1:n)  !list of contribution triplets to sort
     Integer, Intent(In) :: n  !length of contribution triplet list
+    Type(Contrib_triplet), Intent(InOut) :: c(1:n)  !list of contribution triplets to sort
     Type(Contrib_triplet)  :: swap
     Logical :: no_swaps
     Integer :: i,j
@@ -549,6 +545,7 @@ Subroutine Write_Detector(d,file_name)
     Use Global, Only: Pi
     Use Global, Only: R_Earth
     Use Utilities, Only: Vector_Length
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Detector_Type), Intent(In) :: d
     Character(*), Intent(In) :: file_name
@@ -558,10 +555,7 @@ Subroutine Write_Detector(d,file_name)
     Real(dp) :: t,r(1:3),v(1:3)
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
-    If (stat .NE. 0) Then
-        Print *,'ERROR:  Detectors: Write_Detector:  File open error, '//file_name//', IOSTAT=',stat
-        ERROR STOP
-    End If
+    If (stat .NE. 0) Call Output_Message('ERROR:  Detectors: Write_Detector:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit,'(A)') '--------------------------------------------------'
     Write(unit,'(A)') 'DETECTOR INFORMATION'
     Write(unit,'(A)') '--------------------------------------------------'

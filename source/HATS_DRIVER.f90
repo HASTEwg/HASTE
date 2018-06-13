@@ -14,6 +14,9 @@ Program HATS
 !!  0.7     Revised EPL quadrature routines, Kepler Problem solver, & gravity 
 !!          divergence approach.
 !!  0.8     Opened development to HATSwg, migrated project to Github.
+!!  0.9     Major partability revision: gFortran and IA32/IA64/ARM, limited to
+!!          non-parallel applications temporarily (ARM development environment
+!!          has no parallel PRNGs)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Use Kinds, Only: dp
 Use Random_Numbers, Only: RNG_Type
@@ -50,7 +53,7 @@ Use FileIO_Utilities, Only: Second_of_Month
 
 Implicit None
 
-Character(80), Parameter :: title = 'High-Altitude Transport to Space for Neutrons (HATS-n) v0.8.02, 30 Jun 2018'
+Character(80), Parameter :: title = 'High-Altitude Transport to Space for Neutrons (HATS-n) v0.9.00, 30 Jun 2018'
 Integer(8) :: n_histories
 Logical :: absolute_n_histories  !specifies whether number of histories is an absolute limit, or a goal to accumulate contributions on
 Logical :: prompt_exit  !specifies whether the simulation will wait for user unput before exiting
