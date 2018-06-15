@@ -1,24 +1,18 @@
 #!/bin/sh
 
 # CLEAN OLD BUILD FILES
-./clean -o -m -f
+./clean
 
 # SET COMPILER FLAGS
 . ./set_flags
-echo "Preprocessor Flags:"
-echo "  $PREP_FLAGS"
-echo "Compiler Flags:"
-echo "  $COMP_FLAGS"
+. ./echo_flags
 
 # COMMON MODULES
-cp ../common/Kinds.f90 Kinds.f90
-cp ../common/Utilities.f90 Utilities.f90
-cp ../common/Interpolation.f90 Interpolation.f90
-
-gfortran $GFORT_FLAGS_o Kinds.f90
-gfortran $GFORT_FLAGS_o Utilities.f90
-gfortran $GFORT_FLAGS_o Interpolation.f90
+SRC_PATH="../source/common/"
+FNAME="Kinds"; . ./compile_it
+FNAME="Utilities"; . ./compile_it
+FNAME="Interpolation"; . ./compile_it
 
 # ATMOSPHERE MODULES
-cp ../atmo/USSA76.f90 USSA76.f90
-gfortran $GFORT_FLAGS_o USSA76.f90
+SRC_PATH="../source/atmo/"
+FNAME="USSA76"; . ./compile_it
