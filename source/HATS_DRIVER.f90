@@ -40,6 +40,8 @@ Use Results, Only: Write_Run_Summary
 Use Results, Only: Write_Tally_Grids
 Use Statistics, Only: gMean
 Use Statistics, Only: Std_Err
+Use FileIO_Utilities, Only: Worker_Index
+Use FileIO_Utilities, Only: n_Workers
 Use FileIO_Utilities, Only: Make_Boom
 Use FileIO_Utilities, Only: creturn
 Use FileIO_Utilities, Only: Delta_Time
@@ -76,13 +78,8 @@ Integer :: n_img,i_img
 Integer(8) :: n_done
 Integer(8), Allocatable :: n_hist_run(:),n_hist_hit(:)
 
-# if CAF
-    n_img = num_images()
-    i_img = this_image()
-# else
-    n_img = 1
-    i_img = 1
-# endif
+n_img = n_Workers()
+i_img = Worker_Index()
 If (i_img .EQ. 1) Then
     !UNSTANDARD Carriage control is no longer part of the Fortran standard, and its use here is specific to the implementation in Intel compilers ONLY.
     !Set carriage control to 'FORTRAN' so that console screen updates can be in-place
