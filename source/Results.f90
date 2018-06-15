@@ -554,6 +554,7 @@ Subroutine Write_Results_summary(TE_list,Dir_List,d,n_h,file_name)
     Use Tallies, Only: Contrib_array
     Use Detectors, Only: Detector_Type
     Use Statistics, Only: Std_Err
+    Use FileIO_Utilities, Only: n_Workers
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Contrib_array), Intent(In) :: TE_list
@@ -566,11 +567,7 @@ Subroutine Write_Results_summary(TE_list,Dir_List,d,n_h,file_name)
     Integer :: n_img    
 
     N_hist = Real(n_h,dp)
-#   if CAF
-        n_img = num_images()
-#   else
-        n_img = 1
-#   endif
+    n_img = n_Workers()
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Results: Write_Results:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit,'(A)') '--------------------------------------------------'
