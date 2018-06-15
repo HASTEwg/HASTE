@@ -68,17 +68,13 @@ Function Setup_RNG(setup_file_name,run_file_name) Result(RNG)
     Else  !initialize for serial execution
         Call RNG%Initialize(seed = RNG_seed)
     End If
-#   if CAF
-        If (this_image() .EQ. 1) Then
-#   endif
+    If (t .EQ. 1) Then
         Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
         If (stat .NE. 0) Call Output_Message('ERROR:  Random_Numbers: Setup_RNG:  File open error, '//run_file_name//', IOSTAT=',stat,kill=.TRUE.)
         Write(setup_unit,NML = RNGSetupList)
         Write(setup_unit,*)
         Close(setup_unit)
-#   if CAF
-        End If
-#   endif
+    End If
 End Function Setup_RNG
 
 Subroutine Initialize_RNG(RNG,seed,thread,size)  !Initializes a RNG and returns state variables for that stream
