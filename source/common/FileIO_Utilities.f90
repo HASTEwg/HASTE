@@ -1008,10 +1008,10 @@ Function Worker_Index(OMP_threaded,CAF_imaged) Result(i)
                 Call Output_Message('ERROR:  FileIO_Utilities: Worker_Index:  Unable to resolve thread or image number.',kill=.TRUE.)
             End If
         Else
-            i = 0  !default value for single threaded/imaged applications
+            i = 1  !default value for single threaded/imaged applications
         End If
 #   else
-        i = 0  !default value for single threaded/imaged applications
+        i = 1  !default value for single threaded/imaged applications
 #   endif
 End Function Worker_Index
 
