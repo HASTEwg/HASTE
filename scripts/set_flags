@@ -11,17 +11,21 @@ PREP_FLAGS="-cpp -DLIN_OS"
 OBJ_DIR="../build/obj/"
 DIR_FLAGS="-I${OBJ_DIR} -J${OBJ_DIR}"
 ALWAYS_FLAGS="-ffree-line-length-0 -fimplicit-none ${DIR_FLAGS}"
+# DEVELOPMENT Flags
+COMP_FLAGS="-O0 -fmax-errors=5 -Wall -pedantic ${ALWAYS_FLAGS} -fsyntax-only"
 # DEBUG Compiler Flags
-COMP_FLAGS="-Og -fmax-errors=5 -Wall -fcheck=all -pedantic -fbacktrace ${ALWAYS_FLAGS}"
+#COMP_FLAGS="-Og -fmax-errors=5 -Wall -pedantic -fcheck=all -fbacktrace ${ALWAYS_FLAGS}"
 # RELEASE Compiler Flags
 # COMP_FLAGS="-Ofast ${ALWAYS_FLAGS}";
 
 # LINKER Flags
-LINK_FLAGS="";
+LINK_FLAGS="-flto -fuse-linker-plugin";
 
-# Uncomment to enable coarrays
+# Uncomment to enable SINGLE coarray behavior
 #PREP_FLAGS="${PREP_FLAGS} -DCAF"
 #COMP_FLAGS="${COMP_FLAGS} -fcoarray=single"
+# Uncomment to enable full coarray execution
+#PREP_FLAGS="${PREP_FLAGS} -DCAF"
 #COMP_FLAGS="${COMP_FLAGS} -fcoarray=lib"
 
 GFORT_FLAGS="${PREP_FLAGS} ${COMP_FLAGS} ${LINK_FLAGS}"
