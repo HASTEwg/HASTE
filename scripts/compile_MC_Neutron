@@ -1,76 +1,50 @@
 #!/bin/sh
 
 # CLEAN OLD BUILD FILES
-./clean -o -m -f
+./clean
 
 # SET COMPILER FLAGS
 . ./set_flags
-echo "Preprocessor Flags:"
-echo "  $PREP_FLAGS"
-echo "Compiler Flags:"
-echo "  $COMP_FLAGS"
+. ./echo_flags
 
 # COMMON MODULES
-cp ../common/Kinds.f90 Kinds.f90
-cp ../common/Global.f90 Global.f90
-cp ../common/Utilities.f90 Utilities.f90
-cp ../common/FileIO_Utilities.f90 FileIO_Utilities.f90
-cp ../common/Interpolation.f90 Interpolation.f90
-cp ../common/Legendre_Utilities.f90 Legendre_Utilities.f90
-cp ../common/Sorting.f90 Sorting.f90
-cp ../common/Random_Numbers.f90 Random_Numbers.f90
-
-gfortran $GFORT_FLAGS_o Kinds.f90
-gfortran $GFORT_FLAGS_o Global.f90
-gfortran $GFORT_FLAGS_o Utilities.f90
-gfortran $GFORT_FLAGS_o FileIO_Utilities.f90
-gfortran $GFORT_FLAGS_o Interpolation.f90
-gfortran $GFORT_FLAGS_o Legendre_Utilities.f90
-gfortran $GFORT_FLAGS_o Sorting.f90
-gfortran $GFORT_FLAGS_o Random_Numbers.f90
+SRC_PATH="../source/common/"
+FNAME="Kinds"; . ./compile_it
+FNAME="Global"; . ./compile_it
+FNAME="Utilities"; . ./compile_it
+FNAME="FileIO_Utilities"; . ./compile_it
+FNAME="Interpolation"; . ./compile_it
+FNAME="Legendre_Utilities"; . ./compile_it
+FNAME="Sorting"; . ./compile_it
+FNAME="Random_Numbers"; . ./compile_it
 
 # ASTRO MODULES
-cp ../astro/Astro_Utilities.f90 Astro_Utilities.f90
-gfortran $GFORT_FLAGS_o Astro_Utilities.f90
+SRC_PATH="../source/astro/"
+FNAME="Astro_Utilities"; . ./compile_it
 
 # ATMOSPHERE MODULES
-cp ../atmo/USSA76.f90 USSA76.f90
-gfortran $GFORT_FLAGS_o USSA76.f90
+SRC_PATH="../source/atmo/"
+FNAME="USSA76"; . ./compile_it
 
 # PARTICLE UTILITIES MODULES
-cp ../parts/Particle_Piles.f90 Particle_Piles.f90
-cp ../parts/cs_Utilities.f90 cs_Utilities.f90
-cp ../parts/Neutron_Utilities.f90 Neutron_Utilities.f90
-cp ../parts/n_Cross_Sections.f90 n_Cross_Sections.f90
-cp ../parts/Random_Directions.f90 Random_Directions.f90
-
-gfortran $GFORT_FLAGS_o Particle_Piles.f90
-gfortran $GFORT_FLAGS_o cs_Utilities.f90
-gfortran $GFORT_FLAGS_o Neutron_Utilities.f90
-gfortran $GFORT_FLAGS_o n_Cross_Sections.f90
-gfortran $GFORT_FLAGS_o Random_Directions.f90
+SRC_PATH="../source/parts/"
+FNAME="Particle_Piles"; . ./compile_it
+FNAME="cs_Utilities"; . ./compile_it
+FNAME="Neutron_Utilities"; . ./compile_it
+FNAME="n_Cross_Sections"; . ./compile_it
+FNAME="Random_Directions"; . ./compile_it
 
 # MAIN CODE MODULES
-cp ../Atmospheres.f90 Atmospheres.f90
-cp ../Satellite_Motion.f90 Satellite_Motion.f90
-cp ../Diverge_approx.f90 Diverge_approx.f90
-cp ../Find_Trajectory.f90 Find_Trajectory.f90
-cp ../Pathlengths.f90 Pathlengths.f90
-cp ../Target_Motion.f90 Target_Motion.f90
-cp ../Tallies.f90 Tallies.f90
-cp ../Detectors.f90 Detectors.f90
-cp ../Neutron_Scatter.f90 Neutron_Scatter.f90
-cp ../Sources.f90 Sources.f90
-cp ../MC_Neutron.f90 MC_Neutron.f90
-
-gfortran $GFORT_FLAGS_o Atmospheres.f90
-gfortran $GFORT_FLAGS_o Satellite_Motion.f90
-gfortran $GFORT_FLAGS_o Diverge_approx.f90
-gfortran $GFORT_FLAGS_o Find_Trajectory.f90
-gfortran $GFORT_FLAGS_o Pathlengths.f90
-gfortran $GFORT_FLAGS_o Target_Motion.f90
-gfortran $GFORT_FLAGS_o Tallies.f90
-gfortran $GFORT_FLAGS_o Detectors.f90
-gfortran $GFORT_FLAGS_o Neutron_Scatter.f90
-gfortran $GFORT_FLAGS_o Sources.f90
-gfortran $GFORT_FLAGS_o MC_Neutron.f90
+SRC_PATH="../source/"
+FNAME="Setups"; . ./compile_it
+FNAME="Atmospheres"; . ./compile_it
+FNAME="Satellite_Motion"; . ./compile_it
+FNAME="Diverge_approx"; . ./compile_it
+FNAME="Find_Trajectory"; . ./compile_it
+FNAME="Pathlengths"; . ./compile_it
+FNAME="Target_Motion"; . ./compile_it
+FNAME="Tallies"; . ./compile_it
+FNAME="Detectors"; . ./compile_it
+FNAME="Neutron_Scatter"; . ./compile_it
+FNAME="Sources"; . ./compile_it
+FNAME="MC_Neutron"; . ./compile_it
