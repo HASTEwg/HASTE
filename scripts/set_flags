@@ -4,8 +4,8 @@
 #  - Operating System (default Windows, -DLIN_OS for Linux)
 #  - Intel MKL PRNGs (default off, -DIMKL for Intel MKL)
 #  - Coarray support (default off, -DCAF enables coarrays)
-#  - Compiler vendor (default gFortran, -DIFORT for Intel)
-PREP_FLAGS="-cpp -DLIN_OS"
+#  - Compiler vendor (-DGFORT for gFortran, -DIFORT for Intel)
+PREP_FLAGS="-cpp -DLIN_OS -DGFORT"
 
 # General compiler flags (applies to all builds)
 OBJ_DIR="../build/obj/"
