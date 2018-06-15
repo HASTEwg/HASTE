@@ -41,6 +41,7 @@ Subroutine Setup_HATS(prompt_for_exit,screen_progress,paths_files,n_neutron_hist
     !Reads in problem data, method data, physics data
     !Initializes processes and variables
     Use Kinds, Only: dp
+    Use FileIO_Utilities, Only: Worker_Index
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
     Use FileIO_Utilities, Only: Working_Directory
@@ -116,18 +117,14 @@ Subroutine Setup_HATS(prompt_for_exit,screen_progress,paths_files,n_neutron_hist
     paths_files%s_file_name = ''
     Call Create_Output_File_names(paths_files%results_directory,paths_files%file_suffix,paths_files%log_file_name,paths_files%TE_file_name,paths_files%t_file_name,paths_files%E_file_name,paths_files%f_file_name,paths_files%d_file_name,paths_files%m_file_name,paths_files%o_file_name,paths_files%s_file_name,paths_files%run_file_name)
     !Create backup setup file in results folder and write namelist
-#   if CAF
-        If (this_image() .EQ. 1) Then
-#   endif
+    If (Worker_Index() .EQ. 1) Then
         !the backup setup file will not contain any continuation or study set configuration information
         Open(NEWUNIT = setup_unit , FILE = paths_files%run_file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
         If (stat .NE. 0) Call Output_Message('ERROR:  Setups: Setup_HATS:  File open error, '//paths_files%run_file_name//', IOSTAT=',stat,kill=.TRUE.)
         Write(setup_unit,NML = ProgramSetupList)
         Write(setup_unit,*)
         Close(setup_unit)
-#   if CAF
-        End If
-#   endif
+    End If
     !Read in the next setup namelist
     Call Setup_Estimator(paths_files%setup_file,paths_files%run_file_name,n_neutron_histories,absolute_n_histories)
 End Subroutine Setup_HATS
