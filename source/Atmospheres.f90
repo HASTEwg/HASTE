@@ -91,6 +91,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
     Use FileIO_Utilities, Only: Output_Message
+    Use FileIO_Utilities, Only: Worker_Index
     Use US_Std_Atm_1976, Only: Find_base_layer_1976 => Find_base_layer
     Use US_Std_Atm_1976, Only: Zb_1976 => Zb
     Implicit None
