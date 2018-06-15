@@ -65,6 +65,7 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
     Use Utilities, Only: Cross_Product
     Use Satellite_Motion, Only: Initialize_Satellite_Motion
     Use FileIO_Utilities, Only: Output_Message
+    Use FileIO_Utilities, Only: Worker_Index
     Implicit None
     Type(Detector_Type) :: d
     Character(*), Intent(In) :: setup_file_name,run_file_name,slice_file_name
@@ -228,9 +229,7 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
     d%Dir_contribs_mu = 0._dp
     Allocate(d%Dir_contribs_omega(1:d%Dir_grid(2)%n_bins))
     d%Dir_contribs_omega = 0._dp
-#   if CAF
-        If (this_image() .EQ. 1) Then
-#   endif
+    If (Worker_Index() .EQ. 1) Then
         !set up shape data collection
         If (collect_shape_data) Then
             d%shape_data = .TRUE.
@@ -265,13 +264,9 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
         Write(setup_unit,NML = NeutronDetectorList)
         Write(setup_unit,*)
         Close(setup_unit)
-#   if CAF
-        Else
-#   endif
+    Else
         d%shape_data = .FALSE.
-#   if CAF
-        End If
-#   endif
+    End If
 End Function Setup_Detector
 
 Subroutine Tally_Scatter(d,E,Omega_Hat,t,weight)
