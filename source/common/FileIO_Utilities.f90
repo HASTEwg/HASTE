@@ -595,7 +595,7 @@ Function Check_Directory(dirname) Result(exists)
 #   if IFORT
         INQUIRE(DIRECTORY = dirname , EXIST = exists)  !<--IFORT implementation
 #   else
-        INQUIRE(FILE = dirname , EXIST = exists)  !<--GFORT implementation
+        INQUIRE(FILE = dirname , EXIST = exists)
 #   endif
 End Function Check_Directory
 
@@ -609,6 +609,7 @@ End Subroutine Create_Directory
 
 Subroutine Delete_Directory(dirname)
     !Deletes a directory (AND ALL CONTENTS) in the current working directory
+    !UNPORTABLE The commands listed for EXECUTE_COMMAND_LINE may be implementation or host specific
     Implicit None
     Character(*), Intent(In) :: dirname
 
@@ -1116,10 +1117,13 @@ Function Get_Host_Name() Result(s)
     
 #   if IFORT
         stat = HOSTNAM(s)  !<--IFORT implementation
-#   else
+        If (stat .NE. 0) s = 'UNKNOWN'
+#   elseif GFORT
         Call HOSTNM(s,stat)  !<--GFORT implementation
+        If (stat .NE. 0) s = 'UNKNOWN'
+#   else
+        s = 'UNKNOWN'
 #   endif
-    If (stat .NE. 0) s = 'UNKNOWN'
 End Function Get_Host_Name
 
 Subroutine Wait(ms)
