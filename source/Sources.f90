@@ -68,6 +68,7 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Cross_Product
+    Use FileIO_Utilities, Only: Worker_Index
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Source_Type) :: s
@@ -202,17 +203,13 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
         Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source: Source forward direction must be specified for angular distributions',kill=.TRUE.)
     End If
     !write out processed source information
-#   if CAF
-        If (this_image() .EQ. 1) Then
-#   endif
+    If (Worker_Index() .EQ. 1) Then
         Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
         If (stat .NE. 0) Call Output_Message('ERROR:  Sources: Setup_Source:  File open error, '//run_file_name//', IOSTAT=',stat,kill=.TRUE.)
         Write(setup_unit,NML = NeutronSourceList)
         Write(setup_unit,*)
         Close(setup_unit)
-#   if CAF
-        End If
-#   endif
+    End If
 End Function Setup_Source
 
 Function Celest_to_XYZ(alt,RA_deg,DEC_deg) Result(r)
