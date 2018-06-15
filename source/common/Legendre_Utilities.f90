@@ -47,7 +47,7 @@ Function Legendre_pdf(x,n,a) Result(f)
     f = Dot_Product(a, P)
 End Function Legendre_pdf
 
-Function Legendre_CDF(x,a,n) Result(F)
+Function Legendre_CDF(x,n,a) Result(F)
     ! Evaluates f(x) = Dot_Product(a(0:n), LegendreP(0:n,x))
     Use Kinds, Only: dp
     Implicit None
@@ -59,16 +59,16 @@ Function Legendre_CDF(x,a,n) Result(F)
     Real(dp):: b(0:n+1)             ! Coefficients of Legendre series for CDF
     
     Call Legendre_P(x, n+1, P)
-    b = Legendre_CDF_Coefficients(a, n)
+    b = Legendre_CDF_Coefficients(n,a)
     F = Dot_Product(b, P)
 End Function Legendre_CDF
 
-Function Legendre_CDF_Coefficients(a, n) Result (b)
+Function Legendre_CDF_Coefficients(n,a) Result (b)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp):: b(0:n+1)             ! 
     Integer, Intent(In):: n         ! Order of pdf. Order of CDF is n+1 due to integration
     Real(dp), Intent(In):: a(0:n)   ! Coefficients of Legendre series of order n of a pdf
+    Real(dp):: b(0:n+1)             ! 
     Real(dp):: c(0:n)               ! working vector, to avoid changing the argument a
     Integer:: j                     ! Do loop counter
     
@@ -81,16 +81,16 @@ Function Legendre_CDF_Coefficients(a, n) Result (b)
     b(n:n+1) = c(n-1:n)
 End Function Legendre_CDF_Coefficients
 
-Function Legendre_Derivative_Coefficients(a, n) Result(c)
+Function Legendre_Derivative_Coefficients(n,a) Result(c)
     ! This function produces the coefficients c(0:n-1) of the derivative f'(x)
     !   given the coefficients a(0:n) of f(x)
     !   where f(x) = Dot_Product(a(0:n), LegendreP(0:n,x))
     !   and f'(x) = Dot_Product(c(0:n-1), LegendreP(0:n-1,x))
     Use Kinds, Only: dp
     Implicit None
-    Real(dp):: c(0:n-1)
     Integer,  Intent(In):: n
     Real(dp), Intent(In):: a(0:n)
+    Real(dp):: c(0:n-1)
     Integer:: j
     
     Do j = 0,n-1

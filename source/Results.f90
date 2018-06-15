@@ -426,7 +426,7 @@ Subroutine Write_Tally_Grids(TE_list,Dir_list,d,n_h,F_file_name,TE_file_name,t_f
             If (Present(m_file_name)) Then
                 !write the time integrated results to file
                 Open(NEWUNIT = unit , FILE = m_file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , IOSTAT = stat)
-                If (stat .NE. 0) Ca;; Output_Message('ERROR:  Results: Write_Tally_Grids:  File open error, '//m_file_name//', IOSTAT=',stat,kill=.TRUE.)
+                If (stat .NE. 0) Call Output_Message('ERROR:  Results: Write_Tally_Grids:  File open error, '//m_file_name//', IOSTAT=',stat,kill=.TRUE.)
                 Call Write_1D_Tallies(unit,N_hist,Dir_list%index,Dir_list%contribs(1:Dir_list%index),d%Dir_grid(1),d%Dir_grid(2),1,d%Dir_grid(1)%n_bins,Dir_list%f_sq_1)
                 Close(unit)
             End If
@@ -563,8 +563,14 @@ Subroutine Write_Results_summary(TE_list,Dir_List,d,n_h,file_name)
     Character(*), Intent(In) :: file_name
     Integer :: unit,stat
     Real(dp) :: N_hist
-    
+    Integer :: n_img    
+
     N_hist = Real(n_h,dp)
+#   if CAF
+        n_img = num_images()
+#   else
+        n_img = 1
+#   endif
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Results: Write_Results:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Write(unit,'(A)') '--------------------------------------------------'
@@ -572,11 +578,11 @@ Subroutine Write_Results_summary(TE_list,Dir_List,d,n_h,file_name)
     Write(unit,'(A)') '--------------------------------------------------'
     Write(unit,'(A,I11)')           '  Number of TE bins:             ',d%TE_grid(1)%n_bins * d%TE_grid(2)%n_bins
     Write(unit,'(A,I11,A,F6.2,A)') '  Number of TE bins w/ tallies:  ',TE_list%index,' (',100._dp*Real(TE_list%index,dp)/Real(d%TE_grid(1)%n_bins*d%TE_grid(2)%n_bins,dp),'% of detector grid)'
-    If (num_images() .EQ. 1) Write(unit,'(A,I11,A,F6.2,A)') '  TE bins list size (% used):    ',TE_list%size,' (',100._dp*Real(TE_list%index,dp)/Real(TE_list%size,dp),'%)'
+    If (n_img .EQ. 1) Write(unit,'(A,I11,A,F6.2,A)') '  TE bins list size (% used):    ',TE_list%size,' (',100._dp*Real(TE_list%index,dp)/Real(TE_list%size,dp),'%)'
     Write(unit,*)
     Write(unit,'(A,I11)')          '  Number of Dir bins:            ',d%Dir_grid(1)%n_bins * d%Dir_grid(2)%n_bins
     Write(unit,'(A,I11,A,F6.2,A)') '  Number of Dir bins w/ tallies: ',Dir_list%index,' (',100._dp*Real(Dir_list%index,dp)/Real(d%Dir_grid(1)%n_bins*d%Dir_grid(2)%n_bins,dp),'% of detector grid)'
-    If (num_images() .EQ. 1) Write(unit,'(A,I11,A,F6.2,A)') '  Dir bins list size (% used):   ',Dir_list%size,' (',100._dp*Real(Dir_list%index,dp)/Real(Dir_list%size,dp),'%)'
+    If (n_img .EQ. 1) Write(unit,'(A,I11,A,F6.2,A)') '  Dir bins list size (% used):   ',Dir_list%size,' (',100._dp*Real(Dir_list%index,dp)/Real(Dir_list%size,dp),'%)'
     Write(unit,*)
     Write(unit,*)
     Write(unit,'(A)') '--------------------------------------------------'

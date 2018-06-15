@@ -1059,7 +1059,7 @@ Function Second_of_Month() Result(s)
             & + Real(v(8),dp)*ms2sec !milliseconds
 End Function Second_of_Month
 
-Function Delta_Time(start_clock,clock_then) Result(sec)
+Function Delta_Time(start_clock,clock_then,clock_now) Result(sec)
     !Returns number of seconds since an arbitrary start time (set by a previous call to this routine)
     !(to millisecond resolution, and according to the system clock)
     Use Kinds, Only: dp
@@ -1067,22 +1067,22 @@ Function Delta_Time(start_clock,clock_then) Result(sec)
     Real(dp) :: sec
     Integer(4), Intent(Out), Optional :: start_clock
     Integer(4), Intent(In), Optional :: clock_then
-    Integer(4) :: clock_now,clock_delta
+    Integer(4), Intent(Out), Optional :: clock_now
+    Integer(4) :: clock,clock_delta
     Real(dp), Parameter :: ms2sec  = 1.E-3_dp
     
-    If (Present(start_clock)) Then
-        Call SYSTEM_CLOCK(start_clock)
-        sec = 0._dp
-        RETURN
-    Else If (Present(clock_then)) Then
-        Call SYSTEM_CLOCK(clock_now)
-        If (clock_now .LT. clock_then) Then
-            clock_delta = clock_now + (HUGE(clock_then) - clock_then)
+    sec = 0._dp  !default value
+    Call SYSTEM_CLOCK(clock)
+    If (Present(start_clock)) start_clock = clock
+    If (Present(clock_then)) Then
+        If (clock .LT. clock_then) Then
+            clock_delta = clock + (HUGE(clock_then) - clock_then)
         Else
-            clock_delta = clock_now - clock_then
+            clock_delta = clock - clock_then
         End If
         sec = Real(clock_delta,dp)*ms2sec
     End If
+    If (Present(clock_now)) clock_now = clock
 End Function Delta_Time
 
 Function Date_Time_string() Result(s)

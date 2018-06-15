@@ -1,0 +1,7 @@
+#!/bin/sh
+echo "Compiling ${FNAME}..."
+# compile the file
+gfortran $GFORT_FLAGS_o ${SRC_PATH}${FNAME}.f90 -o ${OBJ_DIR}${FNAME}.o
+
+# add the name of the object file to the list
+OBJ_FILES="${OBJ_FILES} ${FNAME}.o"

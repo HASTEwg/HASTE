@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# CLEAN OLD BUILD FILES
+./clean
+
+# SET COMPILER FLAGS
+. ./set_flags
+. ./echo_flags
+
+# COMMON MODULES
+SRC_PATH="../source/common/"
+FNAME="Kinds"; . ./compile_it
+FNAME="Global"; . ./compile_it
+FNAME="Utilities"; . ./compile_it
+
+# ASTRO MODULES
+SRC_PATH="../source/astro/"
+FNAME="Astro_Utilities"; . ./compile_it

@@ -71,7 +71,7 @@ Function Isotropic_Omega_hat(RNG) Result(OmegaHat)
     OmegaHat = mu_omega_2_OmegaHat(xi,omega)
 End Function Isotropic_Omega_hat
 
-Function Neutron_Anisotropic_mu0cm_Legendre(a,n,RNG) Result(mu0cm)
+Function Neutron_Anisotropic_mu0cm_Legendre(n,a,RNG) Result(mu0cm)
     ! Draws random mu0cm from Legendre expansion of anisotropic distribution in CM frame:
     !   pdf is f(mu0cm) = Sum[a[j] LegendreP[j, mu0cm], {j,0,n}]
     !   Root-solves CDF(mu0cm) = xi for mu0cm, where xi is random in [0,1)
@@ -81,8 +81,8 @@ Function Neutron_Anisotropic_mu0cm_Legendre(a,n,RNG) Result(mu0cm)
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Real(dp) :: mu0cm                    ! [] scattering deflection angle cosine in CM frame
-    Real(dp), Intent(In) :: a(0:n)       ! [] Legendre coefficients of pdf: a(j) = ((2j+1)/2) sigma(j)
     Integer, Intent(In) :: n             ! order of Legendre expansion of pdf
+    Real(dp), Intent(In) :: a(0:n)       ! [] Legendre coefficients of pdf: a(j) = ((2j+1)/2) sigma(j)
     Type(RNG_Type), Intent(InOut) :: RNG
     Real(dp) :: b(0:n+1)                 ! [] Legendre coefficients of CDF
     Real(dp) :: P(0:n+1)                 ! [] P(j) = LegendreP[j,mu]
@@ -110,7 +110,7 @@ Function Neutron_Anisotropic_mu0cm_Legendre(a,n,RNG) Result(mu0cm)
         End If
         Return
     End If
-    b = Legendre_CDF_Coefficients(a, n)
+    b = Legendre_CDF_Coefficients(n,a)
     ! Try linearly-anisotropic scatter, x, as first approximation for mu0cm;
     !   but if higher order terms are required to get mu0cm in range,
     !   start with isotropic value instead (already stored in mu0cm)
@@ -121,7 +121,7 @@ Function Neutron_Anisotropic_mu0cm_Legendre(a,n,RNG) Result(mu0cm)
     i = 0
     Do !i = 0,50  ! 41 iterations will meet tolerance by bisection
         muOld = mu0cm
-        Call Legendre_P(mu0cm, n+1, P)
+        Call Legendre_P(mu0cm,n+1,P)
         CDF = Dot_Product(b, P)
         If (Abs(CDF-xi) .LE. AbsTol) Return  !Normal exit for guessing correct mu0cm
         If (CDF .LE. xi) Then ! tighten boundaries 
@@ -130,7 +130,7 @@ Function Neutron_Anisotropic_mu0cm_Legendre(a,n,RNG) Result(mu0cm)
             MuMax = mu0cm
         End If
         ! Try Newton's method
-        pdf = Dot_Product(a, P(0:n))
+        pdf = Dot_Product(a,P(0:n))
         mu0cm = mu0cm - (CDF - xi) / pdf 
         ! Use bisection if Newton's method jumps outside the current bisection interval
         If (mu0cm.LT.muMin .OR. mu0cm.GT.muMax) mu0cm = 0.5_dp * (muMin + muMax)
@@ -146,7 +146,7 @@ Function Neutron_Anisotropic_mu0cm_tablePDF(n1,ua1,n2,ua2,Econv,RNG) Result(mu0c
     ! Draws random mu0cm from tabular pdf of anisotropic distribution in CM frame:
     !   Uses geometric rejection on the tabulated pdf (interpolated via log-linear in mu, and linear-linear in energy)
     Use Kinds, Only: dp
-    Use n_Cross_Sections, Only: Tabular_Cosine_pdf
+    Use cs_Utilities, Only: Tabular_Cosine_pdf
     Use Random_Numbers, Only: RNG_Type
     Implicit None
     Real(dp):: mu0cm                    ! [] scattering deflection angle cosine in CM frame

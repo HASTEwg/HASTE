@@ -42,7 +42,7 @@ Use Statistics, Only: gMean
 Use Statistics, Only: Std_Err
 Use FileIO_Utilities, Only: Make_Boom
 Use FileIO_Utilities, Only: creturn
-Use FileIO_Utilities, Only: Second_of_Month
+Use FileIO_Utilities, Only: Delta_Time
 # if CAF
     Use Setups, Only: Setup_info_to_disk
     Use Setups, Only: Setup_info_from_disk
@@ -66,7 +66,8 @@ Type(Contrib_array) :: Dir_Tallies  !list of contributions tallied to arrival di
 Type(Paths_Files_Type) :: paths_files  !contains path and file name character strings
 Type(Atmosphere_Type) :: atmosphere  !contains data defining atmospheric representation
 Type(RNG_Type) :: RNG  !contains data defining the random number generator
-Real(dp) :: t_start,t_now,t_last,ETTC  !times (in seconds) for computing estimated time to completion and recording run time
+Integer(4) :: c_start,c_last,c_now
+Real(dp) :: dt,ETTC  !times (in seconds) for computing estimated time to completion and recording run time
 Integer :: HH,MM,SS  !integer times for computing estimated time to completion
 Integer(8) :: n_p,p  !loop counter for histories
 Logical :: contributed  !flag indicating that at least one contribution was accumulated for the current history
@@ -75,11 +76,14 @@ Integer :: n_img,i_img
 Integer(8) :: n_done
 Integer(8), Allocatable :: n_hist_run(:),n_hist_hit(:)
 
-n_img = num_images()
-i_img = this_image()
 # if CAF
-    If (i_img .EQ. 1) Then
+    n_img = num_images()
+    i_img = this_image()
+# else
+    n_img = 1
+    i_img = 1
 # endif
+If (i_img .EQ. 1) Then
     !UNSTANDARD Carriage control is no longer part of the Fortran standard, and its use here is specific to the implementation in Intel compilers ONLY.
     !Set carriage control to 'FORTRAN' so that console screen updates can be in-place
     !Open(6,CARRIAGECONTROL ='FORTRAN')
@@ -94,9 +98,7 @@ i_img = this_image()
         !Write processed setup info to disk for other images
         Call Setup_Info_to_disk(n_histories,absolute_n_histories,prompt_exit,screen_progress,paths_files)
 #   endif
-# if CAF
-    End If
-# endif
+End If
 # if CAF
     !Sync so that setup info is available on disk for images other than 1
     SYNC ALL
@@ -113,7 +115,6 @@ source = Setup_Source(paths_files%setup_file,paths_files%run_file_name,atmospher
 detector = Setup_Detector(paths_files%setup_file,paths_files%run_file_name,paths_files%s_file_name,atmosphere%R_top)
 TE_Tallies = Setup_Tallies(detector%TE_grid(1)%n_bins,detector%TE_grid(2)%n_bins)
 Dir_Tallies = Setup_Tallies(detector%Dir_grid(1)%n_bins,detector%Dir_grid(2)%n_bins)
-If (continuation) Call Setup_Continuation(paths_files%results_directory,ScatterModel,TE_Tallies,Dir_Tallies)
 # if CAF
     !divide n_histories equally among images
     n_p = n_histories / n_img  !integer divide
@@ -137,30 +138,30 @@ End If
 p = 0
 n_done = 0
 !start a clock to track processing time
-t_start = Second_of_Month()
+Call SYSTEM_CLOCK(c_start)
 If (screen_progress) Then  !run histories, periodically updating progress to the display
-    t_last = t_start
+    c_last = c_start
     Do
         !update progress on screen
-        t_now = Second_of_Month()
-        If (t_now-t_last .GT. 1._dp) Then  !only update ETTC if elapsed time is more than a second
-            t_last = t_now
+        If (Delta_Time(clock_then = c_last,clock_now = c_now) .GT. 1._dp) Then  !only update ETTC if elapsed time is more than a second
+            c_last = c_now
             If (p .GT. 0) Then
-                ETTC = (t_now - t_start) / Real(p,dp) * Real(n_p-p,dp)  !time per particle so far multiplied by particles remaining
+                dt = Delta_Time(clock_then = c_start)
+                ETTC = dt / Real(p,dp) * Real(n_p-p,dp)  !time per particle so far multiplied by particles remaining
                 HH = Floor(ETTC/3600._dp)
                 MM = Floor((ETTC - Real(3600*HH,dp))/60._dp)
                 SS = Floor(ETTC - Real(3600*HH,dp) - Real(60*MM,dp))
                 !Write(6,'("+",F9.2,A2,I3.2,A,I2.2,A,I2.2,3ES11.3E2,A2,F7.2,A2)') 100._dp * Real(p,dp) / Real(n_p,dp),'% ', & !Percent Complete
                 !                                                                 & HH,':',MM,':',SS, & !ETTC
-                !                                                                 & Real(n_img*ScatterModel%next_events(1),dp) / ((t_now-t_start) / 60._dp), & !Next-Events per minute
-                !                                                                 & Real(n_img*p,dp) / ((t_now-t_start) / 60._dp), & !Histories per minute
+                !                                                                 & Real(n_img*ScatterModel%next_events(1),dp) / (dt / 60._dp), & !Next-Events per minute
+                !                                                                 & Real(n_img*p,dp) / (dt / 60._dp), & !Histories per minute
                 !                                                                 & 100._dp * gMean(Std_Err(p,TE_tallies%contribs(1:TE_tallies%index)%f,TE_tallies%contribs(1:TE_tallies%index)%f_sq) / TE_tallies%contribs(1:TE_tallies%index)%f),'% ', & !Geometric Mean Relative Standard Error
                 !                                                                 & 100._dp * Real(p,dp) / Real(n_done,dp),'% ' !Percent efficency
                 Write(*,'(A,F9.2,A2,I3.2,A,I2.2,A,I2.2,3ES11.3E2,A2,F7.2,A2)') creturn, & 
                                                                                & 100._dp * Real(p,dp) / Real(n_p,dp),'% ', & !Percent Complete
                                                                                & HH,':',MM,':',SS, & !ETTC
-                                                                               & Real(n_img*ScatterModel%next_events(1),dp) / ((t_now-t_start) / 60._dp), & !Next-Events per minute
-                                                                               & Real(n_img*p,dp) / ((t_now-t_start) / 60._dp), & !Histories per minute
+                                                                               & Real(n_img*ScatterModel%next_events(1),dp) / (dt / 60._dp), & !Next-Events per minute
+                                                                               & Real(n_img*p,dp) / (dt / 60._dp), & !Histories per minute
                                                                                & 100._dp * gMean(Std_Err(p,TE_tallies%contribs(1:TE_tallies%index)%f,TE_tallies%contribs(1:TE_tallies%index)%f_sq) / TE_tallies%contribs(1:TE_tallies%index)%f),'% ', & !Geometric Mean Relative Standard Error
                                                                                & 100._dp * Real(p,dp) / Real(n_done,dp),'% ' !Percent efficency
             End If 
@@ -191,8 +192,7 @@ Else  !run histories, WITHOUT updating progress to the display
     End Do
 End If
 !record final completion time
-t_now = Second_of_Month()
-t_tot = t_now - t_start
+t_tot = Delta_Time(clock_then = c_start)
 If (i_img.EQ.1 .AND. detector%shape_data) Call Close_Slice_Files(detector%n_slices,detector%TE_grid(1)%collect_shape,detector%TE_grid(1)%slice_unit,detector%TE_grid(2)%collect_shape,detector%TE_grid(2)%slice_unit)
 # if CAF
     !Write image results to disk

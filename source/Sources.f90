@@ -6,8 +6,17 @@ Module Sources
     Public :: Source_Type
     Public :: Setup_Source
     Public :: Celest_to_XYZ
-    Public :: Check_exo_source
     Public :: Write_Source
+    
+    Type :: Tab_1d_Type  !stores a 1-d tabulated distribution
+        Integer :: n
+        Real(dp), Allocatable :: b(:)  !has dimension 0:n, list of bin boundaries
+        Real(dp), Allocatable :: p(:)  !has dimension 1:n, list of bin intensities (normalized to sum to 1)
+    End Type
+    
+    Type, Extends(Tab_1d_Type) :: Tab_2d_Type  !stores a 2-d tabulated distribution
+        Type(Tab_1d_Type), Allocatable :: d2(:)  !has dimesion 1:n, list of lists for second dimension
+    End Type
     
     Type :: Source_Type
         Real(dp) :: r(1:3)     ![km] cartesian (x,y,z) position of source
@@ -23,10 +32,12 @@ Module Sources
         Logical :: aniso_dist  !T indicates a source with a non-uniform direction distribution of emitted particles (in the rest frame of the source)
         Real(dp) :: E_high   ![keV] energy description, E_high=E_low for 'Point', specifies energy range for 'Uniform', specifies cutoff energies for 'Watt235'
         Real(dp) :: E_low
-        Real(dp) :: w  !weight of particles as they are created at the source, always equal to 1 for atmospheric source, varies for exoatmospheric sources
         Real(dp) :: A_hat(1:3),B_hat(1:3),C_hat(1:3)  !basis vectors determining distribution of emission angles for direct contributions
+        Type(Tab_1d_Type) :: Etab
+        Type(Tab_1d_Type) :: Atab
+        Type(Tab_2d_Type) :: EAtab
     Contains
-        Procedure, Pass :: Sample_Source
+        Procedure, Pass :: sample => Sample_E_and_D
     End Type
     
     !Integer designator for source energy distribution choice, can have value equal to one of the following parameters
@@ -46,9 +57,11 @@ Module Sources
     Integer, Parameter :: source_A_dist_bot = 78
     Integer, Parameter :: source_A_dist_tab = 80    
 
+    Integer, Parameter :: source_EA_dist_tab = 70
+
 Contains
 
-Function Setup_Source(setup_file_name,run_file_name,R_top_atm,gravity) Result(s)
+Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
     Use Kinds, Only: dp
     Use Global, Only: Z_hat,X_hat
     Use Global, Only: R_earth
@@ -60,12 +73,13 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm,gravity) Result(s)
     Type(Source_Type) :: s
     Character(*), Intent(In) :: setup_file_name,run_file_name
     Real(dp), Intent(In) :: R_top_atm
-    Logical, Intent(In) :: gravity
     Real(dp) :: x_source,y_source,z_source  ![km]  x,y,z coordinates of source
     Real(dp) :: declination_source,right_ascension_source
     Real(dp) :: v_E_source,v_N_source,v_U_source
+    Real(dp) :: d_E_source,d_N_source,d_U_source
     Real(dp) :: E_high,E_low
-    Character(10) :: source_E_dist  !Line, Watt235, Uniform
+    Character(10) :: source_E_dist  !Line,Uniform,Watt235,Type03,Type05,Type08,Type13,Egroups,EAgroups
+    Character(10) :: source_A_dist  !Iso,Top,Side,Bottom,Agroups,EAgroups
     Character(9) :: position_geometry
     Integer :: setup_unit,stat
     Real(dp) :: E_hat(1:3),N_hat(1:3),U_hat(1:3)
@@ -74,7 +88,7 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm,gravity) Result(s)
                                  & declination_source,right_ascension_source, &
                                  & v_E_source,v_N_source,v_U_source, &
                                  & d_E_source,d_N_source,d_U_source, &
-                                 & source_E_dist,E_high,E_low
+                                 & source_E_dist,E_high,E_low,source_A_dist
     
     Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source:  File open error, '//setup_file_name//', IOSTAT=',stat,kill=.TRUE.)
@@ -91,7 +105,6 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm,gravity) Result(s)
     s%big_r = Vector_Length(s%r)
     s%z = s%big_r - R_earth
     !check for exoatmospheric source
-    s%w = 1._dp
     If (s%big_r .LT. R_top_atm) Then
         s%exoatmospheric = .FALSE.
     Else
@@ -124,23 +137,6 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm,gravity) Result(s)
         s%B_hat = 0._dp
         s%C_hat = 0._dp
     End If
-    Select Case (source_A_dist)
-        Case ('Iso')
-            s%A_dist_index = source_A_dist_Iso
-            s%Aniso_source = .FALSE.
-        Case ('Top')
-            s%A_dist_index = source_A_dist_Top
-            s%Aniso_source = .TRUE.
-        Case ('Side')
-            s%A_dist_index = source_A_dist_Side
-            s%Aniso_source = .TRUE.
-        Case ('Bottom')
-            s%A_dist_index = source_A_dist_Bot
-            s%Aniso_source = .TRUE.
-        !UNDONE Tabulated angular source distribution type
-        Case Default
-            Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source: Undefined source angular distribution',kill=.TRUE.)
-    End Select
     !Set source direction
     s%d = (/ d_E_source, &
            & d_N_source, &
@@ -153,28 +149,59 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm,gravity) Result(s)
         s%d = E_hat * Dot_Product(s%d,E_hat) + &
             & N_hat * Dot_Product(s%d,N_hat) + &
             & U_hat * Dot_Product(s%d,U_hat)
-    Else
-        If (s%source_A_dist .NE. source_A_dist_Iso) Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source: Source forward direction must be specified for angular distributions',kill=.TRUE.)
     End If
-    Select Case (source_E_dist)
-        Case ('Line')
-            s%E_dist_index = source_E_dist_Line
-            s%E_high = E_high
-            s%E_low = E_high
-        Case ('Uniform')
-            s%E_dist_index = source_E_dist_Unif
-            s%E_high = E_high
-            s%E_low = E_low
-        Case ('Watt235')
-            s%E_dist_index = source_E_dist_Watt235
-            s%E_high = E_high
-            s%E_low = 0._dp
-        Case ('Egroups')
-            s%E_dist_index = source_E_dist_tab
-        !UNDONE Source distributions for Type 3, 5, 8, and 13
-        Case Default
-            Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source: Undefined source energy distribution',kill=.TRUE.)
-    End Select
+    !Set energy and angle distribution properties
+    If (source_A_dist.EQ.'EAgroups' .OR. source_E_dist.EQ.'EAgroups') Then  !Coupled energy-angle distribution
+        s%E_A_dist_coupled = .TRUE.
+        s%A_dist_index = source_EA_dist_tab
+        s%E_dist_index = source_EA_dist_tab
+        s%aniso_dist = .TRUE.
+        !UNDONE Coupled 2-d tabulated enegy-angle distribution
+        Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source: Coupled Energy-Angle distribution not yet implemented.',kill=.TRUE.)
+    Else  !independednt energy and angle distributions
+        s%E_A_dist_coupled = .FALSE.
+        Select Case (source_A_dist)
+            Case ('Iso')
+                s%A_dist_index = source_A_dist_Iso
+                s%aniso_dist = .FALSE.
+            Case ('Top')
+                s%A_dist_index = source_A_dist_Top
+                s%aniso_dist = .TRUE.
+            Case ('Side')
+                s%A_dist_index = source_A_dist_Side
+                s%aniso_dist = .TRUE.
+            Case ('Bottom')
+                s%A_dist_index = source_A_dist_Bot
+                s%aniso_dist = .TRUE.
+            !UNDONE Tabulated angular source distribution type
+            Case Default
+                Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source: Undefined source angular distribution',kill=.TRUE.)
+        End Select
+        Select Case (source_E_dist)
+            Case ('Line')
+                s%E_dist_index = source_E_dist_Line
+                s%E_high = E_high
+                s%E_low = E_high
+            Case ('Uniform')
+                s%E_dist_index = source_E_dist_Unif
+                s%E_high = E_high
+                s%E_low = E_low
+            Case ('Watt235')
+                s%E_dist_index = source_E_dist_Watt235
+                s%E_high = E_high
+                s%E_low = 0._dp
+            Case ('Egroups')
+                s%E_dist_index = source_E_dist_tab
+            !UNDONE Source distributions for Type 3, 5, 8, and 13
+            Case Default
+                Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source: Undefined source energy distribution',kill=.TRUE.)
+        End Select
+    End If
+    If (All(s%d .EQ. 0._dp) .AND. s%aniso_dist) Then  !no source direction is specified, but an anisotropic distribution is selected
+        !source direction is needed for anisotropic angular distributions of emitted particles
+        Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source: Source forward direction must be specified for angular distributions',kill=.TRUE.)
+    End If
+    !write out processed source information
 #   if CAF
         If (this_image() .EQ. 1) Then
 #   endif
@@ -211,42 +238,46 @@ Subroutine Sample_E_and_D(source,RNG,E,OmegaHat,w)
     Use Random_Directions, Only: Isotropic_Omega_hat
     Use Random_Directions, Only: Isotropic_Azimuth
     Use Random_Directions, Only: mu_omega_2_OmegaHat
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Class(Source_Type), Intent(In) :: source
     Type(RNG_type), Intent(InOut) :: RNG
     Real(dp), Intent(Out) :: E
     Real(dp), Intent(Out) :: OmegaHat(1:3)
     Real(dp), Intent(Out) :: w
+    Real(dp) :: mu,omega
     Real(dp), Parameter :: one_third = 1._dp / 3._dp
     Real(dp), Parameter :: two_thirds = 2._dp / 3._dp
     
-    Select Case (source%E_dist_index)
-        Case (source_E_dist_Line)
-            E = source%E_high
-        Case (source_E_dist_Unif)
-            E = Sample_Uniform(RNG,source%E_low,source%E_high)
-        Case (source_E_dist_Watt235)
-            E = Sample_Watt235(RNG,source%E_high)
-        Case Default
-            Print *,'ERROR:  Neutron_Source: Sample_Neutron_Source_Energy: Undefined source energy distribution'
-            ERROR STOP
-    End Select
-    Select Case (source%A_dist_index)
-        Case (source_A_dist_Iso)
-            OmegaHat = Isotropic_Omega_Hat(RNG)
-            w = 1._dp
-        Case (source_A_dist_top)
-            mu = -(one_third + RNG%Get_random() * two_thirds)
-            omega = Isotropic_Azimuth(RNG)
-            OmegaHat = mu_omega_2_OmegaHat(mu,omega)
-            w = 1._dp
-        Case (source_E_dist_Watt235)
-            E = Sample_Watt235(RNG,source%E_high)
-            w = 1._dp
-        Case Default
-            Print *,'ERROR:  Neutron_Source: Sample_Neutron_Source_Energy: Undefined source energy distribution'
-            ERROR STOP
-    End Select
+    If (source%E_A_dist_coupled) Then  !coupled energy-angle distribution
+
+    Else  !independent energy and angle distributions
+        Select Case (source%E_dist_index)
+            Case (source_E_dist_Line)
+                E = source%E_high
+            Case (source_E_dist_Unif)
+                E = Sample_Uniform(RNG,source%E_low,source%E_high)
+            Case (source_E_dist_Watt235)
+                E = Sample_Watt235(RNG,source%E_high)
+            Case Default
+                Call Output_Message('ERROR:  Neutron_Source: Sample_Neutron_Source_Energy: Undefined source energy distribution',kill=.TRUE.)
+        End Select
+        Select Case (source%A_dist_index)
+            Case (source_A_dist_Iso)
+                OmegaHat = Isotropic_Omega_Hat(RNG)
+                w = 1._dp
+            Case (source_A_dist_top)
+                mu = -(one_third + RNG%Get_random() * two_thirds)
+                omega = Isotropic_Azimuth(RNG)
+                OmegaHat = mu_omega_2_OmegaHat(mu,omega)
+                w = 1._dp
+            Case (source_E_dist_Watt235)
+                E = Sample_Watt235(RNG,source%E_high)
+                w = 1._dp
+            Case Default
+                Call Output_Message('ERROR:  Neutron_Source: Sample_Neutron_Source_Energy: Undefined source energy distribution',kill=.TRUE.)
+        End Select
+    End If
 End Subroutine Sample_E_and_D
 
 Function Sample_Uniform(RNG,E_min,E_max) Result(E)

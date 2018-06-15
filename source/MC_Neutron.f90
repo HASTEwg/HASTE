@@ -26,7 +26,7 @@ Subroutine Do_Neutron(s,d,atm,ScatMod,RNG,contributed)
     Integer :: scatter  !loop counter
         
     !Start a new neutron
-    n = Start_Neutron(s,atm,RNG,ScatMod,d,atm)
+    n = Start_Neutron(s,atm,RNG,ScatMod,d)
     If (ScatMod%direct_contribution) Then
         Call First_Event_Neutron(n,ScatMod,s,d,atm)
         If (ScatMod%n_scatters .EQ. 0) Then
@@ -52,10 +52,10 @@ Subroutine Do_Neutron(s,d,atm,ScatMod,RNG,contributed)
         Call ScatMod%Sample_Scatter(n,atm,RNG)
         If (scatter .EQ. ScatMod%n_scatters) Then  !neutron has reached final simulation position, scatter to detector and exit
             ScatMod%n_kills(6) = ScatMod%n_kills(6) + 1
-            Call Next_Event_Neutron(n,ScatMod,d,atm,RNG,s%w)
+            Call Next_Event_Neutron(n,ScatMod,d,atm,RNG)
             Exit
         Else If (ScatMod%estimate_each_scatter) Then  !Scatter to detector and continue
-            Call Next_Event_Neutron(n,ScatMod,d,atm,RNG,s%w)
+            Call Next_Event_Neutron(n,ScatMod,d,atm,RNG)
         End If
         !Scatter into new random direction and check for absorption
         Call Scatter_Neutron(n,ScatMod,RNG,absorbed)
@@ -85,16 +85,23 @@ Function Start_Neutron(source,atm,RNG,ScatMod,detector) Result(n)
     Use Kinds, Only: dp
     Use Neutron_Scatter, Only: Neutron_Type
     Use Neutron_Scatter, Only: Scatter_Model_Type
+    Use Neutron_Utilities, Only: Neutron_Energy
     Use Neutron_Utilities, Only: Neutron_Speed
     Use Detectors, Only: Detector_Type
     Use Sources, Only: Source_Type
     Use Atmospheres, Only: Atmosphere_Type
     Use Random_Numbers, Only: RNG_Type
+    Use Global, Only: TwoPi
     Use Global, Only: R_Earth
+    Use Global, Only: mu => std_grav_parameter
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Smaller_Quadratic_Root
     Use Pathlengths, Only: R_close_approach
+    Use Astro_Utilities, Only: SME
+    Use Astro_Utilities, Only: Radius_of_Perigee
+    Use Astro_Utilities, Only: Time_since_periapsis
+    Use Astro_Utilities, Only: Time_to_R
     Implicit None
     Type(Neutron_Type) :: n
     Type(Source_Type), Intent(InOut) :: source
@@ -108,6 +115,7 @@ Function Start_Neutron(source,atm,RNG,ScatMod,detector) Result(n)
     Real(dp) :: v(1:3),s
     Real(dp) :: xi
     Real(dp) :: tof,t_min,t_max
+    Real(dp) :: rp
 
     n%t = 0._dp  !Initialize simulation time
     n%r = source%r  !Initial position is at neutron source
@@ -176,7 +184,7 @@ Contains
         Implicit None
         Real(dp) :: v(1:3)
         
-        Call source%Sample_EandD(RNG,n%E0ef,n%Omega_hat,n%weight)  !Initialize energy and weight
+        Call source%sample(RNG,n%E0ef,n%Omega_hat,n%weight)  !Initialize energy and weight
         n%s0ef = Neutron_Speed(n%E0ef)
         If (source%has_velocity) Then  !move energy & direction into ECI frame
             v = n%Omega_hat * n%s0ef + source%v
@@ -208,8 +216,8 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     Use Neutron_Scatter, Only: Scatter_Model_Type
     Use Neutron_Scatter, Only: Scattered_Angles
     Use Neutron_Utilities, Only: Neutron_Energy
-    Use Divergence, Only: Div_Fact_by_shooting
-    Use Divergence, Only: Div_Fact_Straight
+    Use Diverge_approx, Only: Div_Fact_by_shooting
+    Use Diverge_approx, Only: Div_Fact_Straight
     Use Find_Trajectory, Only: Next_Event_Trajectory
     Use Astro_Utilities, Only: SME
     Implicit None
@@ -331,9 +339,11 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     !UNDONE Evaluate direction PDF for emission directly to detector
     If (s%aniso_dist) Then
         !UNDONE The functing "PDF" on the following line is a placeholder...
-        w2 = w2 * dmu0cm_dmu0 * PDF(mu0ef,omega0ef,n%E0ef) * inv_TwoPi
+        !w2 = w2 * dmu0ef_dmu0 * PDF(mu0ef,omega0ef,n%E0ef) * inv_TwoPi
+        Print*,'not done yet...'
+        ERROR STOP
     Else
-        w2 = w2 * dmu0cm_dmu0 * inv_FourPi
+        w2 = w2 * dmu0ef_dmu0 * inv_FourPi
     End If
     !Adjust for divergence
     If (ScatMod%Gravity) Then
@@ -499,7 +509,7 @@ Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
     Use Detectors, Only: Detector_Type
     Use Atmospheres, Only: Atmosphere_Type
     Use Legendre_Utilities, Only: Legendre_pdf
-    Use Cross_Sections, Only: Tabular_Cosine_pdf
+    Use cs_Utilities, Only: Tabular_Cosine_pdf
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Unit_Vector
     Use Pathlengths, Only: Next_Event_L_to_edge
@@ -508,8 +518,8 @@ Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
     Use Neutron_Scatter, Only: Scatter_Data_Type
     Use Neutron_Scatter, Only: Scattered_Angles
     Use Neutron_Utilities, Only: Neutron_Energy
-    Use Divergence, Only: Div_Fact_by_shooting
-    Use Divergence, Only: Div_Fact_Straight
+    Use Diverge_approx, Only: Div_Fact_by_shooting
+    Use Diverge_approx, Only: Div_Fact_Straight
     Use Find_Trajectory, Only: Next_Event_Trajectory
     Use Astro_Utilities, Only: SME
     Implicit None
@@ -659,7 +669,7 @@ Subroutine Scatter_Neutron(n,ScatMod,RNG,absorbed)
     !Choose new direction based on scatter mechanic
     If (ScatMod%aniso_dist) Then
         If (ScatMod%scat%da_is_Legendre) Then
-            mu0cm = Neutron_Anisotropic_mu0cm(ScatMod%scat%a(0:ScatMod%scat%n_a),ScatMod%scat%n_a,RNG)
+            mu0cm = Neutron_Anisotropic_mu0cm(ScatMod%scat%n_a,ScatMod%scat%a(0:ScatMod%scat%n_a),RNG)
         Else
             mu0cm = Neutron_Anisotropic_mu0cm(ScatMod%scat%n_a1,ScatMod%scat%a_tab1(1:ScatMod%scat%n_a1,:),ScatMod%scat%n_a2,ScatMod%scat%a_tab2(1:ScatMod%scat%n_a2,:),ScatMod%scat%a_tab_Econv,RNG)
         End If

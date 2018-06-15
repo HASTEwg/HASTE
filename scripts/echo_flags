@@ -1,0 +1,8 @@
+#!/bin/sh
+echo "Preprocessor Flags:"
+echo "  $PREP_FLAGS"
+echo "Compiler Flags:"
+echo "  $COMP_FLAGS"
+echo "Linker Flags:"
+echo "  $LINK_FLAGS"
+echo "Objects emitted to $OBJ_DIR"

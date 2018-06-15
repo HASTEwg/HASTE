@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# CLEAN OLD BUILD FILES
+./clean
+
+# SET COMPILER FLAGS
+. ./set_flags
+. ./echo_flags
+
+# MAIN CODE MODULES
+SRC_PATH="../source/"
+FNAME="Diverge_exact"; . ./compile_it
