@@ -1,40 +1,27 @@
 #!/bin/sh
 
 # CLEAN OLD BUILD FILES
-./clean -o -m -f
+./clean
 
 # SET COMPILER FLAGS
 . ./set_flags
-echo "Preprocessor Flags:"
-echo "  $PREP_FLAGS"
-echo "Compiler Flags:"
-echo "  $COMP_FLAGS"
+. ./echo_flags
 
 # COMMON MODULES
-cp ../common/Kinds.f90 Kinds.f90
-cp ../common/Global.f90 Global.f90
-cp ../common/Utilities.f90 Utilities.f90
-cp ../common/FileIO_Utilities.f90 FileIO_Utilities.f90
-cp ../common/Interpolation.f90 Interpolation.f90
-cp ../common/Legendre_Utilities.f90 Legendre_Utilities.f90
-cp ../common/Random_Numbers.f90 Random_Numbers.f90
-
-gfortran $GFORT_FLAGS_o Kinds.f90
-gfortran $GFORT_FLAGS_o Global.f90
-gfortran $GFORT_FLAGS_o Utilities.f90
-gfortran $GFORT_FLAGS_o FileIO_Utilities.f90
-gfortran $GFORT_FLAGS_o Interpolation.f90
-gfortran $GFORT_FLAGS_o Legendre_Utilities.f90
-gfortran $GFORT_FLAGS_o Random_Numbers.f90
+SRC_PATH="../source/common/"
+FNAME="Kinds"; . ./compile_it
+FNAME="Global"; . ./compile_it
+FNAME="Utilities"; . ./compile_it
+FNAME="FileIO_Utilities"; . ./compile_it
+FNAME="Interpolation"; . ./compile_it
+FNAME="Legendre_Utilities"; . ./compile_it
+FNAME="Random_Numbers"; . ./compile_it
 
 # PARTICLE UTILITIES MODULES
-cp ../parts/cs_Utilities.f90 cs_Utilities.f90
-cp ../parts/Random_Directions.f90 Random_Directions.f90
-
-gfortran $GFORT_FLAGS_o cs_Utilities.f90
-gfortran $GFORT_FLAGS_o Random_Directions.f90
+SRC_PATH="../source/parts/"
+FNAME="cs_Utilities"; . ./compile_it
+FNAME="Random_Directions"; . ./compile_it
 
 # MAIN CODE MODULES
-cp ../Sources.f90 Sources.f90
-
-gfortran $GFORT_FLAGS_o Sources.f90
+SRC_PATH="../source/"
+FNAME="Sources"; . ./compile_it
