@@ -94,6 +94,7 @@ Contains
 Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,run_file_name) Result(ScatMod)
     Use n_Cross_Sections, Only: Setup_Cross_Sections
     Use Global, Only: n_kill_weight
+    Use FileIO_Utilities, Only: Worker_Index
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Scatter_Model_Type) :: ScatMod
@@ -194,17 +195,13 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
     ScatMod%scat%a_tab2 = 0._dp
     Allocate(ScatMod%scat%iso_cs(1:ScatMod%CS%n_iso))
     ScatMod%scat%iso_cs = 0._dp
-#   if CAF
-        If (this_image() .EQ. 1) Then
-#   endif
+    If (Worker_Index() .EQ. 1) Then
         Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
         If (stat .NE. 0) Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  File open error, '//run_file_name//', IOSTAT=',stat,kill=.TRUE.)
         Write(setup_unit,NML = NeutronScatterList)
         Write(setup_unit,*)
         Close(setup_unit)
-#   if CAF
-        End If
-#   endif
+    End If
 End Function Setup_Scatter_Model
 
 Subroutine Sample_Scatter(ScatMod,n,atm,RNG)
