@@ -4,4 +4,4 @@ echo "Compiling ${FNAME}..."
 gfortran $GFORT_FLAGS_o -o ${OBJ_DIR}${FNAME}.o ${SRC_PATH}${FNAME}.f90
 
 # add the name of the object file to the list
-OBJ_FILES="${OBJ_FILES} ${FNAME}.o"
+OBJ_FILES="${OBJ_FILES} ${OBJ_DIR}${FNAME}.o"

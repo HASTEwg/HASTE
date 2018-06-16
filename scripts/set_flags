@@ -12,9 +12,9 @@ OBJ_DIR="../build/obj/"
 DIR_FLAGS="-I${OBJ_DIR} -J${OBJ_DIR}"
 ALWAYS_FLAGS="-ffree-line-length-0 -fimplicit-none ${DIR_FLAGS}"
 # DEVELOPMENT Flags
-COMP_FLAGS="-O0 -fmax-errors=5 -Wall -pedantic ${ALWAYS_FLAGS} -fsyntax-only"
+#COMP_FLAGS="-O0 -fmax-errors=5 -Wall -pedantic ${ALWAYS_FLAGS} -fsyntax-only"
 # DEBUG Compiler Flags
-#COMP_FLAGS="-Og -fmax-errors=5 -Wall -pedantic -fcheck=all -fbacktrace ${ALWAYS_FLAGS}"
+COMP_FLAGS="-Og -fmax-errors=5 -Wall -pedantic -fcheck=all -fbacktrace ${ALWAYS_FLAGS}"
 # RELEASE Compiler Flags
 # COMP_FLAGS="-Ofast ${ALWAYS_FLAGS}";
 
