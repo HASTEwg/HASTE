@@ -8,6 +8,8 @@ Module Statistics
     Public :: std_devs_for_95CI
     Public :: aMean
     Public :: gMean
+    Public :: Check_normal_AD
+    Public :: Check_uniform_AD
 
     Interface Std_Err
         Module Procedure Std_Err_real_N
@@ -94,13 +96,14 @@ Function Check_normal_BOE(x) Result(is_normal)
     If (Abs((MinVal(x)-mu)) .GT. 3._dp*sigma) is_normal = .FALSE.
 End Function Check_normal_BOE
 
-Subroutine Check_normal_AD(x,is_normal)
+Subroutine Check_normal_AD(x,is_normal,AD_stat)
     !Tests for normality using the Anderson-Darling test
     Use Kinds, Only: dp
     Use Sorting, Only: Quick_Sort
     Implicit None
-    Logical :: is_normal(1:4)  !normality flags for 10, 5, 2.5, 1 percent significance levels
     Real(dp), Intent(In) :: x(:)  !sample to be checked for normal distribution
+    Logical :: is_normal(1:4)  !normality flags for 10, 5, 2.5, 1 percent significance levels
+    Real(dp), Intent(Out), Optional :: AD_stat
     Real(dp) :: x_bar,s  !sample mean and standard deviation
     Integer :: n,i
     Real(dp), Allocatable :: z(:)
@@ -124,9 +127,10 @@ Subroutine Check_normal_AD(x,is_normal)
     Do i = 1,n
         AD = AD + Real(2*i - 1,dp)*(Log(Std_Normal_CDF(z(i))) + Log(1._dp - Std_Normal_CDF(z(n+1-i))))
     End Do
-    AD = (-Real(n,dp) - (AD / Real(n,dp))) * (1._dp + 0.75_dp/Real(n,dp) + 2.25/Real(n**2,dp))
+    AD = (-Real(n,dp) - (AD / Real(n,dp))) * (1._dp + 0.75_dp/Real(n,dp) + 2.25_dp/Real(n**2,dp))
     !compare to critical values
     Where (AD .GT. AD_crit) is_normal = .FALSE. !Reject null hypothesis
+    If (Present(AD_stat)) AD_stat = AD
 End Subroutine Check_normal_AD 
 
 Elemental Function Std_Normal_CDF(z)
@@ -138,7 +142,39 @@ Elemental Function Std_Normal_CDF(z)
 
     Std_Normal_CDF = 0.5_dp * (1._dp + ERF(z / sqrt2))
 End Function
-        
+
+Subroutine Check_uniform_AD(x,is_uniform,AD_stat)
+    !Tests for normality using the Anderson-Darling test
+    Use Kinds, Only: dp
+    Use Sorting, Only: Quick_Sort
+    Implicit None
+    Real(dp), Intent(In) :: x(:)  !sample to be checked for uniform distribution
+    Logical :: is_uniform(1:4)  !normality flags for 10, 5, 2.5, 1 percent significance levels
+    Real(dp), Intent(Out), Optional :: AD_stat
+    Integer :: n,i
+    Real(dp), Allocatable :: z(:)
+    Real(dp) :: AD  !test statistic
+    Real(dp), Parameter :: AD_crit(1:4) = (/ 1.933_dp, & !10%
+                                           & 2.492_dp, & !5%
+                                           & 3.070_dp, & !2.5%
+                                           & 3.853_dp /) !1%
+
+    is_uniform = .TRUE.  !Null hypothesis
+    n = Size(x)
+    Allocate(z(1:n))
+    z = x
+    Call Quick_Sort(z)  !sort ascending
+    !Compute the test statistic
+    AD = 0._dp
+    Do i = 1,n
+        AD = AD + Real(2*i - 1,dp)*(Log(z(i)) + Log(1._dp - z(n+1-i)))
+    End Do
+    AD = (-Real(n,dp) - (AD / Real(n,dp))) * (1._dp + 0.75_dp/Real(n,dp) + 2.25_dp/Real(n**2,dp))
+    !compare to critical values
+    Where (AD .GT. AD_crit) is_uniform = .FALSE. !Reject null hypothesis
+    If (Present(AD_stat)) AD_stat = AD
+End Subroutine Check_uniform_AD
+
 Subroutine Confidence_Interval_by_bootstrap(x,a,CI_high,CI_low,RNG)
     Use Kinds, Only: dp
     Use Random_Numbers, Only: RNG_Type
@@ -165,7 +201,7 @@ Subroutine Confidence_Interval_by_bootstrap(x,a,CI_high,CI_low,RNG)
     End Do
     !Sort the computed means
     Call Quick_Sort(bootstrapped_means)
-    !Select the appropriate means as bounds to the confidence interval
+    !Select the appropriate means as bounds to theconfidence interval
     CI_high_index = Ceiling((1._dp - a/2._dp) * Real(n_bootstraps,dp))
     CI_low_index = Ceiling((a/2._dp) * Real(n_bootstraps,dp))
     CI_high = bootstrapped_means(CI_high_index)

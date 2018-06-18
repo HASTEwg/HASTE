@@ -10,6 +10,11 @@
 # COMMON MODULES
 SRC_PATH="../source/common/"
 FNAME="Kinds"; . ./compile_it
+FNAME="Utilities"; . ./compile_it
+FNAME="FileIO_Utilities"; . ./compile_it
+FNAME="Sorting"; . ./compile_it
+FNAME="Random_Numbers"; . ./compile_it
+FNAME="Statistics"; . ./compile_it
 FNAME="PRNGs"; . ./compile_it
 
 #TEST PROGRAM
@@ -20,5 +25,6 @@ echo "Compiling and linking testPRNGs..."
 gfortran $GFORT_FLAGS -o ${SRC_PATH}${FNAME}.out ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
 
 #RUN THE TEST PROGRAM
+echo "Running..."
 cd ${SRC_PATH}
 ./${FNAME}.out
