@@ -20,6 +20,8 @@ Module PRNGs
         Procedure, Pass :: seed => seed_rng_mt19937
         Procedure, Pass :: i => rng_mt19937_i
         Procedure, Pass :: r => rng_mt19937_r
+        Procedure, Pass :: save => save_rng_mt19937
+        Procedure, Pass :: load => load_rng_mt19937
     End Type MT19937_type
     
     !Parameters and type for MT19937x64 PRNG
@@ -121,6 +123,31 @@ Function rng_mt19937_r(RNG) Result(x)
         x = Real(y,dp) * invtwo32m1
     End If
 Function rng_mt19937_r
+
+Subroutine save_RNG_mt19937(RNG,fname)
+    Use FileIO_Utilities, Only: Var_to_file
+    Implicit None
+    Class(MT19937_Type), Intent(In) :: RNG
+    Character(*), Intent(In) :: fname
+    Integer :: state(1:n+1)
+    
+    state(1:n) = RNG%stream%mt
+    state(n+1) = RNG%stream%mti
+    Call Var_to_File(state,fname)
+End Subroutine save_RNG_mt19937
+
+Subroutine load_RNG_mt19937(RNG,fname)
+    Use FileIO_Utilities, Only: Var_from_file
+    Implicit None
+    Class(MT19937_Type), Intent(InOut) :: RNG
+    Character(*), Intent(In) :: fname
+    Integer :: state(1:n+1)
+    
+    Call Var_from_File(state,fname)
+    RNG%stream%mt = state(1:n)
+    RNG%stream%mti = state(n+1)
+    RNG%stream%seeded = .TRUE.
+End Subroutine load_RNG_mt19937
 
 Subroutine seed_rng_mt19937x64(RNG,seed)
     Use Kinds, Only: i8
