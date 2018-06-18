@@ -2,15 +2,15 @@ Program testPRNGs
 
 Use Kinds, Only: dp
 Use Kinds, Only: i8
-Use PRNGs, Only: seed_rng_mt19937
-Use PRNGs, Only: rng_mt19937
-Use PRNGs, Only: seed_rng_mt19937x64
-Use PRNGs, Only: rng_mt19937x64
+Use PRNGs, Only: MT19937_Type
+Use PRNGs, Only: MT19937x64_Type
 Use Statistics, Only: Check_Uniform_AD
 
 Implicit None
 
 Integer, Parameter :: n = 100000
+Type(MT19937_Type) :: RNG_19937
+Type(MT19937x64_Type) :: RNG_19937x64
 Real(dp) :: x(1:n),x64(1:n)
 Integer :: i,unit1,unit2
 Logical :: AD_result(1:4)
@@ -18,11 +18,11 @@ Real(dp) :: AD
 
 Open(NEWUNIT=unit1,FILE='randoms19937.tst',ACTION='WRITE',STATUS='REPLACE')
 Open(NEWUNIT=unit2,FILE='randoms19937x64.tst',ACTION='WRITE',STATUS='REPLACE')
-Call seed_rng_mt19937(77777)
-Call seed_rng_mt19937x64(77777_i8)
+Call RNG_19937%seed(7777777_i4)
+Call RNG_19937x64%seed(7777777_i8)
 Do i = 1,n
-    x(i) = rng_mt19937()
-    x64(i) = rng_mt19937x64()
+    x(i) = RNG_19937%r()
+    x64(i) = RNG_19937x64%r()
     Write(unit1,'(ES30.20)') x(i)
     Write(unit2,'(ES30.20)') x64(i)
 End Do
