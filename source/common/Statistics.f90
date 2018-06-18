@@ -141,7 +141,49 @@ Elemental Function Std_Normal_CDF(z)
     Real(dp), Parameter :: sqrt2 = Sqrt(2._dp)
 
     Std_Normal_CDF = 0.5_dp * (1._dp + ERF(z / sqrt2))
-End Function
+End Function Function Std_Normal_CDF
+
+Subroutine Check_exponential_AD(x,is_exponential,AD_stat)
+    !Tests for normality using the Anderson-Darling test
+    Use Kinds, Only: dp
+    Use Sorting, Only: Quick_Sort
+    Implicit None
+    Real(dp), Intent(In) :: x(:)  !sample to be checked for normal distribution
+    Logical :: is_exponential(1:4)  !normality flags for 10, 5, 2.5, 1 percent significance levels
+    Real(dp), Intent(Out), Optional :: AD_stat
+    Integer :: n,i
+    Real(dp), Allocatable :: z(:)
+    Real(dp) :: AD  !test statistic
+    Real(dp), Parameter :: AD_crit(1:4) = (/ 1.070_dp, & !10%
+                                           & 1.326_dp, & !5%
+                                           & 1.587_dp, & !2.5%
+                                           & 1.943_dp /) !1%
+
+    is_exponential = .TRUE.  !Null hypothesis
+    n = Size(x)
+    Allocate(z(1:n))
+    z = x
+    Call Quick_Sort(z)  !sort ascending
+    !Compute the test statistic
+    AD = 0._dp
+    Do i = 1,n
+        AD = AD + Real(2*i - 1,dp)*(Log(Std_Exponential_CDF(z(i))) + Log(1._dp - Std_Exponential_CDF(z(n+1-i))))
+    End Do
+    AD = (-Real(n,dp) - (AD / Real(n,dp))) * (1._dp + 0.75_dp/Real(n,dp) + 2.25_dp/Real(n**2,dp))
+    !compare to critical values
+    Where (AD .GT. AD_crit) is_exponential = .FALSE. !Reject null hypothesis
+    If (Present(AD_stat)) AD_stat = AD
+End Subroutine Check_exponential_AD 
+
+Elemental Function Std_Exponential_CDF(z)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: Std_Normal_CDF
+    Real(dp), Intent(In) :: z
+    Real(dp), Parameter :: sqrt2 = Sqrt(2._dp)
+
+    Std_Exponential_CDF = 1._dp - Exp(-z)
+End Function Function Std_Exponential_CDF
 
 Subroutine Check_uniform_AD(x,is_uniform,AD_stat)
     !Tests for normality using the Anderson-Darling test
