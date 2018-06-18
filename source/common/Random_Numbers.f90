@@ -292,7 +292,7 @@ Subroutine Cleanup_RNG(RNG)
         rng_stat = vsldeletestream(RNG%stream)
 #   else
         RNG%stream%mt = 0
-        RNG%stream%mti = -1
+        RNG%stream%mti = HUGE(RNG%stream%mti)
         RNG%stream%seeded = .FALSE.
 #   endif
     Deallocate(RNG%q)
