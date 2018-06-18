@@ -14,7 +14,7 @@ Module PRNGs
     !the MT19937 state
     Type :: MT19937_Type
         Integer(i4) :: mt(1:n)
-        Integer :: mti = n+1 !mti==n+1 means mt[n] is not initialized
+        Integer :: mti = HUGE(n) !mti>n means mt[n] is not initialized
         Logical :: seeded = .FALSE.
     Contains
         Procedure, Pass :: seed => seed_rng_mt19937
@@ -31,7 +31,7 @@ Module PRNGs
     !the MT19937x64 state
     Type :: MT19937x64_Type
         Integer(i8) :: mt(1:n64)
-        Integer :: mti = n64+1 !mti==n+1 means mt[n] is not initialized
+        Integer :: mti = HUGE(n64) !mti>n means mt[n] is not initialized
         Logical :: seeded = .FALSE.
     Contains
         Procedure, Pass :: seed => seed_rng_mt19937x64
