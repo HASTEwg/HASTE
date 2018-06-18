@@ -210,4 +210,29 @@ Function rng_mt19937x64_r(RNG) Result(x)
     x = Real(ISHFT(RNG%i(), -11_i8),dp) * invtwo53
 End Function rng_mt19937x64_r
 
+Subroutine save_RNG_mt19937x64(RNG,fname)
+    Use FileIO_Utilities, Only: Var_to_file
+    Implicit None
+    Class(MT19937x64_Type), Intent(In) :: RNG
+    Character(*), Intent(In) :: fname
+    Integer :: state(1:n64+1)
+    
+    state(1:n64) = RNG%stream%mt
+    state(n64+1) = RNG%stream%mti
+    Call Var_to_File(state,fname)
+End Subroutine save_RNG_mt19937x64
+
+Subroutine load_RNG_mt19937x64(RNG,fname)
+    Use FileIO_Utilities, Only: Var_from_file
+    Implicit None
+    Class(MT19937x64_Type), Intent(InOut) :: RNG
+    Character(*), Intent(In) :: fname
+    Integer :: state(1:n64+1)
+    
+    Call Var_from_File(state,fname)
+    RNG%stream%mt = state(1:n64)
+    RNG%stream%mti = state(n64+1)
+    RNG%stream%seeded = .TRUE.
+End Subroutine load_RNG_mt19937x64
+
 End Module PRNGs
