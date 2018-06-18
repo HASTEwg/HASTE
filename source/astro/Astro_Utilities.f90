@@ -39,134 +39,6 @@ Module Astro_Utilities
     
 Contains
 
-Function Period(r,v) Result(p)
-    Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
-    Use Global, Only: TwoPi
-    Implicit None
-    Real(dp) :: p
-    Real(dp), Intent(In) :: r(1:3),v(1:3)
-    Real(dp) :: xi,a
-    Real(dp), Parameter :: tolerance = 1.E-12_dp
-
-    xi = SME(r,v)
-    If (xi .GT. -tolerance) Then !escape or nearly escape trajectory
-        p = Huge(p)
-    Else !elliptical, period is defined
-        a = -0.5_dp * mu / xi
-        p = TwoPi * Sqrt(a**3 / mu)
-    End If
-End Function Period
-
-Recursive Function FindTOF(r1_vec,v1_vec,r2_vec) Result(tof)
-    Use Kinds, Only: dp
-    Use Utilities, Only: Vector_Length
-    Use Global, Only: mu => std_grav_parameter
-    Implicit None
-    Real(dp) :: tof    
-    Real(dp), Intent(In) :: r1_vec(1:3)
-    Real(dp), Intent(In) :: v1_vec(1:3)
-    Real(dp), Intent(In) :: r2_vec(1:3)
-    Real(dp) :: r1,r2,r1r2
-    Real(dp) :: cos_nu,sin_nu,nu
-    Real(dp) :: p
-    Real(dp) :: k,l,m,alpha
-    Real(dp) :: f,g,f_dot
-    Real(dp) :: cos_E,sin_E,E
-    Real(dp) :: cosh_H,sinh_H,H
-    Real(dp) :: s,c
-    Real(dp), Parameter :: tolerance = 1.E-12_dp
-    Real(dp), Parameter :: two_thirds = 2._dp / 3._dp
-    
-    r1 = Vector_Length(r1_vec)
-    r2 = Vector_Length(r2_vec)
-    r1r2 = r1 * r2
-    cos_nu = Dot_Product(r1_vec,r2_vec) / r1r2
-    sin_nu = Sqrt(1._dp - cos_nu**2)
-    k = r1r2 * (1._dp - cos_nu)
-    l = r1 + r2
-    m = r1 + r2 * (1._dp - cos_nu)
-    p = Semilatus_Rectum(r1_vec,v1_vec)
-    alpha = ((2._dp * m - l**2) * p**2 + 2._dp * k * l * p - k**2) / (m * k * p)
-    f = 1._dp - r1 * (1._dp - cos_nu) / p
-    g = r1r2 * sin_nu / Sqrt(mu * p)
-    If (alpha .GT. tolerance) Then !elliptical
-        nu = Atan2(sin_nu,cos_nu)
-        f_dot = Sqrt(mu / p) * Tan(0.5_dp * nu) * ((1._dp - cos_nu) / p - 1._dp/r1 - 1._dp/r2)
-        cos_E = 1._dp - alpha * r1 * (1._dp - f)
-        sin_E = -r1r2 * f_dot / Sqrt(mu / alpha)
-        E = Atan2(sin_E,cos_E)
-        tof = g + (E - sin_E) / Sqrt(mu * alpha**3)
-    Else If (alpha .LT. -tolerance) Then !hyperbolic
-        cosh_H = 1._dp - r1 * alpha * (1._dp - f)
-        sinh_H = Sqrt(cosh_H**2 - 1._dp)
-        H = Acosh(cosh_H)
-        tof = g + (sinh_H - H) / Sqrt(mu * (-alpha)**3)
-    Else !parabolic
-        c = Sqrt(r1**2 + r2**2 - 2._dp * r1r2 * cos_nu)
-        s = 0.5_dp * (r1 + r2 + c)
-        tof = two_thirds * Sqrt(0.5_dp * s**3 / mu) * (1._dp - ((s - c) / s)**1.5_dp)
-    End If
-End Function FindTOF
-
-Function Time_Since_Periapsis(r_vec,v_vec) Result(t)
-    Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
-    Use Global, Only: TwoPi
-    Use Utilities, Only: Vector_Length
-    Implicit None
-    Real(dp) :: t
-    Real(dp), Intent(In) :: r_vec(1:3)
-    Real(dp), Intent(In) :: v_vec(1:3)
-    Real(dp) :: r,v
-    Real(dp) :: xi
-    Real(dp) :: alpha
-    Real(dp) :: e_vec(1:3),e
-    Real(dp) :: CosNu
-    Real(dp) :: CosE
-    Real(dp) :: CoshF,F
-    Real(dp) :: Nu,p,D
-    Real(dp), Parameter :: tolerance = 1.E-12_dp
-    Real(dp), Parameter :: one_third = 1._dp / 3._dp
-    
-    r = Vector_Length(r_vec)
-    v = Vector_Length(v_vec)
-    xi = SME(r,v)
-    alpha = -2._dp * xi / mu
-    e_vec = (v**2 / mu - 1._dp / r) * r_vec - Dot_Product(r_vec,v_vec) * v_vec / mu
-    e = Vector_Length(e_vec)
-    CosNu = Dot_Product(e_vec,r_vec) / (e * r)
-    If (alpha .GT. tolerance) Then !elliptical
-        CosE = (e + CosNu) / (1._dp + e * CosNu)
-        t = (ACos(CosE) - e * Sqrt(1-CosE**2)) / Sqrt(mu * alpha**3)
-    Else If (alpha .LT. -tolerance) Then !hyperbolic
-        CoshF = (e + CosNu) / (1._dp + e * CosNu)
-        F = Log(CoshF + Sqrt(CoshF**2 - 1._dp))
-        If (Dot_Product(r_vec,v_vec) .LT. 0._dp) F = -F
-        t = (e * Sinh(F) - F) / Sqrt(mu * (-alpha)**3)
-    Else !parabolic
-        Nu = ACos(CosNu)
-        If (Dot_Product(r_vec,v_vec) .LT. 0._dp) Nu = TwoPi - Nu
-        p = Semilatus_Rectum(r_vec,v_vec)
-        D = Sqrt(p) * Tan(0.5 * Nu)
-        t = 0.5_dp * (p * D + one_third * D**3) / Sqrt(mu)
-    End If
-End Function Time_Since_Periapsis
-
-Function Hits_Earth(r1,r2,v1,v2)
-    Use Kinds, Only: dp
-    Use Global, Only: R_Earth
-    Implicit None
-    Logical :: Hits_Earth
-    Real(dp), Intent(In) :: r1(1:3),r2(1:3)
-    Real(dp), Intent(In) :: v1(1:3),v2(1:3)
-    
-    Hits_Earth = .FALSE.
-    If (Dot_Product(r1,v1).LT.0._dp .AND. Dot_Product(r2,v2).GT.0._dp) Then  !periapsis occurs between r1 and r2, check for collision
-        If (Radius_of_Perigee(r1,v1) .LT. R_Earth) Hits_Earth = .TRUE.
-    End If
-End Function Hits_Earth
-
 Function SAM(r,v) Result(h)
     Use Kinds, Only: dp
     Use Utilities, Only: Vector_Length
@@ -357,6 +229,170 @@ Recursive Function Time_to_R(r0,v0,radius,t_min,t_max,t_guess,allow_recursion) R
     t = Time_to_R(r0,v0,radius,t1,t2,t_guess = t)
 End Function Time_to_R
 
+Function Hits_Earth(r1,r2,v1,v2)
+    Use Kinds, Only: dp
+    Use Global, Only: R_Earth
+    Implicit None
+    Logical :: Hits_Earth
+    Real(dp), Intent(In) :: r1(1:3),r2(1:3)
+    Real(dp), Intent(In) :: v1(1:3),v2(1:3)
+    
+    Hits_Earth = .FALSE.
+    If (Dot_Product(r1,v1).LT.0._dp .AND. Dot_Product(r2,v2).GT.0._dp) Then  !periapsis occurs between r1 and r2, check for collision
+        If (Radius_of_Perigee(r1,v1) .LT. R_Earth) Hits_Earth = .TRUE.
+    End If
+End Function Hits_Earth
+
+!-------------------------------------------------------------------------------
+!   Orbit Period
+!
+!   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
+!       ed.). El Segundo, CA: Microcosm Press.
+!
+!   Translated to modern Fortran by Whitman Dailey.  Jun 02, 2018.
+!   Air Force Institute of Technology, Department of Engineering Physics
+!-------------------------------------------------------------------------------
+Function Period(r,v) Result(p)
+    Use Kinds, Only: dp
+    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: TwoPi
+    Implicit None
+    Real(dp) :: p
+    Real(dp), Intent(In) :: r(1:3),v(1:3)
+    Real(dp) :: xi,a
+    Real(dp), Parameter :: tolerance = 1.E-12_dp
+
+    xi = SME(r,v)
+    If (xi .GT. -tolerance) Then !escape or nearly escape trajectory
+        p = Huge(p)
+    Else !elliptical, period is defined
+        a = -0.5_dp * mu / xi
+        p = TwoPi * Sqrt(a**3 / mu)
+    End If
+End Function Period
+
+!-------------------------------------------------------------------------------
+!   Time of Flight Between Two Points on an Orbit
+!
+!   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
+!       ed.). El Segundo, CA: Microcosm Press.
+!
+!   Translated to modern Fortran by Whitman Dailey.  Jun 02, 2018.
+!   Air Force Institute of Technology, Department of Engineering Physics
+!-------------------------------------------------------------------------------
+Function FindTOF(r1_vec,v1_vec,r2_vec) Result(tof)
+    Use Kinds, Only: dp
+    Use Utilities, Only: Vector_Length
+    Use Global, Only: mu => std_grav_parameter
+    Implicit None
+    Real(dp) :: tof    
+    Real(dp), Intent(In) :: r1_vec(1:3)
+    Real(dp), Intent(In) :: v1_vec(1:3)
+    Real(dp), Intent(In) :: r2_vec(1:3)
+    Real(dp) :: r1,r2,r1r2
+    Real(dp) :: cos_nu,sin_nu,nu
+    Real(dp) :: p
+    Real(dp) :: k,l,m,alpha
+    Real(dp) :: f,g,f_dot
+    Real(dp) :: cos_E,sin_E,E
+    Real(dp) :: cosh_H,sinh_H,H
+    Real(dp) :: s,c
+    Real(dp), Parameter :: tolerance = 1.E-12_dp
+    Real(dp), Parameter :: two_thirds = 2._dp / 3._dp
+    
+    r1 = Vector_Length(r1_vec)
+    r2 = Vector_Length(r2_vec)
+    r1r2 = r1 * r2
+    cos_nu = Dot_Product(r1_vec,r2_vec) / r1r2
+    sin_nu = Sqrt(1._dp - cos_nu**2)
+    k = r1r2 * (1._dp - cos_nu)
+    l = r1 + r2
+    m = r1 + r2 * (1._dp - cos_nu)
+    p = Semilatus_Rectum(r1_vec,v1_vec)
+    alpha = ((2._dp * m - l**2) * p**2 + 2._dp * k * l * p - k**2) / (m * k * p)
+    f = 1._dp - r1 * (1._dp - cos_nu) / p
+    g = r1r2 * sin_nu / Sqrt(mu * p)
+    If (alpha .GT. tolerance) Then !elliptical
+        nu = Atan2(sin_nu,cos_nu)
+        f_dot = Sqrt(mu / p) * Tan(0.5_dp * nu) * ((1._dp - cos_nu) / p - 1._dp/r1 - 1._dp/r2)
+        cos_E = 1._dp - alpha * r1 * (1._dp - f)
+        sin_E = -r1r2 * f_dot / Sqrt(mu / alpha)
+        E = Atan2(sin_E,cos_E)
+        tof = g + (E - sin_E) / Sqrt(mu * alpha**3)
+    Else If (alpha .LT. -tolerance) Then !hyperbolic
+        cosh_H = 1._dp - r1 * alpha * (1._dp - f)
+        sinh_H = Sqrt(cosh_H**2 - 1._dp)
+        H = Acosh(cosh_H)
+        tof = g + (sinh_H - H) / Sqrt(mu * (-alpha)**3)
+    Else !parabolic
+        c = Sqrt(r1**2 + r2**2 - 2._dp * r1r2 * cos_nu)
+        s = 0.5_dp * (r1 + r2 + c)
+        tof = two_thirds * Sqrt(0.5_dp * s**3 / mu) * (1._dp - ((s - c) / s)**1.5_dp)
+    End If
+End Function FindTOF
+
+!-------------------------------------------------------------------------------
+!   Time of Flight Cince Periapsis
+!
+!   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
+!       ed.). El Segundo, CA: Microcosm Press.
+!
+!   Translated to modern Fortran by Whitman Dailey.  Jun 02, 2018.
+!   Air Force Institute of Technology, Department of Engineering Physics
+!-------------------------------------------------------------------------------
+Function Time_Since_Periapsis(r_vec,v_vec) Result(t)
+    Use Kinds, Only: dp
+    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: TwoPi
+    Use Utilities, Only: Vector_Length
+    Implicit None
+    Real(dp) :: t
+    Real(dp), Intent(In) :: r_vec(1:3)
+    Real(dp), Intent(In) :: v_vec(1:3)
+    Real(dp) :: r,v
+    Real(dp) :: xi
+    Real(dp) :: alpha
+    Real(dp) :: e_vec(1:3),e
+    Real(dp) :: CosNu
+    Real(dp) :: CosE
+    Real(dp) :: CoshF,F
+    Real(dp) :: Nu,p,D
+    Real(dp), Parameter :: tolerance = 1.E-12_dp
+    Real(dp), Parameter :: one_third = 1._dp / 3._dp
+    
+    r = Vector_Length(r_vec)
+    v = Vector_Length(v_vec)
+    xi = SME(r,v)
+    alpha = -2._dp * xi / mu
+    e_vec = (v**2 / mu - 1._dp / r) * r_vec - Dot_Product(r_vec,v_vec) * v_vec / mu
+    e = Vector_Length(e_vec)
+    CosNu = Dot_Product(e_vec,r_vec) / (e * r)
+    If (alpha .GT. tolerance) Then !elliptical
+        CosE = (e + CosNu) / (1._dp + e * CosNu)
+        t = (ACos(CosE) - e * Sqrt(1-CosE**2)) / Sqrt(mu * alpha**3)
+    Else If (alpha .LT. -tolerance) Then !hyperbolic
+        CoshF = (e + CosNu) / (1._dp + e * CosNu)
+        F = Log(CoshF + Sqrt(CoshF**2 - 1._dp))
+        If (Dot_Product(r_vec,v_vec) .LT. 0._dp) F = -F
+        t = (e * Sinh(F) - F) / Sqrt(mu * (-alpha)**3)
+    Else !parabolic
+        Nu = ACos(CosNu)
+        If (Dot_Product(r_vec,v_vec) .LT. 0._dp) Nu = TwoPi - Nu
+        p = Semilatus_Rectum(r_vec,v_vec)
+        D = Sqrt(p) * Tan(0.5 * Nu)
+        t = 0.5_dp * (p * D + one_third * D**3) / Sqrt(mu)
+    End If
+End Function Time_Since_Periapsis
+
+!-------------------------------------------------------------------------------
+!   Parabolic Time of Flight
+!
+!   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
+!       ed.). El Segundo, CA: Microcosm Press.
+!
+!   Translated to modern Fortran by Whitman Dailey.  Jun 02, 2018.
+!   Air Force Institute of Technology, Department of Engineering Physics
+!-------------------------------------------------------------------------------
 Function Parabolic_TOF(r1_vec,r2_vec) Result(tof)
     Use Kinds, Only: dp
     Use Global, Only: mu => std_grav_parameter
@@ -375,6 +411,15 @@ Function Parabolic_TOF(r1_vec,r2_vec) Result(tof)
     tof = two_thirds * Sqrt(s**3 / (2._dp*mu)) * (1._dp - ((s - c) / s)**(1.5_dp))  !parabolic flight time from r1 to r2
 End Function Parabolic_TOF
 
+!-------------------------------------------------------------------------------
+!   Position and Velicity from Classical Orbital Elements
+!
+!   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
+!       ed.). El Segundo, CA: Microcosm Press.
+!
+!   Translated to modern Fortran by Whitman Dailey.  Jun 02, 2018.
+!   Air Force Institute of Technology, Department of Engineering Physics
+!-------------------------------------------------------------------------------
 Subroutine RV_from_COEs(p,e,i,RAAN,AoP,nu,r,v)
     Use Kinds, Only: dp
     Use Global, Only: mu => std_grav_parameter
@@ -416,6 +461,15 @@ Subroutine RV_from_COEs(p,e,i,RAAN,AoP,nu,r,v)
                              & 0._dp /) )
 End Subroutine RV_from_COEs
 
+!-------------------------------------------------------------------------------
+!   Solution to Kepler's Problem
+!
+!   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
+!       ed.). El Segundo, CA: Microcosm Press.
+!
+!   Translated to modern Fortran by Whitman Dailey.  Jun 02, 2018.
+!   Air Force Institute of Technology, Department of Engineering Physics
+!-------------------------------------------------------------------------------
 Subroutine Kepler(r0_vec,v0_vec,t,r_vec,v_vec)
     Use Kinds, Only: dp
     Implicit None
@@ -510,6 +564,15 @@ Subroutine Kepler_f_g(r0_vec,v0_vec,t,f,g,f_dot,g_dot)
     If (Present(g_dot)) g_dot = 1._dp + x**2 * C / dfx
 End Subroutine Kepler_f_g
 
+!-------------------------------------------------------------------------------
+!   Minimum Velocity Solution to Lambert's Problem
+!
+!   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
+!       ed.). El Segundo, CA: Microcosm Press.
+!
+!   Translated to modern Fortran by Whitman Dailey.  Jun 02, 2018.
+!   Air Force Institute of Technology, Department of Engineering Physics
+!-------------------------------------------------------------------------------
 Subroutine Lambert_minV(r1_vec,r2_vec,v1_vec,tof)
     Use Kinds, Only: dp
     Use Global, Only: Pi
@@ -545,6 +608,15 @@ Subroutine Lambert_minV(r1_vec,r2_vec,v1_vec,tof)
     End If
 End Subroutine Lambert_minV
 
+!-------------------------------------------------------------------------------
+!   Solution to Lambert's Problem
+!
+!   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
+!       ed.). El Segundo, CA: Microcosm Press.
+!
+!   Translated to modern Fortran by Whitman Dailey.  Jun 02, 2018.
+!   Air Force Institute of Technology, Department of Engineering Physics
+!-------------------------------------------------------------------------------
 Subroutine Lambert(r0_vec,r_vec,tof,v0_vec,v_vec,long_way)
     Use Kinds, Only: dp
     Implicit None
@@ -679,9 +751,17 @@ Subroutine Find_C_S(z,C,S)
         End Subroutine C_S_series
 End Subroutine Find_C_S
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!  Gooding's Method for Lambert's Problem
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!-------------------------------------------------------------------------------
+!   Gooding's Method for Lambert's Problem
+!
+!   Original FORTRAN77 Source from:
+!   Gooding, R. H. (1990). A Procedure for the Solution of Lambert's Oribital
+!       Boundary-Value Problem. Celestial Mechanics and Dynamical Astronomy,
+!       48, 145-165.
+!
+!   Revised for modern Fortran by Whitman Dailey.  Jun 02, 2018.
+!   Air Force Institute of Technology, Department of Engineering Physics
+!-------------------------------------------------------------------------------
 Subroutine Lambert_Gooding(r1_vec,r2_vec,tof,v1,v2,long_way)
     Use Kinds, Only: dp
     Use Global, Only: TwoPi
@@ -973,9 +1053,18 @@ Subroutine qzminx_qzplx_zplqx(q,qsqfm1,x,qzminx,qzplx,zplqx)
     zplqx = aa
 End Subroutine qzminx_qzplx_zplqx
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!  Gooding's Method for Kepler's Problem
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!-------------------------------------------------------------------------------
+!   Gooding's Method for Kepler's Problem
+!
+!   Original FORTRAN77 Source from:
+!   Gooding, R. H., & Odell, A. W. (1986). Procedures for solving Kepler's 
+!       Equation. Celestial Mechanics, 38(4), 307-334.
+!   Gooding, R. H., & Odell, A. W. (1988). The Hyperbolic Kepler Equation (and
+!       the Elliptic Equation Revisited). Celestial Mechanics, 44(3), 267-282.
+!
+!   Revised for modern Fortran by Whitman Dailey.  Jun 02, 2018.
+!   Air Force Institute of Technology, Department of Engineering Physics
+!-------------------------------------------------------------------------------
 Subroutine Kepler_Gooding(r0,v0,dt,r1,v1)
     Use Kinds, Only: dp
     Implicit None
