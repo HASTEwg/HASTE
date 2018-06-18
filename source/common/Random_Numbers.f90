@@ -58,8 +58,8 @@ Function Setup_RNG(setup_file_name,run_file_name) Result(RNG)
     If (stat .NE. 0) Call Output_Message('ERROR:  Random_Numbers: Setup_RNG:  File open error, '//setup_file_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = RNGSetupList)
     Close(setup_unit)
-    If (RNG_seed_random) Then
-        RNG_seed = Create_Random_Seed()
+    If (RNG_seed_random) Then  !use current clock time as seed
+        RNG_seed = SYSTEM_CLOCK()
         RNG_seed_random = .TRUE.
     End If
     t = Worker_Index()
@@ -103,7 +103,7 @@ Subroutine Initialize_RNG(RNG,seed,thread,size)  !Initializes a RNG and returns 
     If (Present(seed)) Then
         RNG%seed = seed
     Else  !Generate a random seed using intrinsic RNG seeded with default seed (date-and-time based)
-        RNG%seed = Create_Random_Seed()  !sets seed to a value between [0,Huge) based on current date and time
+        RNG%seed = SYSTEM_CLOCK()  !sets seed to a value between [0,Huge) based on current date and time
     End If
 #   if IMKL
         If (Present(thread)) Then  !Parallel execution, use an independent MT2203 stream for each thread
@@ -125,19 +125,6 @@ Subroutine Initialize_RNG(RNG,seed,thread,size)  !Initializes a RNG and returns 
     RNG%q_index = 1
     RNG%q_refreshed = 1
 End Subroutine Initialize_RNG
-
-Function Create_Random_Seed() Result(s)
-    Use Kinds, Only: dp
-    Implicit None
-    Integer :: s
-    Real(dp) :: r  !holder for random real used to generate random seed
-    
-    !Seed the intrinsic RNG based on system defaults (usually date/time)
-    Call RANDOM_SEED()
-    !Using the intrinsic RNG, generate a seed
-    Call RANDOM_NUMBER(r)
-    s = Floor(r*Real(Huge(s),dp))  !sets seed to a value between [0,Huge)
-End Function Create_Random_Seed
 
 Function Get_1_Random(RNG) Result(r)
     Use Kinds, Only: dp
