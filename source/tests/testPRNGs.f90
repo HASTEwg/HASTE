@@ -5,6 +5,7 @@ Use Kinds, Only: i8
 Use PRNGs, Only: MT19937_Type
 Use PRNGs, Only: MT19937x64_Type
 Use Statistics, Only: Check_Uniform_AD
+Use Statistics, Only: Check_Exponential_AD
 
 Implicit None
 
@@ -45,13 +46,21 @@ End Do
 Close(unit1)
 Close(unit2)
 
+!Print a block of binary values from each generator for visualization
+Write(*,'(A32,A4,A32)') 'mt19937','','mt19937x64'
+Do i = 1,32
+    Write(*,'(B32,A4,B32)') b(i),'',b64(i)
+End Do
+Write(*,*)
+Write(*,*)
+
 !Apply a quick check (Anderson Darling) for uniform distribution
-Call Check_Uniform_AD(x,AD_result,AD)
+Call Check_Uniform_AD(r,AD_result,AD)
 Write(*,'(A)') 'AD Test for Uniform Distribution: mt19937'
 Write(*,'(A,F0.6)') '  AD statistic: ',AD
 Write(*,'(A,L1,A)') '  Assert non-uniformity?  ',.NOT.AD_result(1),'  Possibly non-uniform.'
 Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(2),'  |  |  |  |  |  |  | '
-Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(3),'  v  v  v  v  v  v  v '
+Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(3),'  V  V  V  V  V  V  V '
 Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(4),'  Very likely non-uniform.'
 If (All(AD_result)) Then
     Write(*,'(A)')  '  The sample is LIKELY to be from a uniform distribution.'
@@ -59,17 +68,54 @@ Else
     Write(*,'(A)')  '  The sample is UNLIKELY to be from a uniform distribution.'
 End If
 Write(*,*)
-Call Check_Uniform_AD(x64,AD_result,AD)
+!Compute spacings in the real stream (in place)
+Call Quick_Sort(r)
+Do i = n,2,-1
+    r(i) = r(i) - r(i-1)
+End Do
+Call Check_Exponential_AD(r,AD_result,AD)
+Write(*,'(A)') 'AD Test for Exponentially Distributed Spacing: mt19937'
+Write(*,'(A,F0.6)') '  AD statistic: ',AD
+Write(*,'(A,L1,A)') '  Assert non-exp spaces?  ',.NOT.AD_result(1),'  Possibly non-exp spaced.'
+Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(2),'  |  |  |  |  |  |  |  | '
+Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(3),'  V  V  V  V  V  V  V  V '
+Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(4),'  Very likely non-exp spaced.'
+If (All(AD_result)) Then
+    Write(*,'(A)')  '  The spaces in the sample are LIKELY to be exponentially distributed.'
+Else
+    Write(*,'(A)')  '  The spaces in the sample are UNLIKELY to be exponentially distributed.'
+End If
+Write(*,*)
+Write(*,*)
+Call Check_Uniform_AD(r64,AD_result,AD)
 Write(*,'(A)') 'AD Test for Uniform Distribution: mt19937 x64'
 Write(*,'(A,F0.6)') '  AD statistic: ',AD
 Write(*,'(A,L1,A)') '  Assert non-uniformity?  ',.NOT.AD_result(1),'  Possibly non-uniform.'
 Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(2),'  |  |  |  |  |  |  | '
-Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(3),'  v  v  v  v  v  v  v '
+Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(3),'  V  V  V  V  V  V  V '
 Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(4),'  Very likely non-uniform.'
 If (All(AD_result)) Then
     Write(*,'(A)')  '  The sample is LIKELY to be from a uniform distribution.'
 Else
     Write(*,'(A)')  '  The sample is UNLIKELY to be from a uniform distribution.'
+End If
+Write(*,*)
+!Compute spacings in the real stream (in place)
+Call Quick_Sort(r64)
+Do i = n,2,-1
+    r64(i) = r64(i) - r64(i-1)
+End Do
+Call Check_Exponential_AD(r64,AD_result,AD)
+Write(*,'(A)') 'AD Test for Exponentially Distributed Spacing: mt19937'
+Write(*,'(A,F0.6)') '  AD statistic: ',AD
+Write(*,'(A,L1,A)') '  Assert non-exp spaces?  ',.NOT.AD_result(1),'  Possibly non-exp spaced.'
+Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(2),'  |  |  |  |  |  |  |  | '
+Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(3),'  V  V  V  V  V  V  V  V '
+Write(*,'(A,L1,A)') '                          ',.NOT.AD_result(4),'  Very likely non-exp spaced.'
+If (All(AD_result)) Then
+    Write(*,'(A)')  '  The spaces in the sample are LIKELY to be exponentially distributed.'
+Else
+    Write(*,'(A)')  '  The spaces in the sample are UNLIKELY to be exponentially distributed.'
 End If
 Write(*,*)
 End Program testPRNGs
