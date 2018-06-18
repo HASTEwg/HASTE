@@ -9,6 +9,7 @@ Module Statistics
     Public :: aMean
     Public :: gMean
     Public :: Check_normal_AD
+    Public :: Check_exponential_AD
     Public :: Check_uniform_AD
 
     Interface Std_Err
