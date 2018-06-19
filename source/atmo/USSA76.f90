@@ -214,7 +214,6 @@ End Function Find_Base_Layer
 
 Function T(Z,layer,layer_range)
     Use Kinds, Only: dp
-    Use Utilities, Only: Bisection_Search
     Implicit None
     Real(dp) :: T  ![K]
     Real(dp), Intent(In) :: Z ![km]
@@ -249,7 +248,6 @@ End Function T
 
 Function dT_dZ(Z,layer,layer_range)
     Use Kinds, Only: dp
-    Use Utilities, Only: Bisection_Search
     Implicit None
     Real(dp) :: dT_dZ  ![K/km]
     Real(dp), Intent(In) :: Z ![km]
@@ -713,7 +711,6 @@ End Subroutine Continue_Romberg_nO1_O2
 
 Function P(Z,layer,layer_range)
     Use Kinds, Only: dp
-    Use Utilities, Only: Bisection_Search
     Implicit None
     Real(dp) :: P  ![Pa]
     Real(dp), Intent(In) :: Z ![km]
@@ -764,7 +761,6 @@ End Function P
 
 Function rho(Z,layer,layer_range)
     Use Kinds, Only: dp
-    Use Utilities, Only: Bisection_Search
     Implicit None
     Real(dp) :: rho  ![g/m^3]
     Real(dp), Intent(In) :: Z ![km]
