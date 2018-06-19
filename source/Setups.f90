@@ -41,6 +41,7 @@ Subroutine Setup_HATS(prompt_for_exit,screen_progress,paths_files,n_neutron_hist
     !Reads in problem data, method data, physics data
     !Initializes processes and variables
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use FileIO_Utilities, Only: Worker_Index
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
@@ -50,7 +51,7 @@ Subroutine Setup_HATS(prompt_for_exit,screen_progress,paths_files,n_neutron_hist
     Logical, Intent(Out) :: prompt_for_exit
     Logical, Intent(Out) :: screen_progress
     Type(paths_files_type), Intent(InOut) :: paths_files
-    Integer(8), Intent(Out) :: n_neutron_histories
+    Integer(id), Intent(Out) :: n_neutron_histories
     Logical, Intent(Out) :: absolute_n_histories
     Character(*), Intent(In), Optional :: setup_file  !if specified, overrides default setup file name and setup file specified by command line
     Character(:), Allocatable :: file_suffix  !specifies suffix to be appended to file names
@@ -261,10 +262,11 @@ Subroutine Check_folders_exist(paths_files)
 End Subroutine Check_folders_exist
 
 Subroutine Setup_Estimator(setup_file_name,run_file_name,n_neutron_histories,absolute_n_histories)
+    Use Kinds, Only: id
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Character(*), Intent(In) :: setup_file_name,run_file_name
-    Integer(8), Intent(Out) :: n_neutron_histories
+    Integer(id), Intent(Out) :: n_neutron_histories
     Logical, Intent(Out) :: absolute_n_histories
     Integer :: setup_unit,stat
     
@@ -285,12 +287,13 @@ End Subroutine Setup_Estimator
 # if CAF
 Subroutine Setup_Info_to_disk(n_histories,abs_n_histories,prompt_for_exit,screen_progress,paths_files)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
     Use FileIO_Utilities, Only: Working_Directory
     Use FileIO_Utilities, Only: Var_to_File
     Implicit None
-    Integer(8), Intent(In) :: n_histories
+    Integer(id), Intent(In) :: n_histories
     Logical, Intent(In) :: abs_n_histories
     Logical, Intent(In) :: prompt_for_exit
     Logical, Intent(In) :: screen_progress
@@ -360,12 +363,13 @@ End Subroutine Setup_Info_to_disk
 # if CAF
 Subroutine Setup_Info_from_disk(n_histories,abs_n_histories,prompt_for_exit,screen_progress,paths_files)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
     Use FileIO_Utilities, Only: Working_Directory
     Use FileIO_Utilities, Only: Var_from_File
     Implicit None
-    Integer(8), Intent(Out) :: n_histories
+    Integer(id), Intent(Out) :: n_histories
     Logical, Intent(Out) :: abs_n_histories
     Logical, Intent(Out) :: prompt_for_exit
     Logical, Intent(Out) :: screen_progress
@@ -512,6 +516,7 @@ End Subroutine Initialize_Paths_Files
 
 Subroutine Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n_h_hit,n_h_run,RNG,paths_files,file_name)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use Random_Numbers, Only: RNG_Type
     Use FileIO_Utilities, Only: Date_Time_string
     Use FileIO_Utilities, Only: Get_Host_Name
@@ -519,8 +524,8 @@ Subroutine Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n
     Implicit None
     Integer, Intent(In) :: n_img
     Real(dp), Intent(In) :: t_process,t_elapsed_min,t_elapsed_max
-    Integer(8), Intent(In) :: n_h_hit(1:n_img)
-    Integer(8), Intent(In) :: n_h_run(1:n_img)
+    Integer(id), Intent(In) :: n_h_hit(1:n_img)
+    Integer(id), Intent(In) :: n_h_run(1:n_img)
     Type(RNG_Type), Intent(In) :: RNG
     Type(Paths_Files_Type), Intent(In) :: paths_files
     Character(*), Intent(In) :: file_name
