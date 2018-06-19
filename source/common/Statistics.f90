@@ -154,6 +154,7 @@ Subroutine Check_exponential_AD(x,is_exponential,AD_stat)
     Real(dp), Intent(Out), Optional :: AD_stat
     Integer :: n,i
     Real(dp), Allocatable :: z(:)
+    Real(dp) :: s  !estimated scale parameter of the exponential distribution
     Real(dp) :: AD  !test statistic
     Real(dp), Parameter :: AD_crit(1:4) = (/ 1.070_dp, & !10%
                                            & 1.326_dp, & !5%
@@ -161,14 +162,17 @@ Subroutine Check_exponential_AD(x,is_exponential,AD_stat)
                                            & 1.943_dp /) !1%
 
     is_exponential = .TRUE.  !Null hypothesis
+    ! Estimate the scale parameter of the distribution
+    s = aMean(x)
+    ! Create a sorted copy of the sample
     n = Size(x)
     Allocate(z(1:n))
     z = x
-    Call Quick_Sort(z)  !sort ascending
+    Call Quick_Sort(z)
     !Compute the test statistic
     AD = 0._dp
     Do i = 1,n
-        AD = AD + Real(2*i - 1,dp)*(Log(Std_Exponential_CDF(z(i))) + Log(1._dp - Std_Exponential_CDF(z(n+1-i))))
+        AD = AD + Real(2*i - 1,dp)*(Log(Exponential_CDF(z(i),s)) + Log(1._dp - Exponential_CDF(z(n+1-i),s)))
     End Do
     AD = (-Real(n,dp) - (AD / Real(n,dp))) * (1._dp + 0.75_dp/Real(n,dp) + 2.25_dp/Real(n**2,dp))
     !compare to critical values
@@ -176,14 +180,15 @@ Subroutine Check_exponential_AD(x,is_exponential,AD_stat)
     If (Present(AD_stat)) AD_stat = AD
 End Subroutine Check_exponential_AD 
 
-Elemental Function Std_Exponential_CDF(z)
+Elemental Function Exponential_CDF(z,s)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: Std_Exponential_CDF
+    Real(dp) :: Exponential_CDF
     Real(dp), Intent(In) :: z
+    Real(dp), Intent(In) :: s
 
-    Std_Exponential_CDF = 1._dp - Exp(-z)
-End Function Std_Exponential_CDF
+    Exponential_CDF = 1._dp - Exp(-z*s)
+End Function Exponential_CDF
 
 Subroutine Check_uniform_AD(x,is_uniform,AD_stat)
     !Tests for normality using the Anderson-Darling test
@@ -202,10 +207,11 @@ Subroutine Check_uniform_AD(x,is_uniform,AD_stat)
                                            & 3.853_dp /) !1%
 
     is_uniform = .TRUE.  !Null hypothesis
+    ! Create a sorted copy of the sample
     n = Size(x)
     Allocate(z(1:n))
     z = x
-    Call Quick_Sort(z)  !sort ascending
+    Call Quick_Sort(z)
     !Compute the test statistic
     AD = 0._dp
     Do i = 1,n
