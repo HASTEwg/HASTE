@@ -92,6 +92,8 @@ Module PRNGs
         Procedure, Pass :: seed => seed_rng_mt19937x64
         Procedure, Pass :: i => rng_mt19937x64_i
         Procedure, Pass :: r => rng_mt19937x64_r
+        Procedure, Pass :: save => save_rng_mt19937x64
+        Procedure, Pass :: load => load_rng_mt19937x64
     End Type MT19937x64_type
 
 Contains
@@ -132,8 +134,6 @@ Function rng_mt19937_i(RNG) Result(y)
     Integer(i4), Parameter :: umask = -2147483647_i4!-1_i4 !most significant w-r bits
     Integer(i4), Parameter :: tmaskb = -1658038656_i4 !tempering parameters
     Integer(i4), Parameter :: tmaskc = -272236544_i4 !tempering parameters
-    Real(dp), Parameter :: two32 = 2._dp**32
-    Real(dp), Parameter :: invtwo32m1 = 1._dp / (two32 - 1._dp)
 
     If (RNG%mti .GE. n) Then  !generate N words at one time
         If (RNG%seeded) Then  !needs new words
@@ -148,7 +148,7 @@ Function rng_mt19937_i(RNG) Result(y)
             End Do
             y = IOR(IAND(RNG%mt(n),umasku), IAND(RNG%mt(1),lmask))
             RNG%mt(n) = IEOR(IEOR(RNG%mt(m), ISHFT(y,-1_i4)),mag01(IAND(y,1_i4)))
-            RNG%mti = 0
+            RNG%mti = 1
         Else  !needs seeding
             Call RNG%seed(default_seed)
         End If
@@ -177,31 +177,33 @@ Function rng_mt19937_r(RNG) Result(x)
     Else
         x = Real(y,dp) * invtwo32m1
     End If
-Function rng_mt19937_r
+End Function rng_mt19937_r
 
 Subroutine save_RNG_mt19937(RNG,fname)
+    Use Kinds, Only: i4
     Use FileIO_Utilities, Only: Var_to_file
     Implicit None
     Class(MT19937_Type), Intent(In) :: RNG
     Character(*), Intent(In) :: fname
-    Integer :: state(1:n+1)
+    Integer(i4) :: state(1:n+1)
     
-    state(1:n) = RNG%stream%mt
-    state(n+1) = RNG%stream%mti
+    state(1:n) = RNG%mt
+    state(n+1) = RNG%mti
     Call Var_to_File(state,fname)
 End Subroutine save_RNG_mt19937
 
 Subroutine load_RNG_mt19937(RNG,fname)
+    Use Kinds, Only: i4
     Use FileIO_Utilities, Only: Var_from_file
     Implicit None
     Class(MT19937_Type), Intent(InOut) :: RNG
     Character(*), Intent(In) :: fname
-    Integer :: state(1:n+1)
+    Integer(i4) :: state(1:n+1)
     
     Call Var_from_File(state,fname)
-    RNG%stream%mt = state(1:n)
-    RNG%stream%mti = state(n+1)
-    RNG%stream%seeded = .TRUE.
+    RNG%mt = state(1:n)
+    RNG%mti = state(n+1)
+    RNG%seeded = .TRUE.
 End Subroutine load_RNG_mt19937
 
 Subroutine seed_rng_mt19937x64(RNG,seed)
@@ -241,7 +243,7 @@ Function rng_mt19937x64_i(RNG) Result(y)
             End Do
             y = IOR(IAND(RNG%mt(n64), um), IAND(RNG%mt(1), lm))
             RNG%mt(n64) = IEOR(IEOR(RNG%mt(m64), ISHFT(y, -1_i8)), mag01(IAND(y, 1_i8)))
-            RNG%mti = 0
+            RNG%mti = 1
         Else  !needs seeding
             Call RNG%seed(default_seed64)
         End If
@@ -266,28 +268,30 @@ Function rng_mt19937x64_r(RNG) Result(x)
 End Function rng_mt19937x64_r
 
 Subroutine save_RNG_mt19937x64(RNG,fname)
+    Use Kinds, Only: i8
     Use FileIO_Utilities, Only: Var_to_file
     Implicit None
     Class(MT19937x64_Type), Intent(In) :: RNG
     Character(*), Intent(In) :: fname
-    Integer :: state(1:n64+1)
+    Integer(i8) :: state(1:n64+1)
     
-    state(1:n64) = RNG%stream%mt
-    state(n64+1) = RNG%stream%mti
+    state(1:n64) = RNG%mt
+    state(n64+1) = RNG%mti
     Call Var_to_File(state,fname)
 End Subroutine save_RNG_mt19937x64
 
 Subroutine load_RNG_mt19937x64(RNG,fname)
+    Use Kinds, Only: i8
     Use FileIO_Utilities, Only: Var_from_file
     Implicit None
     Class(MT19937x64_Type), Intent(InOut) :: RNG
     Character(*), Intent(In) :: fname
-    Integer :: state(1:n64+1)
+    Integer(i8) :: state(1:n64+1)
     
     Call Var_from_File(state,fname)
-    RNG%stream%mt = state(1:n64)
-    RNG%stream%mti = state(n64+1)
-    RNG%stream%seeded = .TRUE.
+    RNG%mt = state(1:n64)
+    RNG%mti = state(n64+1)
+    RNG%seeded = .TRUE.
 End Subroutine load_RNG_mt19937x64
 
 End Module PRNGs

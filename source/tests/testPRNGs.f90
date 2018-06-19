@@ -1,36 +1,26 @@
 Program testPRNGs
 
 Use Kinds, Only: dp
+Use Kinds, Only: i4
 Use Kinds, Only: i8
 Use PRNGs, Only: MT19937_Type
 Use PRNGs, Only: MT19937x64_Type
+Use Sorting, Only: Quick_Sort
 Use Statistics, Only: Check_Uniform_AD
 Use Statistics, Only: Check_Exponential_AD
 
 Implicit None
 
-Integer, Parameter :: n = 2**20 !just over 1 million
+Integer, Parameter :: n = 100000
 Type(MT19937_Type) :: RNG_19937
 Type(MT19937x64_Type) :: RNG_19937x64
 Real(dp) :: r(1:n),r64(1:n)
-Real(dp) :: b(1:n),b64(1:n)
+Integer(i4) :: b(1:n)
+Integer(i8) :: b64(1:n)
 Integer :: i,unit1,unit2
 Logical :: AD_result(1:4)
 Real(dp) :: AD
 
-!Write a stream of n reals
-Open(NEWUNIT=unit1,FILE='randoms19937.tst',ACTION='WRITE',STATUS='REPLACE')
-Open(NEWUNIT=unit2,FILE='randoms19937x64.tst',ACTION='WRITE',STATUS='REPLACE')
-Call RNG_19937%seed(7777777_i4)
-Call RNG_19937x64%seed(7777777_i8)
-Do i = 1,n
-    r(i) = RNG_19937%r()
-    r64(i) = RNG_19937x64%r()
-    Write(unit1,'(ES30.20)') r(i)
-    Write(unit2,'(ES30.20)') r64(i)
-End Do
-Close(unit1)
-Close(unit2)
 
 !Write a stream of n binary values
 Open(NEWUNIT=unit1,FILE='randoms19937b.tst',ACTION='WRITE',STATUS='REPLACE')
@@ -40,19 +30,34 @@ Call RNG_19937x64%seed(7777777_i8)
 Do i = 1,n
     b(i) = RNG_19937%i()
     b64(i) = RNG_19937x64%i()
-    Write(unit1,'(B32)') b(i)
-    Write(unit2,'(B32)') b64(i)
+    Write(unit1,'(B32.32)') b(i)
+    Write(unit2,'(B64.64)') b64(i)
 End Do
 Close(unit1)
 Close(unit2)
 
 !Print a block of binary values from each generator for visualization
-Write(*,'(A32,A4,A32)') 'mt19937','','mt19937x64'
+Write(*,'(A)') 'MT19937'
 Do i = 1,32
-    Write(*,'(B32,A4,B32)') b(i),'',b64(i)
+    Write(*,'(B32.32)') b(i)
+End Do
+Write(*,'(A)') 'MT19937x64'
+Do i = 1,32
+    Write(*,'(B64.64)') b64(i)
 End Do
 Write(*,*)
-Write(*,*)
+
+!Write a stream of n reals
+Open(NEWUNIT=unit1,FILE='randoms19937.tst',ACTION='WRITE',STATUS='REPLACE')
+Open(NEWUNIT=unit2,FILE='randoms19937x64.tst',ACTION='WRITE',STATUS='REPLACE')
+Do i = 1,n
+    r(i) = RNG_19937%r()
+    r64(i) = RNG_19937x64%r()
+    Write(unit1,'(ES30.20)') r(i)
+    Write(unit2,'(ES30.20)') r64(i)
+End Do
+Close(unit1)
+Close(unit2)
 
 !Apply a quick check (Anderson Darling) for uniform distribution
 Call Check_Uniform_AD(r,AD_result,AD)

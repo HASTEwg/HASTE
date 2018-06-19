@@ -142,7 +142,7 @@ Elemental Function Std_Normal_CDF(z)
     Real(dp), Parameter :: sqrt2 = Sqrt(2._dp)
 
     Std_Normal_CDF = 0.5_dp * (1._dp + ERF(z / sqrt2))
-End Function Function Std_Normal_CDF
+End Function Std_Normal_CDF
 
 Subroutine Check_exponential_AD(x,is_exponential,AD_stat)
     !Tests for normality using the Anderson-Darling test
@@ -179,12 +179,11 @@ End Subroutine Check_exponential_AD
 Elemental Function Std_Exponential_CDF(z)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: Std_Normal_CDF
+    Real(dp) :: Std_Exponential_CDF
     Real(dp), Intent(In) :: z
-    Real(dp), Parameter :: sqrt2 = Sqrt(2._dp)
 
     Std_Exponential_CDF = 1._dp - Exp(-z)
-End Function Function Std_Exponential_CDF
+End Function Std_Exponential_CDF
 
 Subroutine Check_uniform_AD(x,is_uniform,AD_stat)
     !Tests for normality using the Anderson-Darling test

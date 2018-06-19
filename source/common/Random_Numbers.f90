@@ -63,7 +63,7 @@ Function Setup_RNG(setup_file_name,run_file_name) Result(RNG)
     Read(setup_unit,NML = RNGSetupList)
     Close(setup_unit)
     If (RNG_seed_random) Then  !use current clock time as seed
-        RNG_seed = SYSTEM_CLOCK()
+        Call SYSTEM_CLOCK(RNG_seed)
         RNG_seed_random = .TRUE.
     End If
     t = Worker_Index()
@@ -107,7 +107,7 @@ Subroutine Initialize_RNG(RNG,seed,thread,size)  !Initializes a RNG and returns 
     If (Present(seed)) Then
         RNG%seed = seed
     Else  !Generate a random seed (date-and-time based)
-        RNG%seed = SYSTEM_CLOCK()  !sets seed to a value between [0,Huge) based on current date and time
+        Call SYSTEM_CLOCK(RNG%seed)  !sets seed to a value between [0,Huge) based on current date and time
     End If
 #   if IMKL
         If (Present(thread)) Then  !Parallel execution, use an independent MT2203 stream for each thread
