@@ -42,6 +42,7 @@ Use Results, Only: Write_Run_Summary
 Use Results, Only: Write_Tally_Grids
 Use Statistics, Only: gMean
 Use Statistics, Only: Std_Err
+Use FileIO_Utilities, Only: max_line_len
 Use FileIO_Utilities, Only: Worker_Index
 Use FileIO_Utilities, Only: n_Workers
 Use FileIO_Utilities, Only: Make_Boom
@@ -57,7 +58,7 @@ Use FileIO_Utilities, Only: Delta_Time
 
 Implicit None
 
-Character(80), Parameter :: title = 'High-Altitude Transport to Space for Neutrons (HATS-n) v0.9.00, 30 Jun 2018'
+Character(max_line_len), Parameter :: title = 'High-Altitude Transport to Space for Neutrons (HATS-n) v0.9.00, 30 Jun 2018'
 Integer(id) :: n_histories
 Logical :: absolute_n_histories  !specifies whether number of histories is an absolute limit, or a goal to accumulate contributions on
 Logical :: prompt_exit  !specifies whether the simulation will wait for user unput before exiting
