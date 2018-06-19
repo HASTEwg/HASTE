@@ -6,6 +6,9 @@ Module FileIO_Utilities
 !following procedures are support routines or are accessible via 
 !generic interfaces and need not be explicitly public...
     Private :: Open_for_Var_to_File  !support routine for VAR_TO_FILE
+    Private :: SP_to_file          !Public via VAR_TO_FILE
+    Private :: SP_1Darray_to_file  !Public via VAR_TO_FILE
+    Private :: SP_2Darray_to_file  !Public via VAR_TO_FILE
     Private :: DP_to_file          !Public via VAR_TO_FILE
     Private :: DP_1Darray_to_file  !Public via VAR_TO_FILE
     Private :: DP_2Darray_to_file  !Public via VAR_TO_FILE
@@ -18,6 +21,9 @@ Module FileIO_Utilities
     Private :: C_to_file           !Public via VAR_TO_FILE
     Private :: L_to_file           !Public via VAR_TO_FILE
     Private :: Open_for_Var_from_File  !support routine for VAR_FROM_FILE
+    Private :: SP_from_file          !Public via VAR_FROM_FILE
+    Private :: SP_1Darray_from_file  !Public via VAR_FROM_FILE
+    Private :: SP_2Darray_from_file  !Public via VAR_FROM_FILE
     Private :: DP_from_file          !Public via VAR_FROM_FILE
     Private :: DP_1Darray_from_file  !Public via VAR_FROM_FILE
     Private :: DP_2Darray_from_file  !Public via VAR_FROM_FILE
@@ -127,6 +133,51 @@ Subroutine Open_for_Var_to_File(file_name,unit,stat)
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , FORM = 'UNFORMATTED', IOSTAT = stat)
 End Subroutine Open_for_Var_to_File
+
+Subroutine SP_to_file(r,file_name)
+    Use Kinds, Only: sp
+    Implicit None
+    Real(sp), Intent(In) :: r
+    Character(*), Intent(In) :: file_name
+    Integer :: unit
+    Integer :: stat
+    
+    Call Open_for_Var_to_File(file_name,unit,stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: SP_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    Write(unit , IOSTAT = stat) r
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: SP_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    Close(unit)
+End Subroutine SP_to_file
+
+Subroutine SP_1Darray_to_file(r,file_name)
+    Use Kinds, Only: sp
+    Implicit None
+    Real(sp), Intent(In) :: r(:)
+    Character(*), Intent(In) :: file_name
+    Integer :: unit
+    Integer :: stat
+    
+    Call Open_for_Var_to_File(file_name,unit,stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: SP_1Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    Write(unit , IOSTAT = stat) r
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: SP_1Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    Close(unit)
+End Subroutine SP_1Darray_to_file
+
+Subroutine SP_2Darray_to_file(r,file_name)
+    Use Kinds, Only: sp
+    Implicit None
+    Real(sp), Intent(In) :: r(:,:)
+    Character(*), Intent(In) :: file_name
+    Integer :: unit
+    Integer :: stat
+    
+    Call Open_for_Var_to_File(file_name,unit,stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: SP_2Darray_to_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    Write(unit , IOSTAT = stat) r
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: SP_2Darray_to_file:  File write error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    Close(unit)
+End Subroutine SP_2Darray_to_file
 
 Subroutine DP_to_file(r,file_name)
     Use Kinds, Only: dp
@@ -303,6 +354,78 @@ Subroutine Open_for_Var_from_File(file_name,unit,stat)
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'OLD' , ACTION = 'READ' , FORM = 'UNFORMATTED' , IOSTAT = stat)
 End Subroutine Open_for_Var_from_File
+
+Subroutine SP_from_file(r,file_name,delete_file)
+    Use Kinds, Only: sp
+    Implicit None
+    Real(sp), Intent(Out) :: r
+    Character(*), Intent(In) :: file_name
+    Logical, Intent(In), Optional :: delete_file
+    Integer :: unit
+    Integer :: stat
+    
+    Call Open_for_Var_from_File(file_name,unit,stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: SP_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    Read(unit , IOSTAT = stat) r
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: SP_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
+    Else
+        Close(unit)
+    End If
+End Subroutine SP_from_file
+
+Subroutine SP_1Darray_from_file(r,file_name,delete_file)
+    Use Kinds, Only: Sp
+    Implicit None
+    Real(sp), Intent(Out) :: r(:)
+    Character(*), Intent(In) :: file_name
+    Logical, Intent(In), Optional :: delete_file
+    Integer :: unit
+    Integer :: stat
+    
+    Call Open_for_Var_from_File(file_name,unit,stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: SP_1Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    Read(unit , IOSTAT = stat) r
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: SP_1Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
+    Else
+        Close(unit)
+    End If
+End Subroutine SP_1Darray_from_file
+
+Subroutine SP_2Darray_from_file(r,file_name,delete_file)
+    Use Kinds, Only: sp
+    Implicit None
+    Real(sp), Intent(Out) :: r(:,:)
+    Character(*), Intent(In) :: file_name
+    Logical, Intent(In), Optional :: delete_file
+    Integer :: unit
+    Integer :: stat
+    
+    Call Open_for_Var_from_File(file_name,unit,stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  FileIO_Utilities: SP_2Darray_from_file:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    Read(unit , IOSTAT = stat) r
+    If (stat .GT. 0) Call Output_Message('ERROR:  FileIO_Utilities: SP_2Darray_from_file:  File read error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
+    If (Present(delete_file)) Then
+        If (delete_file) Then
+            Close(unit , STATUS = 'DELETE')
+        Else
+            Close(unit)
+        End If
+    Else
+        Close(unit)
+    End If
+End Subroutine SP_2Darray_from_file
 
 Subroutine DP_from_file(r,file_name,delete_file)
     Use Kinds, Only: dp
@@ -640,26 +763,6 @@ Subroutine Clean_Directory(dirname)
     Call Create_Directory(dirname)
 End Subroutine Clean_Directory
 
-Subroutine Make_Boom()
-    Implicit None
-    
-    Write(*,*)
-    Write(*,'(A)') '              ____           '
-    Write(*,'(A)') '      __,-~~/~    `---.      '
-    Write(*,'(A)') '    _/_,---(      ,    )     '
-    Write(*,'(A)') '   /        <    /   )  \    '
-    Write(*,'(A)') '   \/  ~"~"~"~"~"~\~"~)~"/   '
-    Write(*,'(A)') '   (_ (   \  (     >    \)   '
-    Write(*,'(A)') '    \_( _ <         >_> /    '
-    Write(*,'(A)') '         " |"|"|"| "         '
-    Write(*,'(A)') '        .-=| : : |=-.        '
-    Write(*,'(A)') '        `-=#$%&%$#=-`        '
-    Write(*,'(A)') '           |:   :|           '
-    Write(*,'(A)') '  _____.(~#%&$@%#&#~)._____  '
-    Write(*,*) ding
-    Write(*,*)
-End Subroutine Make_Boom
-
 !!!!!!!!!!  LOG_MESSAGE ROUTINES  !!!!!!!!!!
 Subroutine Open_for_Log_Message(file_name,unit,stat)
     Implicit None
@@ -880,6 +983,26 @@ Subroutine Log_Message_CDPC(message1,r,message2,logfile)
 End Subroutine Log_Message_CDPC
 
 !!!!!!!!!!  OUTPUT_MESSAGE ROUTINES !!!!!!!!!!
+Subroutine Make_Boom()
+    Implicit None
+    
+    Write(*,*)
+    Write(*,'(A)') '              ____           '
+    Write(*,'(A)') '      __,-~~/~    `---.      '
+    Write(*,'(A)') '    _/_,---(      ,    )     '
+    Write(*,'(A)') '   /        <    /   )  \    '
+    Write(*,'(A)') '   \/  ~"~"~"~"~"~\~"~)~"/   '
+    Write(*,'(A)') '   (_ (   \  (     >    \)   '
+    Write(*,'(A)') '    \_( _ <         >_> /    '
+    Write(*,'(A)') '         " |"|"|"| "         '
+    Write(*,'(A)') '        .-=| : : |=-.        '
+    Write(*,'(A)') '        `-=#$%&%$#=-`        '
+    Write(*,'(A)') '           |:   :|           '
+    Write(*,'(A)') '  _____.(~#%&$@%#&#~)._____  '
+    Write(*,*) ding
+    Write(*,*)
+End Subroutine Make_Boom
+
 Subroutine Output_Message_C(message,kill)
     Implicit None
     Character(*), Intent(In) :: message
