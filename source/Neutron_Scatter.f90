@@ -1,6 +1,7 @@
 Module Neutron_Scatter
     
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use n_Cross_Sections, Only: CS_Type
     Implicit None
     
@@ -65,10 +66,10 @@ Module Neutron_Scatter
         Real(dp) :: roulette_weight
         Real(dp) :: roulette_rate
         Real(dp) :: roulette_mult
-        Integer(8) :: n_kills(1:6)  !kills due to (1)Time, (2)Energy, (3)Weight, (4)Leakage, (5)Absorption. (6)Collision limit
-        Integer(8) :: next_events(1:3)  !next-events at detector (1)Attempted, (2)Found, (3)Tallied
-        Integer(8) :: n_no_tally(1:3)  !next-events at detector NOT tallied due to (1)Time & Energy, (2)Time, (3)Energy
-        Integer(8) :: n_uncounted  !histories implicitly leaked due to exoatmospheric source geometries
+        Integer(id) :: n_kills(1:6)  !kills due to (1)Time, (2)Energy, (3)Weight, (4)Leakage, (5)Absorption. (6)Collision limit
+        Integer(id) :: next_events(1:3)  !next-events at detector (1)Attempted, (2)Found, (3)Tallied
+        Integer(id) :: n_no_tally(1:3)  !next-events at detector NOT tallied due to (1)Time & Energy, (2)Time, (3)Energy
+        Integer(id) :: n_uncounted  !histories implicitly leaked due to exoatmospheric source geometries
         Type(CS_Type) :: CS
         Type(Scatter_Data_Type) :: scat  !parameters defining the next scatter
         Logical :: Gravity
@@ -92,6 +93,7 @@ Module Neutron_Scatter
 Contains
 
 Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,run_file_name) Result(ScatMod)
+    Use Kinds, Only: id
     Use n_Cross_Sections, Only: Setup_Cross_Sections
     Use Global, Only: n_kill_weight
     Use FileIO_Utilities, Only: Worker_Index
@@ -181,10 +183,10 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
     ScatMod%Thermal_Motion = Thermal_Motion
     ScatMod%Rotating_Earth = Rotating_Earth
     ScatMod%Wind = Wind
-    ScatMod%n_kills = 0
-    ScatMod%next_events = 0
-    ScatMod%n_no_tally = 0
-    ScatMod%n_uncounted = 0
+    ScatMod%n_kills = 0_id
+    ScatMod%next_events = 0_id
+    ScatMod%n_no_tally = 0_id
+    ScatMod%n_uncounted = 0_id
     ScatMod%CS = Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ScatMod%aniso_dist,E_min,E_max)
     !initialize scatter parameters for sampled scatter, except the lev_cs array (it is not used for the sampled scatter)
     Allocate(ScatMod%scat%a(0:ScatMod%CS%n_a_max))
