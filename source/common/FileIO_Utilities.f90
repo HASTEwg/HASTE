@@ -174,8 +174,9 @@ Subroutine DP_2Darray_to_file(r,file_name)
 End Subroutine DP_2Darray_to_file
 
 Subroutine I4_to_file(i,file_name)
+    Use Kinds, Only: il
     Implicit None
-    Integer(4), Intent(In) :: i
+    Integer(il), Intent(In) :: i
     Character(*), Intent(In) :: file_name
     Integer :: unit
     Integer :: stat
@@ -188,8 +189,9 @@ Subroutine I4_to_file(i,file_name)
 End Subroutine I4_to_file
 
 Subroutine I4_1Darray_to_file(i,file_name)
+    Use Kinds, Only: il
     Implicit None
-    Integer(4), Intent(In) :: i(:)
+    Integer(il), Intent(In) :: i(:)
     Character(*), Intent(In) :: file_name
     Integer :: unit
     Integer :: stat
@@ -202,8 +204,9 @@ Subroutine I4_1Darray_to_file(i,file_name)
 End Subroutine I4_1Darray_to_file
 
 Subroutine I4_2Darray_to_file(i,file_name)
+    Use Kinds, Only: il
     Implicit None
-    Integer(4), Intent(In) :: i(:,:)
+    Integer(il), Intent(In) :: i(:,:)
     Character(*), Intent(In) :: file_name
     Integer :: unit
     Integer :: stat
@@ -216,8 +219,9 @@ Subroutine I4_2Darray_to_file(i,file_name)
 End Subroutine I4_2Darray_to_file
 
 Subroutine I8_to_file(i,file_name)
+    Use Kinds, Only: id
     Implicit None
-    Integer(8), Intent(In) :: i
+    Integer(id), Intent(In) :: i
     Character(*), Intent(In) :: file_name
     Integer :: unit
     Integer :: stat
@@ -230,8 +234,9 @@ Subroutine I8_to_file(i,file_name)
 End Subroutine I8_to_file
 
 Subroutine I8_1Darray_to_file(i,file_name)
+    Use Kinds, Only: id
     Implicit None
-    Integer(8), Intent(In) :: i(:)
+    Integer(id), Intent(In) :: i(:)
     Character(*), Intent(In) :: file_name
     Integer :: unit
     Integer :: stat
@@ -244,8 +249,9 @@ Subroutine I8_1Darray_to_file(i,file_name)
 End Subroutine I8_1Darray_to_file
 
 Subroutine I8_2Darray_to_file(i,file_name)
+    Use Kinds, Only: id
     Implicit None
-    Integer(8), Intent(In) :: i(:,:)
+    Integer(id), Intent(In) :: i(:,:)
     Character(*), Intent(In) :: file_name
     Integer :: unit
     Integer :: stat
@@ -289,7 +295,6 @@ Subroutine L_to_file(L,file_name)
 End Subroutine L_to_file
 
 !!!!!!!!!!  VAR_FROM_FILE ROUTINES  !!!!!!!!!!
-
 Subroutine Open_for_Var_from_File(file_name,unit,stat)
     Implicit None
     Character(*), Intent(In) :: file_name
@@ -372,8 +377,9 @@ Subroutine DP_2Darray_from_file(r,file_name,delete_file)
 End Subroutine DP_2Darray_from_file
 
 Subroutine I4_from_file(i,file_name,delete_file)
+    Use Kinds, Only: il
     Implicit None
-    Integer(4), Intent(Out) :: i
+    Integer(il), Intent(Out) :: i
     Character(*), Intent(In) :: file_name
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
@@ -395,8 +401,9 @@ Subroutine I4_from_file(i,file_name,delete_file)
 End Subroutine I4_from_file
 
 Subroutine I4_1Darray_from_file(i,file_name,delete_file)
+    Use Kinds, Only: il
     Implicit None
-    Integer(4), Intent(Out) :: i(:)
+    Integer(il), Intent(Out) :: i(:)
     Character(*), Intent(In) :: file_name
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
@@ -418,8 +425,9 @@ Subroutine I4_1Darray_from_file(i,file_name,delete_file)
 End Subroutine I4_1Darray_from_file
 
 Subroutine I4_2Darray_from_file(i,file_name,delete_file)
+    Use Kinds, Only: il
     Implicit None
-    Integer(4), Intent(Out) :: i(:,:)
+    Integer(il), Intent(Out) :: i(:,:)
     Character(*), Intent(In) :: file_name
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
@@ -441,8 +449,9 @@ Subroutine I4_2Darray_from_file(i,file_name,delete_file)
 End Subroutine I4_2Darray_from_file
 
 Subroutine I8_from_file(i,file_name,delete_file)
+    Use Kinds, Only: id
     Implicit None
-    Integer(8), Intent(Out) :: i
+    Integer(id), Intent(Out) :: i
     Character(*), Intent(In) :: file_name
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
@@ -464,8 +473,9 @@ Subroutine I8_from_file(i,file_name,delete_file)
 End Subroutine I8_from_file
 
 Subroutine I8_1Darray_from_file(i,file_name,delete_file)
+    Use Kinds, Only: id
     Implicit None
-    Integer(8), Intent(Out) :: i(:)
+    Integer(id), Intent(Out) :: i(:)
     Character(*), Intent(In) :: file_name
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
@@ -487,8 +497,9 @@ Subroutine I8_1Darray_from_file(i,file_name,delete_file)
 End Subroutine I8_1Darray_from_file
 
 Subroutine I8_2Darray_from_file(i,file_name,delete_file)
+    Use Kinds, Only: id
     Implicit None
-    Integer(8), Intent(Out) :: i(:,:)
+    Integer(id), Intent(Out) :: i(:,:)
     Character(*), Intent(In) :: file_name
     Logical, Intent(In), Optional :: delete_file
     Integer :: unit
@@ -737,9 +748,10 @@ Subroutine Log_Message_CI4C(message1,i,message2,logfile)
 End Subroutine Log_Message_CI4C
 
 Subroutine Log_Message_CI8(message,i,logfile)
+    Use Kinds, Only: id
     Implicit None
     Character(*), Intent(In) :: message
-    Integer(8), Intent(In) :: i
+    Integer(id), Intent(In) :: i
     Character(*), Intent(In) :: logfile
     Integer :: unit,stat
     Character(max_line_len) :: stamp
@@ -758,9 +770,10 @@ Subroutine Log_Message_CI8(message,i,logfile)
 End Subroutine Log_Message_CI8
 
 Subroutine Log_Message_CI8C(message1,i,message2,logfile)
+    Use Kinds, Only: id
     Implicit None
     Character(*), Intent(In) :: message1,message2
-    Integer(8), Intent(In) :: i
+    Integer(id), Intent(In) :: i
     Character(*), Intent(In) :: logfile
     Integer :: unit,stat
     Character(max_line_len) :: stamp
@@ -871,35 +884,53 @@ Subroutine Output_Message_C(message,kill)
     Implicit None
     Character(*), Intent(In) :: message
     Logical, Intent(In), Optional :: kill
+    Integer :: n,m
+    Integer, Parameter :: w = 72
     
-    Write(*,'(A)') message
     Write(*,*) ding
+    n = Len(message)
+    If (n .LE. w) Then  !the message fits on one line
+        Write(*,'(A)') message
+    Else  !the message is multiple lines
+        m = 1
+        Do
+            i1 = (m - 1) * w + 1
+            i2 = Min(n,m * w)
+            Write(*,'(A)') message(i1:i2)
+            If (i2 .EQ. n) Exit
+            m = m + 1
+        End Do
+    End If
     If (Present(kill)) Then
         If (kill) ERROR STOP
     End If
 End Subroutine Output_Message_C
 
 Subroutine Output_Message_CI4(message,i,kill)
+    Use Kinds, Only: il
     Implicit None
     Character(*), Intent(In) :: message
-    Integer(4), Intent(In) :: i
+    Integer(il), Intent(In) :: i
     Logical, Intent(In), Optional :: kill
+    Character(12) :: ichar
     
-    Write(*,'(A,I0)') message,i
-    Write(*,*) ding
+    Write(ichar,'(I0)') i
+    Call Output_Message_C(message//Trim(ichar))
     If (Present(kill)) Then
         If (kill) ERROR STOP
     End If
 End Subroutine Output_Message_CI4
 
 Subroutine Output_Message_CI4C(message1,i,message2,kill)
+    Use Kinds, Only: il
     Implicit None
     Character(*), Intent(In) :: message1,message2
-    Integer(4), Intent(In) :: i
+    Integer(il), Intent(In) :: i
     Logical, Intent(In), Optional :: kill
+    Character(12) :: ichar
     
-    Write(*,'(A,I0,A)') message1,i,message2
-    Write(*,*) ding
+    Write(ichar,'(I0)') i
+    Call Output_Message_C(message1//Trim(ichar)//message2)
     If (Present(kill)) Then
         If (kill) ERROR STOP
     End If
@@ -910,9 +941,10 @@ Subroutine Output_Message_CI8(message,i,kill)
     Character(*), Intent(In) :: message
     Integer(8), Intent(In) :: i
     Logical, Intent(In), Optional :: kill
+    Character(17) :: ichar
     
-    Write(*,'(A,I0)') message,i
-    Write(*,*) ding
+    Write(ichar,'(I0)') i
+    Call Output_Message_C(message//Trim(ichar))
     If (Present(kill)) Then
         If (kill) ERROR STOP
     End If
@@ -923,9 +955,10 @@ Subroutine Output_Message_CI8C(message1,i,message2,kill)
     Character(*), Intent(In) :: message1,message2
     Integer(8), Intent(In) :: i
     Logical, Intent(In), Optional :: kill
+    Character(17) :: ichar
     
-    Write(*,'(A,I0,A)') message1,i,message2
-    Write(*,*) ding
+    Write(ichar,'(I0)') i
+    Call Output_Message_C(message1//Trim(ichar)//message2)
     If (Present(kill)) Then
         If (kill) ERROR STOP
     End If
@@ -937,9 +970,10 @@ Subroutine Output_Message_CSP(message,r,kill)
     Character(*), Intent(In) :: message
     Real(sp), Intent(In) :: r
     Logical, Intent(In), Optional :: kill
+    Character(36) :: rchar
     
-    Write(*,'(A,F0.8)') message,r
-    Write(*,*) ding
+    Write(rchar,'(F0.8)') r
+    Call Output_Message_C(message//Trim(rchar))
     If (Present(kill)) Then
         If (kill) ERROR STOP
     End If
@@ -951,9 +985,10 @@ Subroutine Output_Message_CSPC(message1,r,message2,kill)
     Character(*), Intent(In) :: message1,message2
     Real(sp), Intent(In) :: r
     Logical, Intent(In), Optional :: kill
+    Character(36) :: rchar
     
-    Write(*,'(A,F0.8,A)') message1,r,message2
-    Write(*,*) ding
+    Write(rchar,'(F0.8)') r
+    Call Output_Message_C(message1//Trim(rchar)//message2)
     If (Present(kill)) Then
         If (kill) ERROR STOP
     End If
@@ -965,9 +1000,10 @@ Subroutine Output_Message_CDP(message,r,kill)
     Character(*), Intent(In) :: message
     Real(dp), Intent(In) :: r
     Logical, Intent(In), Optional :: kill
+    Character(48) :: rchar
     
-    Write(*,'(A,F0.16)') message,r
-    Write(*,*) ding
+    Write(rchar,'(F0.16)') r
+    Call Output_Message_C(message//Trim(rchar))
     If (Present(kill)) Then
         If (kill) ERROR STOP
     End If
@@ -979,9 +1015,10 @@ Subroutine Output_Message_CDPC(message1,r,message2,kill)
     Character(*), Intent(In) :: message1,message2
     Real(dp), Intent(In) :: r
     Logical, Intent(In), Optional :: kill
+    Character(48) :: rchar
     
-    Write(*,'(A,F0.16,A)') message1,r,message2
-    Write(*,*) ding
+    Write(rchar,'(F0.16)') r
+    Call Output_Message_C(message1//Trim(rchar)//message2)
     If (Present(kill)) Then
         If (kill) ERROR STOP
     End If
@@ -989,7 +1026,9 @@ End Subroutine Output_Message_CDPC
 
 !!!!!!!!!!  THREAD, IMAGE, and WORKER INDEXING ROUTINES  !!!!!!!!!!
 Function Worker_Index(OMP_threaded,CAF_imaged) Result(i)
-    Use OMP_LIB, Only: OMP_GET_NUM_THREADS,OMP_GET_THREAD_NUM
+#   if CAF
+        Use OMP_LIB, Only: OMP_GET_NUM_THREADS,OMP_GET_THREAD_NUM
+#   endif
     Implicit None
     Integer :: i
     Logical, Intent(Out), Optional :: OMP_threaded
@@ -1017,7 +1056,9 @@ Function Worker_Index(OMP_threaded,CAF_imaged) Result(i)
 End Function Worker_Index
 
 Function n_Workers() Result(n)
-    Use OMP_LIB, Only: OMP_GET_NUM_THREADS
+#   if CAF
+        Use OMP_LIB, Only: OMP_GET_NUM_THREADS
+#   endif
     Implicit None
     Integer :: n
 
@@ -1064,12 +1105,13 @@ Function Delta_Time(start_clock,clock_then,clock_now) Result(sec)
     !Returns number of seconds since an arbitrary start time (set by a previous call to this routine)
     !(to millisecond resolution, and according to the system clock)
     Use Kinds, Only: dp
+    Use Kinds, Only: il
     Implicit None
     Real(dp) :: sec
-    Integer(4), Intent(Out), Optional :: start_clock
-    Integer(4), Intent(In), Optional :: clock_then
-    Integer(4), Intent(Out), Optional :: clock_now
-    Integer(4) :: clock,clock_delta
+    Integer(il), Intent(Out), Optional :: start_clock
+    Integer(il), Intent(In), Optional :: clock_then
+    Integer(il), Intent(Out), Optional :: clock_now
+    Integer(il) :: clock,clock_delta
     Real(dp), Parameter :: ms2sec  = 1.E-3_dp
     
     sec = 0._dp  !default value
@@ -1130,12 +1172,13 @@ Function Get_Host_Name() Result(s)
 End Function Get_Host_Name
 
 Subroutine Wait(ms)
+    Use Kinds, Only: il
     Implicit None
-    Integer(4), Intent(In) :: ms !number of milliseconds to wait before returning
-    Integer(4) :: t1,t2,u
+    Integer(il), Intent(In) :: ms !number of milliseconds to wait before returning
+    Integer(il) :: t1,t2,u
 
     Call SYSTEM_CLOCK(count = t1)
-    u = 0
+    u = 0_il
     Do
         Call SYSTEM_CLOCK(count = t2)
         If (t2 - t1 + u .GT. ms) Then
@@ -1143,7 +1186,7 @@ Subroutine Wait(ms)
         Else If (t2 .LT. t1) Then !clock has wrapped around
         !this is rare (about once per 25 days), but would cause the loop to stall
             u = HUGE(t1) - t1
-            t1 = 0
+            t1 = 0_il
         End If
     End Do
 End Subroutine Wait
