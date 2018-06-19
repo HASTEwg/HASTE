@@ -246,6 +246,7 @@ End Function Hits_Earth
 !-------------------------------------------------------------------------------
 !   Orbit Period
 !
+!   Formulae from:
 !   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
 !       ed.). El Segundo, CA: Microcosm Press.
 !
@@ -274,6 +275,7 @@ End Function Period
 !-------------------------------------------------------------------------------
 !   Time of Flight Between Two Points on an Orbit
 !
+!   Formulae from:
 !   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
 !       ed.). El Segundo, CA: Microcosm Press.
 !
@@ -332,8 +334,9 @@ Function FindTOF(r1_vec,v1_vec,r2_vec) Result(tof)
 End Function FindTOF
 
 !-------------------------------------------------------------------------------
-!   Time of Flight Cince Periapsis
+!   Time of Flight Since Periapsis
 !
+!   Formulae from:
 !   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
 !       ed.). El Segundo, CA: Microcosm Press.
 !
@@ -387,6 +390,7 @@ End Function Time_Since_Periapsis
 !-------------------------------------------------------------------------------
 !   Parabolic Time of Flight
 !
+!   Formulae from:
 !   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
 !       ed.). El Segundo, CA: Microcosm Press.
 !
@@ -412,8 +416,9 @@ Function Parabolic_TOF(r1_vec,r2_vec) Result(tof)
 End Function Parabolic_TOF
 
 !-------------------------------------------------------------------------------
-!   Position and Velicity from Classical Orbital Elements
+!   Position and Velocity from Classical Orbital Elements
 !
+!   Formulae from:
 !   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
 !       ed.). El Segundo, CA: Microcosm Press.
 !
@@ -464,6 +469,7 @@ End Subroutine RV_from_COEs
 !-------------------------------------------------------------------------------
 !   Solution to Kepler's Problem
 !
+!   Formulae from:
 !   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
 !       ed.). El Segundo, CA: Microcosm Press.
 !
@@ -567,6 +573,7 @@ End Subroutine Kepler_f_g
 !-------------------------------------------------------------------------------
 !   Minimum Velocity Solution to Lambert's Problem
 !
+!   Formulae from:
 !   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
 !       ed.). El Segundo, CA: Microcosm Press.
 !
@@ -611,6 +618,7 @@ End Subroutine Lambert_minV
 !-------------------------------------------------------------------------------
 !   Solution to Lambert's Problem
 !
+!   Formulae from:
 !   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
 !       ed.). El Segundo, CA: Microcosm Press.
 !
