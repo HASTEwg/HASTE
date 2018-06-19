@@ -18,7 +18,9 @@ Program HATS
 !!          non-parallel applications temporarily (ARM development environment
 !!          has no parallel PRNGs)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-Use Kinds, Only: dp
+Use Kinds, Only: dp  !double precision real
+Use Kinds, Only: il  !long integer
+Use Kinds, Only: id  !double integer
 Use Random_Numbers, Only: RNG_Type
 Use Random_Numbers, Only: Setup_RNG
 Use Setups, Only: Setup_HATS
@@ -56,7 +58,7 @@ Use FileIO_Utilities, Only: Delta_Time
 Implicit None
 
 Character(80), Parameter :: title = 'High-Altitude Transport to Space for Neutrons (HATS-n) v0.9.00, 30 Jun 2018'
-Integer(8) :: n_histories
+Integer(id) :: n_histories
 Logical :: absolute_n_histories  !specifies whether number of histories is an absolute limit, or a goal to accumulate contributions on
 Logical :: prompt_exit  !specifies whether the simulation will wait for user unput before exiting
 Logical :: screen_progress  !determines if progress will be updated on screen during run
@@ -68,15 +70,15 @@ Type(Contrib_array) :: Dir_Tallies  !list of contributions tallied to arrival di
 Type(Paths_Files_Type) :: paths_files  !contains path and file name character strings
 Type(Atmosphere_Type) :: atmosphere  !contains data defining atmospheric representation
 Type(RNG_Type) :: RNG  !contains data defining the random number generator
-Integer(4) :: c_start,c_last,c_now
+Integer(il) :: c_start,c_last,c_now
 Real(dp) :: dt,ETTC  !times (in seconds) for computing estimated time to completion and recording run time
 Integer :: HH,MM,SS  !integer times for computing estimated time to completion
-Integer(8) :: n_p,p  !loop counter for histories
+Integer(id) :: n_p,p  !loop counter for histories
 Logical :: contributed  !flag indicating that at least one contribution was accumulated for the current history
 Real(dp) :: t_tot,t_min,t_max
 Integer :: n_img,i_img
-Integer(8) :: n_done
-Integer(8), Allocatable :: n_hist_run(:),n_hist_hit(:)
+Integer(id) :: n_done
+Integer(id), Allocatable :: n_hist_run(:),n_hist_hit(:)
 
 n_img = n_Workers()
 i_img = Worker_Index()
@@ -132,8 +134,8 @@ If (i_img .EQ. 1) Then
         Write(*,'(F9.2,A11,3ES11.3E2,A2,F7.2,A2)') 0._dp,'%  **:**:**',0._dp,0._dp,100._dp,' %',0._dp,' %'
     End If
 End If
-p = 0
-n_done = 0
+p = 0_id
+n_done = 0_id
 !start a clock to track processing time
 Call SYSTEM_CLOCK(c_start)
 If (screen_progress) Then  !run histories, periodically updating progress to the display
@@ -142,7 +144,7 @@ If (screen_progress) Then  !run histories, periodically updating progress to the
         !update progress on screen
         If (Delta_Time(clock_then = c_last,clock_now = c_now) .GT. 1._dp) Then  !only update ETTC if elapsed time is more than a second
             c_last = c_now
-            If (p .GT. 0) Then
+            If (p .GT. 0_id) Then
                 dt = Delta_Time(clock_then = c_start)
                 ETTC = dt / Real(p,dp) * Real(n_p-p,dp)  !time per particle so far multiplied by particles remaining
                 HH = Floor(ETTC/3600._dp)
@@ -165,9 +167,9 @@ If (screen_progress) Then  !run histories, periodically updating progress to the
         End If
         !run a history
         Call Do_Neutron(source,detector,atmosphere,ScatterModel,RNG,contributed)
-        n_done = n_done + 1
+        n_done = n_done + 1_id
         If (contributed .OR. absolute_n_histories) Then
-            p = p + 1
+            p = p + 1_id
             !add the contributions from this history to the main time-energy and arrival direction contribution lists
             Call TE_Tallies%Tally_History(detector%TE_contrib_index,detector%TE_contribs_this_history(1:detector%TE_contrib_index),detector%TE_grid(1)%n_bins,detector%TE_contribs_t,detector%TE_grid(2)%n_bins,detector%TE_contribs_E)
             Call Dir_Tallies%Tally_History(detector%Dir_contrib_index,detector%Dir_contribs_this_history(1:detector%Dir_contrib_index),detector%Dir_grid(1)%n_bins,detector%Dir_contribs_mu,detector%Dir_grid(2)%n_bins,detector%Dir_contribs_omega)
@@ -178,9 +180,9 @@ Else  !run histories, WITHOUT updating progress to the display
     Do
         !run a history
         Call Do_Neutron(source,detector,atmosphere,ScatterModel,RNG,contributed)
-        n_done = n_done + 1
+        n_done = n_done + 1_id
         If (contributed .OR. absolute_n_histories) Then
-            p = p + 1
+            p = p + 1_id
             !add the contributions from this history to the main time-energy and arrival direction contribution lists
             Call TE_Tallies%Tally_History(detector%TE_contrib_index,detector%TE_contribs_this_history(1:detector%TE_contrib_index),detector%TE_grid(1)%n_bins,detector%TE_contribs_t,detector%TE_grid(2)%n_bins,detector%TE_contribs_E)
             Call Dir_Tallies%Tally_History(detector%Dir_contrib_index,detector%Dir_contribs_this_history(1:detector%Dir_contrib_index),detector%Dir_grid(1)%n_bins,detector%Dir_contribs_mu,detector%Dir_grid(2)%n_bins,detector%Dir_contribs_omega)
