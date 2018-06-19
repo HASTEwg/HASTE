@@ -15,6 +15,7 @@ FNAME="Utilities"; . ./compile_it
 FNAME="FileIO_Utilities"; . ./compile_it
 FNAME="Interpolation"; . ./compile_it
 FNAME="Legendre_Utilities"; . ./compile_it
+FNAME="PRNGs"; . ./compile_it
 FNAME="Random_Numbers"; . ./compile_it
 
 # ASTRO MODULES
