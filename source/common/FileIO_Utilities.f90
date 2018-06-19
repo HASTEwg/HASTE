@@ -55,6 +55,9 @@ Module FileIO_Utilities
     Private :: Log_Message_CDPC  !Public via LOG_MESSAGE
     
     Interface Var_to_file
+        Module Procedure SP_to_file
+        Module Procedure SP_1Darray_to_file
+        Module Procedure SP_2Darray_to_file
         Module Procedure DP_to_file
         Module Procedure DP_1Darray_to_file
         Module Procedure DP_2Darray_to_file
@@ -69,6 +72,9 @@ Module FileIO_Utilities
     End Interface Var_to_File
     
     Interface Var_from_file
+        Module Procedure SP_from_file
+        Module Procedure SP_1Darray_from_file
+        Module Procedure SP_2Darray_from_file
         Module Procedure DP_from_file
         Module Procedure DP_1Darray_from_file
         Module Procedure DP_2Darray_from_file
@@ -1008,7 +1014,7 @@ Subroutine Output_Message_C(message,kill)
     Character(*), Intent(In) :: message
     Logical, Intent(In), Optional :: kill
     Integer :: n,m
-    Integer, Parameter :: w = 72
+    Integer, Parameter :: w = max_line_len
     
     Write(*,*) ding
     n = Len(message)
