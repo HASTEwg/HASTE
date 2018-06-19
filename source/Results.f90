@@ -15,6 +15,7 @@ Contains
 # if CAF
 Subroutine Image_Result_to_Disk(time,n_hit,n_run,t,d,n_kills,next_events,no_tally,uncounted)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use FileIO_Utilities, Only: slash
     Use Tallies, Only: Contrib_array
     Use FileIO_Utilities, Only: max_path_len
@@ -22,14 +23,14 @@ Subroutine Image_Result_to_Disk(time,n_hit,n_run,t,d,n_kills,next_events,no_tall
     Use FileIO_Utilities, Only: Var_to_File
     Implicit None
     Real(dp), Intent(In) :: time
-    Integer(8), Intent(In) :: n_hit
-    Integer(8), Intent(In) :: n_run
+    Integer(id), Intent(In) :: n_hit
+    Integer(id), Intent(In) :: n_run
     Type(Contrib_Array), Intent(In) :: t
     Type(Contrib_Array), Intent(In) :: d
-    Integer(8), Intent(In) :: n_kills(1:6)
-    Integer(8), Intent(In) :: next_events(1:3)
-    Integer(8), Intent(In) :: no_tally(1:3)
-    Integer(8), Intent(In) :: uncounted
+    Integer(id), Intent(In) :: n_kills(1:6)
+    Integer(id), Intent(In) :: next_events(1:3)
+    Integer(id), Intent(In) :: no_tally(1:3)
+    Integer(id), Intent(In) :: uncounted
     Character(3) :: i_char
     Character(max_path_len) :: dir
     Character(:), Allocatable :: file_name,file_dir
@@ -104,6 +105,7 @@ End Subroutine Image_Result_to_Disk
 # if CAF
 Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist_run,n_hist_hit,t,d,n_kills,next_events,no_tally,uncounted)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use FileIO_Utilities, Only: slash
     Use Tallies, Only: Contrib_array
     Use FileIO_Utilities, Only: max_path_len
@@ -115,14 +117,14 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     Real(dp), Intent(Out) :: tot_time
     Real(dp), Intent(Out) :: min_time
     Real(dp), Intent(Out) :: max_time
-    Integer(8), Allocatable, Intent(Out) :: n_hist_run(:)
-    Integer(8), Allocatable, Intent(Out) :: n_hist_hit(:)
+    Integer(id), Allocatable, Intent(Out) :: n_hist_run(:)
+    Integer(id), Allocatable, Intent(Out) :: n_hist_hit(:)
     Type(Contrib_Array), Intent(InOut) :: t
     Type(Contrib_Array), Intent(InOut) :: d
-    Integer(8), Intent(Out) :: n_kills(1:6)
-    Integer(8), Intent(Out) :: next_events(1:3)
-    Integer(8), Intent(Out) :: no_tally(1:3)
-    Integer(8), Intent(Out) :: uncounted
+    Integer(id), Intent(Out) :: n_kills(1:6)
+    Integer(id), Intent(Out) :: next_events(1:3)
+    Integer(id), Intent(Out) :: no_tally(1:3)
+    Integer(id), Intent(Out) :: uncounted
     Integer :: i,j
     Real(dp), Allocatable :: time(:)
     Integer :: size,index
@@ -133,7 +135,7 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     Real(dp), Allocatable :: TE_tmp(:,:,:)
     Real(dp), Allocatable :: Dir_tmp(:,:,:)
     Integer, Allocatable :: i1s(:),i2s(:)
-    Integer(8) :: n_k(1:6),n_e(1:3),n_t(1:3),n_u
+    Integer(id) :: n_k(1:6),n_e(1:3),n_t(1:3),n_u
     Character(3) :: i_char
     Character(max_path_len) :: dir
     Character(:), Allocatable :: file_name,file_dir
@@ -146,9 +148,9 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     time = 0._dp
     !initialize number of histories run
     Allocate(n_hist_hit(1:num_images()))
-    n_hist_hit = -1
+    n_hist_hit = -1_id
     Allocate(n_hist_run(1:num_images()))
-    n_hist_run = -1
+    n_hist_run = -1_id
     !initialize time_energy tallies array and temp TE array
     t%size = 0
     t%index = 0
@@ -168,10 +170,10 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     Allocate(Dir_tmp(1:nm,1:no,1:2))
     Dir_tmp = 0._dp
     !initialize counters
-    n_kills = 0
-    next_events = 0
-    no_tally = 0
-    uncounted = 0
+    n_kills = 0_id
+    next_events = 0_id
+    no_tally = 0_id
+    uncounted = 0_id
     !read variables from files and accumulate appropriately
     Allocate(Character(max_path_len) :: file_name)
     Do i = 1,num_images()
@@ -318,6 +320,7 @@ End Subroutine Image_Results_from_Disk
 
 Subroutine Write_Run_Summary(n_img,t_process,t_elapsed_min,t_elapsed_max,n_h_hit,n_h_run,RNG,paths_files,a,sm,s,d,TE_tallies,Dir_tallies,file_name)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use Setups, Only: paths_files_type
     Use Setups, Only: Write_Setup_Information
     Use Random_Numbers, Only: RNG_type
@@ -334,8 +337,8 @@ Subroutine Write_Run_Summary(n_img,t_process,t_elapsed_min,t_elapsed_max,n_h_hit
     Implicit None
     Integer, Intent(In) :: n_img
     Real(dp), Intent(In) :: t_process,t_elapsed_min,t_elapsed_max
-    Integer(8), Intent(In) :: n_h_hit(1:n_img)
-    Integer(8), Intent(In) :: n_h_run(1:n_img)
+    Integer(id), Intent(In) :: n_h_hit(1:n_img)
+    Integer(id), Intent(In) :: n_h_run(1:n_img)
     Type(RNG_Type), Intent(In) :: RNG
     Type(Paths_Files_Type), Intent(In) :: paths_files
     Type(Atmosphere_Type), Intent(In) :: a
@@ -360,6 +363,7 @@ End Subroutine Write_Run_Summary
 
 Subroutine Write_Tally_Grids(TE_list,Dir_list,d,n_h,F_file_name,TE_file_name,t_file_name,E_file_name,d_file_name,m_file_name,o_file_name)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use Tallies, Only: Contrib_array
     Use Detectors, Only: Detector_Type
     Use Statistics, Only: Std_Err
@@ -368,7 +372,7 @@ Subroutine Write_Tally_Grids(TE_list,Dir_list,d,n_h,F_file_name,TE_file_name,t_f
     Type(Contrib_array), Intent(In) :: TE_list
     Type(Contrib_array), Intent(In) :: Dir_list
     Type(Detector_Type), Intent(In) :: d
-    Integer(8), Intent(In) :: n_h  !number of histories
+    Integer(id), Intent(In) :: n_h  !number of histories
     Character(*), Intent(In), Optional :: F_file_name
     Character(*), Intent(In), Optional :: TE_file_name
     Character(*), Intent(In), Optional :: t_file_name
@@ -551,6 +555,7 @@ End Subroutine Write_1D_Tallies
 
 Subroutine Write_Results_summary(TE_list,Dir_List,d,n_h,file_name)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use Tallies, Only: Contrib_array
     Use Detectors, Only: Detector_Type
     Use Statistics, Only: Std_Err
@@ -560,7 +565,7 @@ Subroutine Write_Results_summary(TE_list,Dir_List,d,n_h,file_name)
     Type(Contrib_array), Intent(In) :: TE_list
     Type(Contrib_array), Intent(In) :: Dir_list
     Type(Detector_Type), Intent(In) :: d
-    Integer(8), Intent(In) :: n_h  !number of histories
+    Integer(id), Intent(In) :: n_h  !number of histories
     Character(*), Intent(In) :: file_name
     Integer :: unit,stat
     Real(dp) :: N_hist
