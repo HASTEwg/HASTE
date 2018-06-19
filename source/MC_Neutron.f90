@@ -8,6 +8,7 @@ Contains
 
 Subroutine Do_Neutron(s,d,atm,ScatMod,RNG,contributed)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use Sources, Only: Source_Type
     Use Detectors, Only: Detector_Type
     Use Atmospheres, Only: Atmosphere_Type
@@ -35,7 +36,7 @@ Subroutine Do_Neutron(s,d,atm,ScatMod,RNG,contributed)
             Else
                 contributed = .FALSE.
             End If
-            ScatMod%n_kills(6) = ScatMod%n_kills(6) + 1
+            ScatMod%n_kills(6) = ScatMod%n_kills(6) + 1_id
             Return
         End If
     End If
@@ -45,13 +46,13 @@ Subroutine Do_Neutron(s,d,atm,ScatMod,RNG,contributed)
         !Move the neutron to the site of next collision and check for leakage
         Call Move_Neutron(n,ScatMod,atm,RNG,leaked)
         If (leaked) Then  !kill for leakage
-            ScatMod%n_kills(4) = ScatMod%n_kills(4) + 1
+            ScatMod%n_kills(4) = ScatMod%n_kills(4) + 1_id
             Exit
         End If
         !Choose scatter parameters for next scatter
         Call ScatMod%Sample_Scatter(n,atm,RNG)
         If (scatter .EQ. ScatMod%n_scatters) Then  !neutron has reached final simulation position, scatter to detector and exit
-            ScatMod%n_kills(6) = ScatMod%n_kills(6) + 1
+            ScatMod%n_kills(6) = ScatMod%n_kills(6) + 1_id
             Call Next_Event_Neutron(n,ScatMod,d,atm,RNG)
             Exit
         Else If (ScatMod%estimate_each_scatter) Then  !Scatter to detector and continue
@@ -60,7 +61,7 @@ Subroutine Do_Neutron(s,d,atm,ScatMod,RNG,contributed)
         !Scatter into new random direction and check for absorption
         Call Scatter_Neutron(n,ScatMod,RNG,absorbed)
         If (absorbed) Then  !kill for absorption
-            ScatMod%n_kills(5) = ScatMod%n_kills(5) + 1
+            ScatMod%n_kills(5) = ScatMod%n_kills(5) + 1_id
             Exit
         End If
         If (ScatMod%n_scatters .EQ. -1) Then  !check kill criteria
@@ -83,6 +84,7 @@ End Subroutine Do_Neutron
 
 Function Start_Neutron(source,atm,RNG,ScatMod,detector) Result(n)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use Neutron_Scatter, Only: Neutron_Type
     Use Neutron_Scatter, Only: Scatter_Model_Type
     Use Neutron_Utilities, Only: Neutron_Energy
@@ -145,7 +147,7 @@ Function Start_Neutron(source,atm,RNG,ScatMod,detector) Result(n)
                     End If
                 End If
                 !upward/flat path or not low enough Z_closest_approach, this path will not intersect atmosphere, reject it
-                ScatMod%n_uncounted = ScatMod%n_uncounted + 1
+                ScatMod%n_uncounted = ScatMod%n_uncounted + 1_id
                 !If direct contributions are being included, tally one before rejecting it
                 If (ScatMod%direct_contribution) Call First_Event_Neutron(n,ScatMod,source,detector,atm)
                 !draw a new random energy and direction
@@ -166,7 +168,7 @@ Function Start_Neutron(source,atm,RNG,ScatMod,detector) Result(n)
                     End If
                 End If
                 !upward/flat path or not low enough Z_closest_approach, this path will not intersect atmosphere, reject it
-                ScatMod%n_uncounted = ScatMod%n_uncounted + 1
+                ScatMod%n_uncounted = ScatMod%n_uncounted + 1_id
                 !If direct contributions are being included, tally one before rejecting it
                 If (ScatMod%direct_contribution) Call First_Event_Neutron(n,ScatMod,source,detector,atm)
                 !draw a new random energy and direction
@@ -198,6 +200,7 @@ End Function Start_Neutron
 
 Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use Global, Only: inv_FourPi
     Use Global, Only: mfp_per_barn_per_km_at_seaLevel
     Use Global, Only: std_grav_parameter
@@ -250,7 +253,7 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     Real(dp) :: r_ca
     Real(dp) :: h,xi,p,e,s1
         
-    ScatMod%next_events(1) = ScatMod%next_events(1) + 1
+    ScatMod%next_events(1) = ScatMod%next_events(1) + 1_id
     If (ScatMod%Gravity) Then !check if energy is adequate to reach detector
         If (SME(s%big_r,n%s0ef+s%speed) .LT. 0._dp) Then !neutron's max velocity is less than escape velocity, check if satellite altitude is achievable
             If (-2._dp * s%big_r * std_grav_parameter / ( (n%s0ef + s%speed)**2 * s%big_r - 2._dp * std_grav_parameter ) .LT. d%sat%rp) Return  !neutron max height is insufficent to reach satellite at its lowest point
@@ -299,7 +302,7 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
             If (no_LOS) Return
         End If
     End If
-    ScatMod%next_events(2) = ScatMod%next_events(2) + 1
+    ScatMod%next_events(2) = ScatMod%next_events(2) + 1_id
     !TOTAL TIME OF FLIGHT TO ARRIVAL
     tof = n%t + dt
     !ENERGY AT ARRIVAL
@@ -312,16 +315,16 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
         !Record reason for no contribution and return
         If (E2sat.LT.d%TE_grid(2)%min .OR. E2sat.GT.d%TE_grid(2)%max) Then  !E out of range, check for time range
             If (tof.LT.d%TE_grid(1)%min .OR. tof.GT.d%TE_grid(1)%max) Then  !t also out of range
-                ScatMod%n_no_tally(1) = ScatMod%n_no_tally(1) + 1
+                ScatMod%n_no_tally(1) = ScatMod%n_no_tally(1) + 1_id
             Else  !just E out of range
-                ScatMod%n_no_tally(3) = ScatMod%n_no_tally(3) + 1
+                ScatMod%n_no_tally(3) = ScatMod%n_no_tally(3) + 1_id
             End If
         Else If (tof.LT.d%TE_grid(1)%min .OR. tof.GT.d%TE_grid(1)%max) Then  !just t out of range
-            ScatMod%n_no_tally(2) = ScatMod%n_no_tally(2) + 1
+            ScatMod%n_no_tally(2) = ScatMod%n_no_tally(2) + 1_id
         End If
         Return
     Else  !contribution hits the grid
-        ScatMod%next_events(3) = ScatMod%next_events(3) + 1
+        ScatMod%next_events(3) = ScatMod%next_events(3) + 1_id
     End If
     !DIRECTION AT ARRIVAL
     Omega_hat2_sat = Unit_Vector(v2sat)
@@ -502,6 +505,7 @@ End Subroutine Next_Event_Neutron
 
 Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use Global, Only: inv_TwoPi,inv_FourPi
     Use Global, Only: mfp_per_barn_per_km_at_seaLevel
     Use Global, Only: std_grav_parameter
@@ -551,7 +555,7 @@ Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
     Real(dp) :: divCM  !divergence factor
     Logical :: no_LOS  !flag indicates path to detector intersects Earth
         
-    ScatMod%next_events(1) = ScatMod%next_events(1) + 1
+    ScatMod%next_events(1) = ScatMod%next_events(1) + 1_id
     If (ScatMod%Gravity) Then !check if energy is adequate to reach detector
         If (SME(n%big_r,scat%s1cm+scat%u_speed) .LT. 0._dp) Then !neutron's max velocity is less than escape velocity, check if satellite altitude is achievable
             If (-2._dp * n%big_r * std_grav_parameter / ( (scat%s1cm + scat%u_speed)**2 * n%big_r - 2._dp * std_grav_parameter ) .LT. d%sat%rp) Return  !neutron max height is insufficent to reach satellite at its lowest point
@@ -569,7 +573,7 @@ Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
         no_LOS = Next_Event_L_to_edge(atm,n%big_r,n%Z,zeta1,xEff_top_atm)
         If (no_LOS) Return
     End If
-    ScatMod%next_events(2) = ScatMod%next_events(2) + 1
+    ScatMod%next_events(2) = ScatMod%next_events(2) + 1_id
     !TOTAL TIME OF FLIGHT TO ARRIVAL
     tof = n%t + dt
     !ENERGY AT ARRIVAL
@@ -582,16 +586,16 @@ Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
         !Record reason for no contribution and return
         If (E2sat.LT.d%TE_grid(2)%min .OR. E2sat.GT.d%TE_grid(2)%max) Then  !E out of range, check for time range
             If (tof.LT.d%TE_grid(1)%min .OR. tof.GT.d%TE_grid(1)%max) Then  !t also out of range
-                ScatMod%n_no_tally(1) = ScatMod%n_no_tally(1) + 1
+                ScatMod%n_no_tally(1) = ScatMod%n_no_tally(1) + 1_id
             Else  !just E out of range
-                ScatMod%n_no_tally(3) = ScatMod%n_no_tally(3) + 1
+                ScatMod%n_no_tally(3) = ScatMod%n_no_tally(3) + 1_id
             End If
         Else If (tof.LT.d%TE_grid(1)%min .OR. tof.GT.d%TE_grid(1)%max) Then  !just t out of range
-            ScatMod%n_no_tally(2) = ScatMod%n_no_tally(2) + 1
+            ScatMod%n_no_tally(2) = ScatMod%n_no_tally(2) + 1_id
         End If
         Return
     Else  !contribution hits the grid
-        ScatMod%next_events(3) = ScatMod%next_events(3) + 1
+        ScatMod%next_events(3) = ScatMod%next_events(3) + 1_id
     End If
     !DIRECTION AT ARRIVAL
     Omega_hat2_sat = Unit_Vector(v2sat)
@@ -686,6 +690,7 @@ End Subroutine Scatter_Neutron
 
 Function Kill_Neutron(t,E,t_max,E_min,n_kills) Result(kill)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Implicit None
     Logical :: kill
     Real(dp), Intent(In) :: E
@@ -697,16 +702,17 @@ Function Kill_Neutron(t,E,t_max,E_min,n_kills) Result(kill)
     kill = .FALSE.
     If (t .GT. t_max) Then
         kill = .TRUE.
-        n_kills(1) = n_kills(1) + 1
+        n_kills(1) = n_kills(1) + 1_id
     End If
     If (E .LT. E_min) Then
         kill = .TRUE.
-        n_kills(2) = n_kills(2) + 1
+        n_kills(2) = n_kills(2) + 1_id
     End If
 End Function Kill_Neutron
 
 Function Roulette_Neutron(weight,roulette_w,roulette_rate,roulette_mult,n_kills,RNG) Result(kill)
     Use Kinds, Only: dp
+    Use Kinds, Only: id
     Use Random_Numbers, Only: RNG_Type
     Implicit None
     Logical :: kill
@@ -714,14 +720,14 @@ Function Roulette_Neutron(weight,roulette_w,roulette_rate,roulette_mult,n_kills,
     Real(dp), Intent(In) :: roulette_w
     Real(dp), Intent(In) :: roulette_rate
     Real(dp), Intent(In) :: roulette_mult
-    Integer(8), Intent(InOut) :: n_kills  !# of kills due to roulette
+    Integer(id), Intent(InOut) :: n_kills  !# of kills due to roulette
     Type(RNG_Type), Intent(InOut) :: RNG
     
     kill = .FALSE.
     If (weight .GT. roulette_w) Return  !no roulette procedure
     If (RNG%Get_Random() .GT. roulette_rate) Then  !kill
         kill = .TRUE.
-        n_kills = n_kills + 1
+        n_kills = n_kills + 1_id
     Else  !survive
         weight = weight * roulette_mult
     End If
