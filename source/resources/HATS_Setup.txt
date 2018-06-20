@@ -128,7 +128,7 @@ source_E_dist = 'Watt235'           !<'Line','Uniform','Watt235','Type03','Type0
                                  ! 'EAgroups' 2-D list of tabulated energy and angle bins
 E_high = 20000.                  ![keV]  Value for 'Line', max value for 'Uniform' or 'Watt235'
 E_low = 0.                   ![keV]  Min value for 'Uniform'
-source _A_dist = 'Iso'           !<'Iso','Top','Side','Bottom','Agroups','EAgroups'>
+source_A_dist = 'Iso'           !<'Iso','Top','Side','Bottom','Agroups','EAgroups'>
                                  ! 'Iso' isotropic, 'Top' upward 1/3 of solid angle only, 'Side' 
 								 ! 1/3 of solid angle closest to perpendicular to Earth's surface 
 								 ! beneath the source, 'Bottom' downward 1/3 of solid angle, 

@@ -86,7 +86,6 @@ i_img = Worker_Index()
 If (i_img .EQ. 1) Then
     !UNSTANDARD Carriage control is no longer part of the Fortran standard, and its use here is specific to the implementation in Intel compilers ONLY.
     !Set carriage control to 'FORTRAN' so that console screen updates can be in-place
-    !Open(6,CARRIAGECONTROL ='FORTRAN')
     Write(*,'(A)') '--------------------------------------------------------------------------------'
     Write(*,'(A)') title
     Write(*,'(A)') '--------------------------------------------------------------------------------'
@@ -131,8 +130,8 @@ If (i_img .EQ. 1) Then
         Write(*,'(A)') '    % Comp    ETTC     NE/min      H/min     gMean RSE   % Eff'
         Write(*,'(A)') '    ------  --------  ---------  ---------  -----------  ------'
         !Initialize progress to screen
-        !Write(6,'(F9.2,A11,3ES11.3E2,A2,F7.2,A2)') 0._dp,'%  **:**:**',0._dp,0._dp,100._dp,' %',0._dp,' %'
-        Write(*,'(F9.2,A11,3ES11.3E2,A2,F7.2,A2)') 0._dp,'%  **:**:**',0._dp,0._dp,100._dp,' %',0._dp,' %'
+        Write(*,'(F9.2,A11,3ES11.3E2,A2,F7.2,A2,A)',ADVANCE='NO') & 
+              & 0._dp,'%  **:**:**',0._dp,0._dp,100._dp,' %',0._dp,' %',creturn
     End If
 End If
 p = 0_id
@@ -151,19 +150,14 @@ If (screen_progress) Then  !run histories, periodically updating progress to the
                 HH = Floor(ETTC/3600._dp)
                 MM = Floor((ETTC - Real(3600*HH,dp))/60._dp)
                 SS = Floor(ETTC - Real(3600*HH,dp) - Real(60*MM,dp))
-                !Write(6,'("+",F9.2,A2,I3.2,A,I2.2,A,I2.2,3ES11.3E2,A2,F7.2,A2)') 100._dp * Real(p,dp) / Real(n_p,dp),'% ', & !Percent Complete
-                !                                                                 & HH,':',MM,':',SS, & !ETTC
-                !                                                                 & Real(n_img*ScatterModel%next_events(1),dp) / (dt / 60._dp), & !Next-Events per minute
-                !                                                                 & Real(n_img*p,dp) / (dt / 60._dp), & !Histories per minute
-                !                                                                 & 100._dp * gMean(Std_Err(p,TE_tallies%contribs(1:TE_tallies%index)%f,TE_tallies%contribs(1:TE_tallies%index)%f_sq) / TE_tallies%contribs(1:TE_tallies%index)%f),'% ', & !Geometric Mean Relative Standard Error
-                !                                                                 & 100._dp * Real(p,dp) / Real(n_done,dp),'% ' !Percent efficency
-                Write(*,'(A,F9.2,A2,I3.2,A,I2.2,A,I2.2,3ES11.3E2,A2,F7.2,A2)') creturn, & 
-                                                                               & 100._dp * Real(p,dp) / Real(n_p,dp),'% ', & !Percent Complete
-                                                                               & HH,':',MM,':',SS, & !ETTC
-                                                                               & Real(n_img*ScatterModel%next_events(1),dp) / (dt / 60._dp), & !Next-Events per minute
-                                                                               & Real(n_img*p,dp) / (dt / 60._dp), & !Histories per minute
-                                                                               & 100._dp * gMean(Std_Err(p,TE_tallies%contribs(1:TE_tallies%index)%f,TE_tallies%contribs(1:TE_tallies%index)%f_sq) / TE_tallies%contribs(1:TE_tallies%index)%f),'% ', & !Geometric Mean Relative Standard Error
-                                                                               & 100._dp * Real(p,dp) / Real(n_done,dp),'% ' !Percent efficency
+                Write(*,'(F9.2,A2,I3.2,A,I2.2,A,I2.2,3ES11.3E2,A2,F7.2,A2,A)',ADVANCE='NO') & 
+                      & 100._dp * Real(p,dp) / Real(n_p,dp),'% ', & !Percent Complete
+                      & HH,':',MM,':',SS, & !ETTC
+                      & Real(n_img*ScatterModel%next_events(1),dp) / (dt / 60._dp), & !Next-Events per minute
+                      & Real(n_img*p,dp) / (dt / 60._dp), & !Histories per minute
+                      & 100._dp * gMean(Std_Err(p,TE_tallies%contribs(1:TE_tallies%index)%f,TE_tallies%contribs(1:TE_tallies%index)%f_sq) / TE_tallies%contribs(1:TE_tallies%index)%f),'% ', & !Geometric Mean Relative Standard Error
+                      & 100._dp * Real(p,dp) / Real(n_done,dp),'% ', & !Percent efficency
+                      & creturn
             End If 
         End If
         !run a history
@@ -212,19 +206,13 @@ If (i_img.EQ.1 .AND. detector%shape_data) Call Close_Slice_Files(detector%n_slic
 # endif
 If (i_img .EQ. 1) Then
     If (screen_progress) Then !finalize progress to screen
-        !Write(6,'("+",F9.2,A2,I3.2,A,I2.2,A,I2.2,3ES11.3E2,A2,F7.2,A2)') 100._dp,'% ', & !Percent Complete
-        !                                                                 & 0,':',0,':',0, & !ETTC
-        !                                                                 & Real(ScatterModel%next_events(1),dp) / (t_tot / 60._dp), & !Next-Events per minute
-        !                                                                 & Real(Sum(n_hist_run),dp) / (t_tot / 60._dp), & !Histories per minute
-        !                                                                 & 100._dp * gMean(Std_Err(Sum(n_hist_run),TE_tallies%contribs(1:TE_tallies%index)%f,TE_tallies%contribs(1:TE_tallies%index)%f_sq) / TE_tallies%contribs(1:TE_tallies%index)%f),' %', & !Geometric Mean Relative Standard Error
-        !                                                                 & 100._dp * Real(Sum(n_hist_hit),dp) / Real(Sum(n_hist_run),dp),'% ' !Percent efficency
-        Write(*,'(A,F9.2,A2,I3.2,A,I2.2,A,I2.2,3ES11.3E2,A2,F7.2,A2)') creturn, & 
-                                                                       & 100._dp,'% ', & !Percent Complete
-                                                                       & 0,':',0,':',0, & !ETTC
-                                                                       & Real(ScatterModel%next_events(1),dp) / (t_tot / 60._dp), & !Next-Events per minute
-                                                                       & Real(Sum(n_hist_run),dp) / (t_tot / 60._dp), & !Histories per minute
-                                                                       & 100._dp * gMean(Std_Err(Sum(n_hist_run),TE_tallies%contribs(1:TE_tallies%index)%f,TE_tallies%contribs(1:TE_tallies%index)%f_sq) / TE_tallies%contribs(1:TE_tallies%index)%f),' %', & !Geometric Mean Relative Standard Error
-                                                                       & 100._dp * Real(Sum(n_hist_hit),dp) / Real(Sum(n_hist_run),dp),'% ' !Percent efficency
+        Write(*,'(F9.2,A2,I3.2,A,I2.2,A,I2.2,3ES11.3E2,A2,F7.2,A2)') &
+              & 100._dp,'% ', & !Percent Complete
+              & 0,':',0,':',0, & !ETTC
+              & Real(ScatterModel%next_events(1),dp) / (t_tot / 60._dp), & !Next-Events per minute
+              & Real(Sum(n_hist_run),dp) / (t_tot / 60._dp), & !Histories per minute
+              & 100._dp * gMean(Std_Err(Sum(n_hist_run),TE_tallies%contribs(1:TE_tallies%index)%f,TE_tallies%contribs(1:TE_tallies%index)%f_sq) / TE_tallies%contribs(1:TE_tallies%index)%f),' %', & !Geometric Mean Relative Standard Error
+              & 100._dp * Real(Sum(n_hist_hit),dp) / Real(Sum(n_hist_run),dp),'% ' !Percent efficency
     End If
     !Write results
     Write(*,'(A)', ADVANCE = 'NO') 'Writing output... '
