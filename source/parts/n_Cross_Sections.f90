@@ -144,7 +144,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
     
     !read namelists from cross sections setup file
     Allocate(Character(max_path_len) :: file_name_start)
-    file_name_start = resources_directory//'n_cs'//slash
+    file_name_start = resources_directory//'cs'//slash//'n_cs'//slash
     Open(NEWUNIT = setup_unit , FILE = file_name_start//cs_setup_file , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Cross_Sections: Setup_Cross_Sections:  File open error, '//file_name_start//cs_setup_file//', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = csSetupList1)
@@ -173,7 +173,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
     n_energies = 0
     Do i = 1,CS%n_iso
         !create file name string
-        file_name_start = resources_directory//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))
+        file_name_start = resources_directory//'cs'//slash//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))
         !count energies in absorption, elastic, and inelastic files
         cs_file_name = file_name_start//'_iso_setup.txt'
         Open(NEWUNIT = setup_unit , FILE = cs_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
@@ -217,7 +217,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
     n_start = 1
     Do i = 1,CS%n_iso
         !create file name string
-        file_name_start = resources_directory//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))
+        file_name_start = resources_directory//'cs'//slash//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))
         !read energies in absorption, elastic, and inelastic files
         cs_file_name = file_name_start//'_iso_setup.txt'
         Open(NEWUNIT = setup_unit , FILE = cs_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
@@ -279,7 +279,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
     CS%n_a_tab_max = 0
     Do i = 1,CS%n_iso
         !create file name string
-        file_name_start = resources_directory//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))
+        file_name_start = resources_directory//'cs'//slash//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))
         !read in absorption, elastic, and inelastic files
         cs_file_name = file_name_start//'_iso_setup.txt'
         Open(NEWUNIT = setup_unit , FILE = cs_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)

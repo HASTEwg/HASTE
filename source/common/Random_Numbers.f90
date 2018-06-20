@@ -135,7 +135,7 @@ Subroutine Initialize_RNG(RNG,seed,thread,size)  !Initializes a RNG and returns 
             Do i = 1,RNG%q_size
                 RNG%q(i) = RNG%stream%r()
             End Do
-            RNG%RNG_by_Stream_Files = .TRUE.
+            RNG%RNG_by_Stream_Files = .FALSE.
         End If
 #   endif
     RNG%q_index = 1
@@ -161,14 +161,14 @@ Subroutine Do_RNG_Stream_Files(RNG)
     Integer :: i,j
     Character(4) :: ichar
 
+    Call Working_Directory(GETdir=dir,s=slash)
+    Allocate(Character(max_path_len) :: file_dir)
+    file_dir = Trim(dir)//'temp'//slash
+    Allocate(Character(max_path_len) :: fname)
     If (Worker_Index() .EQ. 1) Then !worker #1 runs the RNG, all others wait at the following SYNC statement
         !Create a stream file for each worker
-        Call Working_Directory(GETdir=dir,s=slash)
-        Allocate(Character(max_path_len) :: file_dir)
-        file_dir = Trim(dir)//'temp'//slash
         !Check if temp results directory exists
         If (.NOT. Check_Directory(file_dir)) Call Create_Directory(file_dir)
-        Allocate(Character(max_path_len) :: fname)
         Do j = 1,n_Workers()
             Do i = 1,RNG%q_size
                 RNG%q(i) = RNG%stream%r()
@@ -182,10 +182,6 @@ Subroutine Do_RNG_Stream_Files(RNG)
         SYNC ALL
 #   endif
     !Each worker may now retrieve the array of random numbers from its own stream file
-    Call Working_Directory(GETdir=dir,s=slash)
-    Allocate(Character(max_path_len) :: file_dir)
-    file_dir = Trim(dir)//'temp'//slash
-    Allocate(Character(max_path_len) :: fname)
     Write(ichar,'(I4.4)') Worker_Index()
     fname = file_dir//'stream'//ichar//'.rng'
     Call Var_from_file( RNG%q, fname, delete_file=.TRUE. ) !DELETE the file so that future access will fail if attempted before a new stream file is generated

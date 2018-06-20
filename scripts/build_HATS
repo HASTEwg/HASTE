@@ -62,3 +62,7 @@ BLD_PATH="../build/"
 FNAME="HATS_DRIVER"
 echo "Compiling and linking HATS..."
 gfortran $GFORT_FLAGS -o ${BLD_PATH}HATS.out ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
+echo "Copying resource files..."
+rm -r ${BLD_PATH}Resources
+cp -r ../source/resources ${BLD_PATH}Resources
+echo "Done."

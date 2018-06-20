@@ -186,8 +186,8 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     End Select
     If (Present(cs_file_name)) cs_file_name = f_name
     !read number of elements, isotopes, and fractions from cross sections setup file
-    Open(NEWUNIT = setup_unit , FILE = resources_dir//'n_cs'//slash//f_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
-    If (stat .NE. 0) Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//resources_dir//'n_cs'//slash//f_name//', IOSTAT=',stat,kill=.TRUE.)
+    Open(NEWUNIT = setup_unit , FILE = resources_dir//'cs'//slash//'n_cs'//slash//f_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//resources_dir//'cs'//slash//'n_cs'//slash//f_name//', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = csSetupList1)
     atm%n_el = n_elements
     Allocate(el_fractions(1:n_elements))
@@ -215,7 +215,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     atm%diatomic = diatomic
     Close(setup_unit)
     Do i = 1,n_iso
-        f_name = resources_dir//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))//'_iso_setup.txt'
+        f_name = resources_dir//'cs'//slash//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))//'_iso_setup.txt'
         Open(NEWUNIT = setup_unit , FILE = f_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
         Read(setup_unit,NML = isoSetupList1)
         atm%iso_frac(i) = iso_fraction
@@ -466,7 +466,7 @@ Subroutine Get_Q_points(dir,n,a,w)
     Allocate(Character(max_path_len) :: file_name)
     file_name = dir
     Write(n_char,'(I3.3)') n
-    file_name = dir//'QuadPoints'//slash//'Weights_Abscissa-GaussLegendre_n'//n_char//'.txt'
+    file_name = dir//'Qpoints'//slash//'Weights_Abscissa-GaussLegendre_n'//n_char//'.txt'
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Atmospheres: Define_EPL_Layer:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Allocate(w(1:n))
