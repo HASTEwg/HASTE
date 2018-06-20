@@ -104,6 +104,7 @@ Function Start_Neutron(source,atm,RNG,ScatMod,detector) Result(n)
     Use Astro_Utilities, Only: Radius_of_Perigee
     Use Astro_Utilities, Only: Time_since_periapsis
     Use Astro_Utilities, Only: Time_to_R
+    Use Astro_Utilities, Only: Kepler_Gooding
     Implicit None
     Type(Neutron_Type) :: n
     Type(Source_Type), Intent(InOut) :: source

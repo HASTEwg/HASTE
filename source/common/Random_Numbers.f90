@@ -99,6 +99,8 @@ Subroutine Initialize_RNG(RNG,seed,thread,size)  !Initializes a RNG and returns 
     Integer, Intent(In), Optional :: size  !size of random number array to pre-fill, default 2**12
 #   if IMKL
         Integer :: rng_stat  !status returns from MKL RNG operations
+#   else
+        Integer :: i
 #   endif
     
     If (Present(size)) Then
@@ -153,10 +155,15 @@ Subroutine Do_RNG_Stream_Files(RNG)
     Use FileIO_Utilities, Only: Create_Directory
     Implicit None
     Type(RNG_Type), Intent(InOut) :: RNG
+    Character(max_path_len) :: dir
+    Character(:), Allocatable :: file_dir
+    Character(:), Allocatable :: fname
+    Integer :: i,j
+    Character(4) :: ichar
 
     If (Worker_Index() .EQ. 1) Then !worker #1 runs the RNG, all others wait at the following SYNC statement
         !Create a stream file for each worker
-        Call Working_Directory(GETdir=dir,slash)
+        Call Working_Directory(GETdir=dir,s=slash)
         Allocate(Character(max_path_len) :: file_dir)
         file_dir = Trim(dir)//'temp'//slash
         !Check if temp results directory exists
@@ -171,9 +178,11 @@ Subroutine Do_RNG_Stream_Files(RNG)
             Call Var_to_file( RNG%q, fname )
         End Do
     End If
-    SYNC ALL
+#   if CAF
+        SYNC ALL
+#   endif
     !Each worker may now retrieve the array of random numbers from its own stream file
-    Call Working_Directory(GETdir=dir,slash)
+    Call Working_Directory(GETdir=dir,s=slash)
     Allocate(Character(max_path_len) :: file_dir)
     file_dir = Trim(dir)//'temp'//slash
     Allocate(Character(max_path_len) :: fname)
@@ -369,7 +378,6 @@ Subroutine Load_RNG(RNG,dir)
 #   if IMKL
         Integer :: stat
 #   endif
-    Integer(8) :: j
     
     Write(i_char,'(I4.4)') Worker_Index()
     Allocate(Character(max_path_len) :: fname)

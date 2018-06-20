@@ -248,8 +248,8 @@ Function rng_mt19937x64_i(RNG) Result(y)
             Call RNG%seed(default_seed64)
         End If
     End If
-    RNG%mti = RNG%mti + 1
     y = RNG%mt(RNG%mti)
+    RNG%mti = RNG%mti + 1
     y = IEOR(y, IAND(ISHFT(y,-29_id), 6148914691236517205_id))
     y = IEOR(y, IAND(ISHFT(y, 17_id), 8202884508482404352_id))
     y = IEOR(y, IAND(ISHFT(y, 37_id),   -2270628950310912_id))

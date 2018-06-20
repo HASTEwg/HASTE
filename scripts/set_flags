@@ -16,7 +16,7 @@ ALWAYS_FLAGS="-ffree-line-length-0 -fimplicit-none ${DIR_FLAGS}"
 # DEBUG Compiler Flags (for debug builds, fast compile with debug information)
 COMP_FLAGS="-Og -fmax-errors=5 -Wall -pedantic -fcheck=all -fbacktrace ${ALWAYS_FLAGS}"
 # RELEASE Compiler Flags (optimize for runtime speed)
-# COMP_FLAGS="-Ofast ${ALWAYS_FLAGS}"
+#COMP_FLAGS="-Ofast ${ALWAYS_FLAGS}"
 
 # LINKER Flags
 LINK_FLAGS="-flto -fuse-linker-plugin"

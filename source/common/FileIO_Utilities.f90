@@ -1014,6 +1014,7 @@ Subroutine Output_Message_C(message,kill)
     Character(*), Intent(In) :: message
     Logical, Intent(In), Optional :: kill
     Integer :: n,m
+    Integer :: i1,i2
     Integer, Parameter :: w = max_line_len
     
     Write(*,*) ding
