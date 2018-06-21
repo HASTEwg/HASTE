@@ -514,7 +514,7 @@ Subroutine Initialize_Paths_Files(paths_files)
     paths_files%s_file_name = empty_string
 End Subroutine Initialize_Paths_Files
 
-Subroutine Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n_h_hit,n_h_run,RNG,paths_files,file_name)
+Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,paths_files,file_name)
     !TODO Add tracking and processing of actual spin time from various sources (run length, RNG waiting, etc.)
     Use Kinds, Only: dp
     Use Kinds, Only: id
@@ -524,7 +524,8 @@ Subroutine Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Integer, Intent(In) :: n_img
-    Real(dp), Intent(In) :: t_process,t_elapsed_min,t_elapsed_max
+    Real(dp), Intent(In) :: t_runs(1:n_img)
+    Real(dp), Intent(In) :: t_waits(1:n_img)
     Integer(id), Intent(In) :: n_h_hit(1:n_img)
     Integer(id), Intent(In) :: n_h_run(1:n_img)
     Type(RNG_Type), Intent(In) :: RNG
@@ -540,15 +541,16 @@ Subroutine Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n
     Write(unit,'(A)') paths_files%app_title
     Write(unit,'(A)') '--------------------------------------------------------------------------------'
     Write(unit,'(2A)') '  Run Complete: ',Date_Time_string()
-    Write(unit,'(A,f11.3,A)') '  Total Compute Time: ',t_process,' sec'
-    Write(unit,'(A,f11.3,A)') '  Min Compute Time:   ',t_elapsed_min,' sec'
-    Write(unit,'(A,f11.3,A)') '  Max Compute Time:   ',t_elapsed_max,' sec'
-    Write(unit,'(A,f7.2,A)') '  Spin Fraction (approximate): ',100._dp * (t_process - Real(n_img,dp)*t_elapsed_min) / t_process,'%'
+    Write(unit,'(A,F11.3,A)') '  Total Compute Time: ',Sum(t_runs),' sec'
+    Write(unit,'(A,F11.3,A)') '  Min Compute Time:   ',Min(t_runs),' sec'
+    Write(unit,'(A,F11.3,A)') '  Max Compute Time:   ',Max(t_runs),' sec'
+    !spin time is computed as time spent waiting (sources of waiting are different run end times and random number generation)
+    Write(unit,'(A,F7.2,A)') '  Spin Fraction:  ',100._dp * (Sum(t_runs) - Sum(t_waits) - Sum(Max(t_runs)-t_runs)) / Sum(t_runs),'%'
     hostname = Get_Host_Name()
     If (n_img .GT. 1) Then
-        Write(unit,'(3A,I4,A)') '  Host: ',Trim(hostname),', ',n_img,' coarray images'
+        Write(unit,'(A,I0,A)') '  Host: '//Trim(hostname)//', ',n_img,' coarray images'
     Else
-        Write(unit,'(2A)') '  Host: ',Trim(hostname)
+        Write(unit,'(A)') '  Host: '//Trim(hostname)
     End If
     Write(unit,*)
     Write(unit,*)
