@@ -62,6 +62,17 @@ Do i = 1,nb64
 End Do
 Close(unit1)
 Close(unit2)
+!Write n binary values to file (in stream format)
+Open(NEWUNIT=unit1,FILE='randoms19937b.stream',ACTION='WRITE',STATUS='REPLACE',ACCESS='STREAM')
+Open(NEWUNIT=unit2,FILE='randoms19937x64b.stream',ACTION='WRITE',STATUS='REPLACE',ACCESS='STREAM')
+Do i = 1,nb
+    Write(unit1) b(i)
+End Do
+Do i = 1,nb64
+    Write(unit2) b64(i)
+End Do
+Close(unit1)
+Close(unit2)
 !Write n real values to file
 Open(NEWUNIT=unit1,FILE='randoms19937.tst',ACTION='WRITE',STATUS='REPLACE')
 Open(NEWUNIT=unit2,FILE='randoms19937x64.tst',ACTION='WRITE',STATUS='REPLACE')
