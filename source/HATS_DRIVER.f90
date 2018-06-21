@@ -47,6 +47,7 @@ Use FileIO_Utilities, Only: Worker_Index
 Use FileIO_Utilities, Only: n_Workers
 Use FileIO_Utilities, Only: Make_Boom
 Use FileIO_Utilities, Only: creturn
+Use FileIO_Utilities, Only: long_dash_line
 Use FileIO_Utilities, Only: Delta_Time
 # if CAF
     Use Setups, Only: Setup_info_to_disk
@@ -71,7 +72,7 @@ Type(Contrib_array) :: Dir_Tallies  !list of contributions tallied to arrival di
 Type(Paths_Files_Type) :: paths_files  !contains path and file name character strings
 Type(Atmosphere_Type) :: atmosphere  !contains data defining atmospheric representation
 Type(RNG_Type) :: RNG  !contains data defining the random number generator
-Integer(il) :: c_start,c_last,c_now
+Integer(il) :: c_start,c_last,c_now  !clock counters for timing data
 Real(dp) :: dt,ETTC  !times (in seconds) for computing estimated time to completion and recording run time
 Integer :: HH,MM,SS  !integer times for computing estimated time to completion
 Integer(id) :: n_p,p  !loop counter for histories
@@ -84,11 +85,9 @@ Integer(id), Allocatable :: n_hist_run(:),n_hist_hit(:)
 n_img = n_Workers()
 i_img = Worker_Index()
 If (i_img .EQ. 1) Then
-    !UNSTANDARD Carriage control is no longer part of the Fortran standard, and its use here is specific to the implementation in Intel compilers ONLY.
-    !Set carriage control to 'FORTRAN' so that console screen updates can be in-place
-    Write(*,'(A)') '--------------------------------------------------------------------------------'
+    Write(*,'(A)') long_dash_line
     Write(*,'(A)') title
-    Write(*,'(A)') '--------------------------------------------------------------------------------'
+    Write(*,'(A)') long_dash_line
     Write(*,'(A)') 'Setting up... '
     Call Setup_HATS(prompt_exit,screen_progress,paths_files,n_histories,absolute_n_histories)
     paths_files%app_title = title
@@ -190,33 +189,35 @@ t_tot = Delta_Time(clock_then = c_start)
 If (i_img.EQ.1 .AND. detector%shape_data) Call Close_Slice_Files(detector%n_slices,detector%TE_grid(1)%collect_shape,detector%TE_grid(1)%slice_unit,detector%TE_grid(2)%collect_shape,detector%TE_grid(2)%slice_unit)
 # if CAF
     !Write image results to disk
-    Call Image_Result_to_Disk(t_tot,n_p,n_done,TE_Tallies,Dir_Tallies,ScatterModel%n_kills,ScatterModel%next_events,ScatterModel%n_no_tally,ScatterModel%n_uncounted)
+    Call Image_Result_to_Disk(t_tot,RNG%t_wait,n_p,n_done,TE_Tallies,Dir_Tallies,ScatterModel%n_kills,ScatterModel%next_events,ScatterModel%n_no_tally,ScatterModel%n_uncounted)
     SYNC ALL
     If (i_img .EQ. 1) Then
         !Gather image results from temporary files to image 1
-        Call Image_Results_from_Disk(detector%TE_grid(1)%n_bins,detector%TE_grid(2)%n_bins,detector%Dir_grid(1)%n_bins,detector%Dir_grid(2)%n_bins,t_tot,t_min,t_max,n_hist_run,n_hist_hit,TE_Tallies,Dir_Tallies,ScatterModel%n_kills,ScatterModel%next_events,ScatterModel%n_no_tally,ScatterModel%n_uncounted)
+        Call Image_Results_from_Disk(detector%TE_grid(1)%n_bins,detector%TE_grid(2)%n_bins,detector%Dir_grid(1)%n_bins,detector%Dir_grid(2)%n_bins,t_runs,t_waits,n_hist_run,n_hist_hit,TE_Tallies,Dir_Tallies,ScatterModel%n_kills,ScatterModel%next_events,ScatterModel%n_no_tally,ScatterModel%n_uncounted)
     End If
 # else
+    Allocate(t_runs(1:1))
+    t_runs = t_tot
+    Allocate(t_waits(1:1))
+    t_waits = RNG%t_wait
     Allocate(n_hist_run(1:1))
     n_hist_run = n_done + ScatterModel%n_uncounted  !includes implicity leaked histories from exatmospheric sources
     Allocate(n_hist_hit(1:1))
     n_hist_hit = n_p
-    t_min = t_tot
-    t_max = t_tot
 # endif
 If (i_img .EQ. 1) Then
     If (screen_progress) Then !finalize progress to screen
         Write(*,'(F9.2,A2,I3.2,A,I2.2,A,I2.2,3ES11.3E2,A2,F7.2,A2)') &
               & 100._dp,'% ', & !Percent Complete
               & 0,':',0,':',0, & !ETTC
-              & Real(ScatterModel%next_events(1),dp) / (t_tot / 60._dp), & !Next-Events per minute
-              & Real(Sum(n_hist_run),dp) / (t_tot / 60._dp), & !Histories per minute
+              & Real(ScatterModel%next_events(1),dp) / (Sum(t_runs) / 60._dp), & !Next-Events per minute
+              & Real(Sum(n_hist_run),dp) / (Sum(t_runs) / 60._dp), & !Histories per minute
               & 100._dp * gMean(Std_Err(Sum(n_hist_run),TE_tallies%contribs(1:TE_tallies%index)%f,TE_tallies%contribs(1:TE_tallies%index)%f_sq) / TE_tallies%contribs(1:TE_tallies%index)%f),' %', & !Geometric Mean Relative Standard Error
               & 100._dp * Real(Sum(n_hist_hit),dp) / Real(Sum(n_hist_run),dp),'% ' !Percent efficency
     End If
     !Write results
     Write(*,'(A)', ADVANCE = 'NO') 'Writing output... '
-    Call Write_Run_Summary(n_img,t_tot,t_min,t_max,n_hist_hit,n_hist_run,RNG,paths_files,atmosphere,ScatterModel,source,detector,TE_Tallies,Dir_Tallies,paths_files%log_file_name)
+    Call Write_Run_Summary(n_img,t_runs,t_waits,n_hist_hit,n_hist_run,RNG,paths_files,atmosphere,ScatterModel,source,detector,TE_Tallies,Dir_Tallies,paths_files%log_file_name)
     Call Write_Tally_Grids(TE_Tallies,Dir_Tallies,detector,Sum(n_hist_run),paths_files%F_file_name,paths_files%TE_file_name,paths_files%t_file_name,paths_files%E_file_name,paths_files%d_file_name,paths_files%m_file_name,paths_files%o_file_name)
 #   if CAF
         !cleanup temp files
@@ -228,14 +229,13 @@ End If
 # if LIN_OS
     If (i_img .EQ. 1) Then
         Call Make_Boom()
-        Write(*,'(A)') '--------------------------------------------------------------------------------'
-        Write(*,*)
+        Write(*,'(A)') long_dash_line
         Write(*,*)
     End If
 # else
     If (i_img .EQ. 1) Then
         Call Make_Boom()
-        Write(*,'(A)') '--------------------------------------------------------------------------------'
+        Write(*,'(A)') long_dash_line
         If (prompt_exit) Pause 'Finished.  Press RETURN to exit...'
     End If
 # endif
