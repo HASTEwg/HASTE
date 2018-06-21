@@ -1,23 +1,22 @@
 Program HATS
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!  High-Altitude Transport to Space for Neutrons (HATS-n)
-!!  0.0     Initial version based on HASTE-n TE and HASTE-n
-!!  0.1     Initial release candidate, debugged & ready for studies.  Ready for
-!!          multithreading or coarray implementations.
-!!  0.2     Initial coarray implementation.
-!!  0.3     Revised coarray implementation for memory stability.  Revised next-
-!!          event orbital trajectory selection and supporting astro routines.
-!!  0.4     Converted from QuickWin to Console application.
-!!  0.5     Speed improvements.
-!!  0.6     Added direct (first-flight by sampling) computations. Revised cross 
-!!          section implementation for speed.
-!!  0.7     Revised EPL quadrature routines, Kepler Problem solver, & gravity 
-!!          divergence approach.
-!!  0.8     Opened development to HATSwg, migrated project to Github.
-!!  0.9     Major partability revision: gFortran and IA32/IA64/ARM, limited to
-!!          non-parallel applications temporarily (ARM development environment
-!!          has no parallel PRNGs)
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!-------------------------------------------------------------------------------
+!   High-Altitude Transport to Space for Neutrons (HATS-n)
+!   0.0     Initial version based on HASTE-n TE and HASTE-n
+!   0.1     Initial release candidate, debugged & ready for studies.  Ready for
+!           multithreading or coarray implementations.
+!   0.2     Initial coarray implementation.
+!   0.3     Revised coarray implementation for memory stability.  Revised next-
+!           event orbital trajectory selection and supporting astro routines.
+!   0.4     Converted from QuickWin to Console application.
+!   0.5     Speed improvements.
+!   0.6     Added direct (first-flight by sampling) computations. Revised cross 
+!           section implementation for speed.
+!   0.7     Revised EPL quadrature routines, Kepler Problem solver, & gravity 
+!           divergence approach.
+!   0.8     Opened development to HATSwg, migrated project to Github.
+!   0.9     Major portability revision: gFortran compiler, IA32/IA64/ARM 
+!           architectures now supported
+!-------------------------------------------------------------------------------
 Use Kinds, Only: dp  !double precision real
 Use Kinds, Only: il  !long integer
 Use Kinds, Only: id  !double integer
