@@ -24,9 +24,11 @@ LINK_FLAGS="-flto -fuse-linker-plugin"
 # Uncomment to enable SINGLE coarray behavior
 #PREP_FLAGS="${PREP_FLAGS} -DCAF"
 #COMP_FLAGS="${COMP_FLAGS} -fcoarray=single"
+#LIB_FLAGS="${COMP_FLAGS} -lcaf_single"
 # Uncomment to enable full coarray execution
 #PREP_FLAGS="${PREP_FLAGS} -DCAF"
 #COMP_FLAGS="${COMP_FLAGS} -fcoarray=lib"
+#LIB_FLAGS="${COMP_FLAGS} -lcaf_mpi"
 
 GFORT_FLAGS="${PREP_FLAGS} ${COMP_FLAGS} ${LINK_FLAGS}"
 GFORT_FLAGS_o="${GFORT_FLAGS} -c"
