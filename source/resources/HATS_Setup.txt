@@ -71,7 +71,7 @@ scatter_model = 'AnIsoCM'        !<'AnisoCM','IsoCM'>  Selects model for scatter
 elastic_only = .FALSE.           !<.TRUE.,.FALSE.>  TRUE suppreses inelastic scatter
 suppress_absorption = .TRUE.     !<.TRUE.,.FALSE.>  TRUE suppresses absorption at each scatter
 suppress_leakage = .TRUE.        !<.TRUE.,.FALSE.>  TRUE forces particles to scatter before leaking
-all_mat_mech = .TRUE.           !<.TRUE.,.FALSE.>  TRUE computes next-event contributions for all
+all_mat_mech = .TRUE.            !<.TRUE.,.FALSE.>  TRUE computes next-event contributions for all
                                  !                  materials and scatter mechanisms at each 
                                  !                  scatter
 dist_to_next_event = 'An-exact'  !<'An-exact','An-fast'>  
@@ -86,7 +86,7 @@ roulette_ratio = 10              ! 1/r particles rouletted survive, weight of su
                                  ! increased by factor of r
 E_min = 0.                       ![keV]  Min energy to include in cross sections data
 E_max = 20000.                   ![keV]  Max energy to include in cross sections data
-Gravity = .TRUE.                ! TRUE includes gravitational effects in determining the trajectory
+Gravity = .TRUE.                 ! TRUE includes gravitational effects in determining the trajectory
                                  ! of a neutron to reach the detector
 Neutron_Decay = .TRUE.           ! TRUE accounts for radioactive decay of free neutrons
 Doppler_Broaden = .FALSE.        ! TRUE adds on-the-fly Doppler broadening for interaction cross
@@ -118,21 +118,21 @@ v_U_source = 0.                  ![km/s]  Upward velocity of source
 d_E_source = 0.                  ![km/s]  Easterly direction of 'front' of source
 d_N_source = 0.                  ![km/s]  Northerly direction of 'front' source
 d_U_source = -1.                 ![km/s]  Upward direction of 'front' source
-source_E_dist = 'Watt235'           !<'Line','Uniform','Watt235','Type03','Type05','Type08','Type13',
+source_E_dist = 'Watt235'        !<'Line','Uniform','Watt235','Type03','Type05','Type08','Type13',
                                  !'Egroups','EAgroups'>
                                  ! 'Line' energy = E_high, 'Uniform' energy uniformly distributed
                                  ! E_high to E_low, 'Watt235' watt distribution with for fission
                                  ! of U-235 from Kneif, 'Type03' fission, 'Type05' boosted fision, 
-								 ! 'Type08' thermonuclear, 'Type13' enhanced rad thermonuclear,
-								 ! 'Egroups' list of tabulated energy bins and densities, 
+                                 ! 'Type08' thermonuclear, 'Type13' enhanced rad thermonuclear,
+                                 ! 'Egroups' list of tabulated energy bins and densities, 
                                  ! 'EAgroups' 2-D list of tabulated energy and angle bins
 E_high = 20000.                  ![keV]  Value for 'Line', max value for 'Uniform' or 'Watt235'
-E_low = 0.                   ![keV]  Min value for 'Uniform'
-source_A_dist = 'Iso'           !<'Iso','Top','Side','Bottom','Agroups','EAgroups'>
+E_low = 0.                       ![keV]  Min value for 'Uniform'
+source_A_dist = 'Iso'            !<'Iso','Top','Side','Bottom','Agroups','EAgroups'>
                                  ! 'Iso' isotropic, 'Top' upward 1/3 of solid angle only, 'Side' 
-								 ! 1/3 of solid angle closest to perpendicular to Earth's surface 
-								 ! beneath the source, 'Bottom' downward 1/3 of solid angle, 
-								 ! 'Agroups' list of tabulated angle bins and densities,
+                                 ! 1/3 of solid angle closest to perpendicular to Earth's surface 
+                                 ! beneath the source, 'Bottom' downward 1/3 of solid angle, 
+                                 ! 'Agroups' list of tabulated angle bins and densities,
                                  ! 'EAgroups' 2-D list of tabulated energy and angle bins
 !---------------------------------------------------------------------------------------------------
 /
@@ -153,7 +153,7 @@ right_ascension_detector = -118.    ![deg]  Measured from prime meridian (increa
 v_E_detector = 0.                ![km/s]  Easterly velocity of detector
 v_N_detector = 0.                ![km/s]  Northerly velocity of detector
 v_U_detector = 0.                ![km/s]  Upward velocity of detector
-detector_motion = 'GeoStat'   !<'Stationary','Linear','Conic','GeoStat'>
+detector_motion = 'GeoStat'      !<'Stationary','Linear','Conic','GeoStat'>
                                  ! Detector model motion, 'Conic' is orbital trajectory, 'GeoStat'
                                  ! overrides detector velocity and modifies detector position to
                                  ! place detector in a geosynchronous (circular, equatorial) orbit
@@ -163,12 +163,12 @@ E_min = .00001                   ![keV]  Min energy for detector grid
 E_grid_spacing = 'Log'           !<'Log','Linear'>
 E_res = 0.01                     ![keV]  Energy grid resolution, Only used for 'Linear' spacing
 E_bins_per_decade = 100          ! Only used for 'Log' spacing
-t_max = 100000.                    ![s]  Max time for detector grid
+t_max = 100000.                  ![s]  Max time for detector grid
 t_min = 0.01                     ![s]  Min time for detector grid
 t_grid_spacing = 'Log'           !<'Log','Linear'>
 t_res = 0.01                     ![s]  Time grid resolution, Only used for 'Linear' spacing
 t_bins_per_decade = 100          ! Only used for 'Log' spacing
-n_mu_bins = 2000                  ! Number of steps in polar angle cosine for angle of arrival grid
+n_mu_bins = 2000                 ! Number of steps in polar angle cosine for angle of arrival grid
 n_omega_bins = 180               ! Number of steps in rotation angle for angle of arrival grid
 collect_shape_data = .TRUE.      !<.TRUE.,.FALSE.>  TRUE causes raw data to be written to file 
                                  !                  characterizing shape of neutron flux peaks at 
