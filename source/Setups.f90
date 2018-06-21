@@ -515,6 +515,7 @@ Subroutine Initialize_Paths_Files(paths_files)
 End Subroutine Initialize_Paths_Files
 
 Subroutine Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n_h_hit,n_h_run,RNG,paths_files,file_name)
+    !TODO Add tracking and processing of actual spin time from various sources (run length, RNG waiting, etc.)
     Use Kinds, Only: dp
     Use Kinds, Only: id
     Use Random_Numbers, Only: RNG_Type
@@ -535,9 +536,9 @@ Subroutine Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Setups: Write_Setup_Information:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    Write(unit,'(A)') '------------------------------------------------------------------------'
+    Write(unit,'(A)') '--------------------------------------------------------------------------------'
     Write(unit,'(A)') paths_files%app_title
-    Write(unit,'(A)') '------------------------------------------------------------------------'
+    Write(unit,'(A)') '--------------------------------------------------------------------------------'
     Write(unit,'(2A)') '  Run Complete: ',Date_Time_string()
     Write(unit,'(A,f11.3,A)') '  Total Compute Time: ',t_process,' sec'
     Write(unit,'(A,f11.3,A)') '  Min Compute Time:   ',t_elapsed_min,' sec'
@@ -561,7 +562,7 @@ Subroutine Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n
     Write(unit,'(2A)') '    Cross Sect set: ',paths_files%resources_directory//paths_files%cs_setup_file
     Write(unit,'(2A)') '    Results Dir:    ',paths_files%results_directory
     If (Trim(paths_files%file_suffix) .EQ. '') Then
-        Write(unit,'(2A)') '    File Suffix:    ','<none>'
+        Write(unit,'(2A)') '    File Suffix:    ','<<none>>'
     Else
         Write(unit,'(2A)') '    File Suffix:    ',paths_files%file_suffix
     End If
@@ -574,7 +575,7 @@ Subroutine Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n
     Write(unit,'(2A)') '    Arr Dirs file:        ',paths_files%d_file_name
     Write(unit,'(2A)') '    Arr Dirs mu file:     ',paths_files%m_file_name
     Write(unit,'(2A)') '    Arr Dirs omega file:  ',paths_files%o_file_name
-    Write(unit,'(2A)') '    Slice Shape files:    ',paths_files%s_file_name//'<...>.txt'
+    Write(unit,'(2A)') '    Slice Shape files:    ',paths_files%s_file_name//'<<...>>.txt'
     Write(unit,*)
     Write(unit,'(A,I11)') '  RNG Seed: ',RNG%seed
     Write(unit,'(A,I0,A,I0,A,F6.2,A)') '  Number of Histories: ',Sum(n_h_hit),' contributing, ',Sum(n_h_run),' total run, (',100._dp*Real(Sum(n_h_hit),dp)/Real(Sum(n_h_run),dp),'% efficency)'
