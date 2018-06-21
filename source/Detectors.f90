@@ -555,12 +555,12 @@ Subroutine Write_Detector(d,file_name)
     Write(unit,'(A)') 'DETECTOR INFORMATION'
     Write(unit,'(A)') '--------------------------------------------------'
     Write(unit,'(A)') '  Position (t = 0) :'
-    Write(unit,'(A,ES23.16E3,A)') '    x = ',d%sat%r0(1),' km'
-    Write(unit,'(A,ES23.16E3,A)') '    y = ',d%sat%r0(2),' km'
-    Write(unit,'(A,ES23.16E3,A)') '    z = ',d%sat%r0(3),' km'
-    Write(unit,'(A,ES23.16E3,A)') '    Right Ascension = ',Acos(d%sat%r0(1)/(Vector_Length(d%sat%r0)*Cos(Asin(d%sat%r0(3)/Vector_Length(d%sat%r0))))) / (Pi/180._dp),' deg'
-    Write(unit,'(A,ES23.16E3,A)') '    Declination     = ',Asin(d%sat%r0(3)/Vector_Length(d%sat%r0)) / (Pi/180._dp),' deg'
-    Write(unit,'(A,ES23.16E3,A)') '    Altitude        = ',Vector_Length(d%sat%r0)-R_Earth,' km'
+    Write(unit,'(A,ES24.16E3,A)') '    x = ',d%sat%r0(1),' km'
+    Write(unit,'(A,ES24.16E3,A)') '    y = ',d%sat%r0(2),' km'
+    Write(unit,'(A,ES24.16E3,A)') '    z = ',d%sat%r0(3),' km'
+    Write(unit,'(A,ES24.16E3,A)') '    Right Ascension = ',Acos(d%sat%r0(1)/(Vector_Length(d%sat%r0)*Cos(Asin(d%sat%r0(3)/Vector_Length(d%sat%r0))))) / (Pi/180._dp),' deg'
+    Write(unit,'(A,ES24.16E3,A)') '    Declination     = ',Asin(d%sat%r0(3)/Vector_Length(d%sat%r0)) / (Pi/180._dp),' deg'
+    Write(unit,'(A,ES24.16E3,A)') '    Altitude        = ',Vector_Length(d%sat%r0)-R_Earth,' km'
     If (d%sat%is_stationary) Then
         Write(unit,'(A)') '  Motion Type:  STATIONARY'
         write_full_position_trace = .FALSE.
@@ -572,9 +572,9 @@ Subroutine Write_Detector(d,file_name)
         write_full_position_trace = .TRUE.
     End If
     Write(unit,'(A)') '  Velocity (t = 0) :'
-    Write(unit,'(A,ES23.16E3,A)') '    x = ',d%sat%v0(1),' km/s'
-    Write(unit,'(A,ES23.16E3,A)') '    y = ',d%sat%v0(2),' km/s'
-    Write(unit,'(A,ES23.16E3,A)') '    z = ',d%sat%v0(3),' km/s'
+    Write(unit,'(A,ES24.16E3,A)') '    x = ',d%sat%v0(1),' km/s'
+    Write(unit,'(A,ES24.16E3,A)') '    y = ',d%sat%v0(2),' km/s'
+    Write(unit,'(A,ES24.16E3,A)') '    z = ',d%sat%v0(3),' km/s'
     Write(unit,*)
     Write(unit,'(A)') '  Position Trace:'
     Write(unit,'(A7,7A27)') 'Bin #','t [sec]','x-pos [km]','y-pos [km]','z-pos [km]','x-vel [km/s]','y-vel [km/s]','z-vel [km/s]'
@@ -588,11 +588,11 @@ Subroutine Write_Detector(d,file_name)
         End Do
     End If
     Write(unit,*)
-    Write(unit,'(A,ES23.16E3,A,ES23.16E3,A)') '  Time range: ',d%TE_grid(1)%min,' sec to ',d%TE_grid(1)%max,' sec'
+    Write(unit,'(A,ES24.16E3,A,ES24.16E3,A)') '  Time range: ',d%TE_grid(1)%min,' sec to ',d%TE_grid(1)%max,' sec'
     If (d%TE_grid(1)%log_spacing) Then
         Write(unit,'(A,I5,A,I5,A)') '  Logarithmically spaced bins: ',d%TE_grid(1)%n_bins,' bins, with ',d%TE_grid(1)%n_bins / d%TE_grid(1)%n_decades,' bins per decade'
     Else
-        Write(unit,'(A,I7,A,ES23.16E3,A)') '  Linearly spaced bins: ',d%TE_grid(1)%n_bins,' bins, with width ',d%TE_grid(1)%res,' sec'
+        Write(unit,'(A,I7,A,ES24.16E3,A)') '  Linearly spaced bins: ',d%TE_grid(1)%n_bins,' bins, with width ',d%TE_grid(1)%res,' sec'
     End If
     Write(unit,*)
     Write(unit,'(A7,2A27)') 'Bin #','t-low [sec]','t-high [sec]'
@@ -601,11 +601,11 @@ Subroutine Write_Detector(d,file_name)
         Write(unit,'(I7,2ES27.16E3)') i,d%TE_grid(1)%bounds(i-1),d%TE_grid(1)%bounds(i)
     End Do
     Write(unit,*)
-    Write(unit,'(A,ES23.16E3,A,ES23.16E3,A)') '  Energy range: ',d%TE_grid(2)%min,' keV to ',d%TE_grid(2)%max,' keV'
+    Write(unit,'(A,ES24.16E3,A,ES24.16E3,A)') '  Energy range: ',d%TE_grid(2)%min,' keV to ',d%TE_grid(2)%max,' keV'
     If (d%TE_grid(2)%log_spacing) Then
         Write(unit,'(A,I5,A,I5,A)') '  Logarithmically spaced bins: ',d%TE_grid(2)%n_bins,' bins, with ',d%TE_grid(2)%n_bins / d%TE_grid(2)%n_decades,' bins per decade'
     Else
-        Write(unit,'(A,I7,A,ES23.16E3,A)') '  Linearly spaced bins: ',d%TE_grid(2)%n_bins,' bins, with width ',d%TE_grid(2)%res,' keV'
+        Write(unit,'(A,I7,A,ES24.16E3,A)') '  Linearly spaced bins: ',d%TE_grid(2)%n_bins,' bins, with width ',d%TE_grid(2)%res,' keV'
     End If
     Write(unit,'(A7,2A27)') 'Bin #','E-low [keV]','E-high [keV]'
     Write(unit,'(A7,2A27)') '-----','-------------------------','-------------------------'
@@ -614,8 +614,8 @@ Subroutine Write_Detector(d,file_name)
     End Do
     Write(unit,*)
     Write(unit,'(A)') '  Arrival Direction:  mu, cosine of angle from forward'
-    Write(unit,'(A,I7,A,ES23.16E3)') '  Linearly spaced bins: ',d%Dir_grid(1)%n_bins,' bins, with width ',d%Dir_grid(1)%res
-    Write(unit,'(A,ES23.16E3,A)') '                                       max width ',MaxVal( Abs(Acos(d%Dir_grid(1)%bounds(1:d%Dir_grid(1)%n_bins))-Acos(d%Dir_grid(1)%bounds(0:d%Dir_grid(1)%n_bins-1))) ),' rad'
+    Write(unit,'(A,I7,A,ES24.16E3)') '  Linearly spaced bins: ',d%Dir_grid(1)%n_bins,' bins, with width ',d%Dir_grid(1)%res
+    Write(unit,'(A,ES24.16E3,A)') '                                       max width ',MaxVal( Abs(Acos(d%Dir_grid(1)%bounds(1:d%Dir_grid(1)%n_bins))-Acos(d%Dir_grid(1)%bounds(0:d%Dir_grid(1)%n_bins-1))) ),' rad'
     Write(unit,'(A7,2A27)') 'Bin #','mu-low','mu-high'
     Write(unit,'(A7,2A27)') '-----','-------------------------','-------------------------'
     Do i = 1,d%Dir_grid(1)%n_bins
@@ -623,7 +623,7 @@ Subroutine Write_Detector(d,file_name)
     End Do
     Write(unit,*)
     Write(unit,'(A)') '  Arrival Direction:  omega, angle about downward'
-    Write(unit,'(A,I7,A,ES23.16E3,A)') '  Linearly spaced bins: ',d%Dir_grid(2)%n_bins,' bins, with width ',d%Dir_grid(2)%res,' rad'
+    Write(unit,'(A,I7,A,ES24.16E3,A)') '  Linearly spaced bins: ',d%Dir_grid(2)%n_bins,' bins, with width ',d%Dir_grid(2)%res,' rad'
     Write(unit,'(A7,2A27)') 'Bin #','omega-low [rad]','omega-high [rad]'
     Write(unit,'(A7,2A27)') '-----','-------------------------','-------------------------'
     Do i = 1,d%Dir_grid(2)%n_bins
