@@ -522,6 +522,8 @@ Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,path
     Use FileIO_Utilities, Only: Date_Time_string
     Use FileIO_Utilities, Only: Get_Host_Name
     Use FileIO_Utilities, Only: Output_Message
+    Use FileIO_Utilities, Only: short_dash_line
+    Use FileIO_Utilities, Only: long_dash_line
     Implicit None
     Integer, Intent(In) :: n_img
     Real(dp), Intent(In) :: t_runs(1:n_img)
@@ -537,9 +539,9 @@ Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,path
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Setups: Write_Setup_Information:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    Write(unit,'(A)') '--------------------------------------------------------------------------------'
+    Write(unit,'(A)') long_dash_line
     Write(unit,'(A)') paths_files%app_title
-    Write(unit,'(A)') '--------------------------------------------------------------------------------'
+    Write(unit,'(A)') long_dash_line
     Write(unit,'(2A)') '  Run Complete: ',Date_Time_string()
     Write(unit,'(A,F11.3,A)') '  Total Compute Time: ',Sum(t_runs),' sec'
     Write(unit,'(A,F11.3,A)') '  Min Compute Time:   ',Min(t_runs),' sec'
@@ -554,9 +556,9 @@ Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,path
     End If
     Write(unit,*)
     Write(unit,*)
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') short_dash_line
     Write(unit,'(A)') 'SETUP INFORMATION'
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') short_dash_line
     Write(unit,'(A)') '  Paths & Files:'
     Write(unit,'(2A)') '    Executable:     ',paths_files%program_exe
     Write(unit,'(2A)') '    Setup File:     ',paths_files%setup_file
@@ -580,7 +582,7 @@ Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,path
     Write(unit,'(2A)') '    Slice Shape files:    ',paths_files%s_file_name//'<<...>>.txt'
     Write(unit,*)
     Write(unit,'(A,I11)') '  RNG Seed: ',RNG%seed
-    Write(unit,'(A,I0,A,I0,A,F6.2,A)') '  Number of Histories: ',Sum(n_h_hit),' contributing, ',Sum(n_h_run),' total run, (',100._dp*Real(Sum(n_h_hit),dp)/Real(Sum(n_h_run),dp),'% efficency)'
+    Write(unit,'(A,I0,A,I0,A,F6.2,A)') '  Number of Histories:  ',Sum(n_h_hit),' contributing, ',Sum(n_h_run),' total run, (',100._dp*Real(Sum(n_h_hit),dp)/Real(Sum(n_h_run),dp),'% efficency)'
     Write(unit,'(A)') '  Histories per image/thread:'
     Write(unit,'(A11,2A17)') 'Image','Contributing','Total Run'
     Write(unit,'(A11,2A17)') '-----','---------------','---------------'
