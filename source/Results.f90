@@ -13,7 +13,7 @@ Module Results
 Contains
 
 # if CAF
-Subroutine Image_Result_to_Disk(time,n_hit,n_run,t,d,n_kills,next_events,no_tally,uncounted)
+Subroutine Image_Result_to_Disk(run_time,wait_time,n_hit,n_run,t,d,n_kills,next_events,no_tally,uncounted)
     Use Kinds, Only: dp
     Use Kinds, Only: id
     Use FileIO_Utilities, Only: slash
@@ -22,7 +22,8 @@ Subroutine Image_Result_to_Disk(time,n_hit,n_run,t,d,n_kills,next_events,no_tall
     Use FileIO_Utilities, Only: Working_Directory
     Use FileIO_Utilities, Only: Var_to_File
     Implicit None
-    Real(dp), Intent(In) :: time
+    Real(dp), Intent(In) :: run_time
+    Real(dp), Intent(In) :: wait_time
     Integer(id), Intent(In) :: n_hit
     Integer(id), Intent(In) :: n_run
     Type(Contrib_Array), Intent(In) :: t
@@ -42,7 +43,10 @@ Subroutine Image_Result_to_Disk(time,n_hit,n_run,t,d,n_kills,next_events,no_tall
     Allocate(Character(max_path_len) :: file_name)
     !write elapsed time to file
     file_name = file_dir//'img'//i_char//'_t.tmp'
-    Call Var_to_File(time,file_name)
+    Call Var_to_File(run_time,file_name)
+    !write wait time to file
+    file_name = file_dir//'img'//i_char//'_tw.tmp'
+    Call Var_to_File(wait_time,file_name)
     !write number of histories hitting TE grid run to file
     file_name = file_dir//'img'//i_char//'_nh.tmp'
     Call Var_to_File(n_hit,file_name)
@@ -103,7 +107,7 @@ End Subroutine Image_Result_to_Disk
 # endif
 
 # if CAF
-Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist_run,n_hist_hit,t,d,n_kills,next_events,no_tally,uncounted)
+Subroutine Image_Results_from_Disk(nt,nE,nm,no,t_runs,t_waits,n_hist_run,n_hist_hit,t,d,n_kills,next_events,no_tally,uncounted)
     Use Kinds, Only: dp
     Use Kinds, Only: id
     Use FileIO_Utilities, Only: slash
@@ -114,9 +118,8 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     Implicit None
     Integer, Intent(In) :: nt,nE
     Integer, Intent(In) :: nm,no
-    Real(dp), Intent(Out) :: tot_time
-    Real(dp), Intent(Out) :: min_time
-    Real(dp), Intent(Out) :: max_time
+    Real(dp), Allocatable, Intent(Out) :: t_runs(:)
+    Real(dp), Allocatable, Intent(Out) :: t_waits(:)
     Integer(id), Allocatable, Intent(Out) :: n_hist_run(:)
     Integer(id), Allocatable, Intent(Out) :: n_hist_hit(:)
     Type(Contrib_Array), Intent(InOut) :: t
@@ -126,7 +129,6 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     Integer(id), Intent(Out) :: no_tally(1:3)
     Integer(id), Intent(Out) :: uncounted
     Integer :: i,j
-    Real(dp), Allocatable :: time(:)
     Integer :: size,index
     Real(dp) :: totf2
     Real(dp) :: tf2_1(1:nt),tf2_2(1:ne)
@@ -144,8 +146,10 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     Allocate(Character(max_path_len) :: file_dir)
     file_dir = Trim(dir)//'temp'//slash
     !initialize time variables
-    Allocate(time(1:num_images()))
-    time = 0._dp
+    Allocate(t_runs(1:num_images()))
+    t_runs = 0._dp
+    Allocate(t_waits(1:num_images()))
+    t_waits = 0._dp
     !initialize number of histories run
     Allocate(n_hist_hit(1:num_images()))
     n_hist_hit = -1_id
@@ -178,9 +182,11 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
     Allocate(Character(max_path_len) :: file_name)
     Do i = 1,num_images()
         Write(i_char,'(I3.3)') i
-        !read time
+        !read times
         file_name = file_dir//'img'//i_char//'_t.tmp'
-        Call Var_from_File(time(i),file_name,delete_file = .TRUE.)
+        Call Var_from_File(t_runs(i),file_name,delete_file = .TRUE.)
+        file_name = file_dir//'img'//i_char//'_tw.tmp'
+        Call Var_from_File(t_waits(i),file_name,delete_file = .TRUE.)
         !read n_hist_run
         file_name = file_dir//'img'//i_char//'_nr.tmp'
         Call Var_from_File(n_hist_run(i),file_name,delete_file = .TRUE.)
@@ -280,9 +286,6 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
         uncounted = uncounted + n_u
         n_hist_run(i) = n_hist_run(i) + n_u  !includes implicity leaked histories from exatmospheric sources
     End Do
-    tot_time = Sum(time)
-    min_time = MinVal(time)
-    max_time = MaxVal(time)
     !fill the time-energy tallies contribution array
     index = COUNT(TE_tmp(:,:,1) .GT. 0._dp)
     If (index .GT. t%size) t%size = index
