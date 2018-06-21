@@ -262,10 +262,10 @@ Subroutine Write_Atmosphere(a,file_name)
     Write(unit,'(A)') '--------------------------------------------------'
     Write(unit,'(A)') 'ATMOSPHERE INFORMATION'
     Write(unit,'(A)') '--------------------------------------------------'
-    Write(unit,'(A,ES23.16E3,A,ES23.16E3,A)') '  Extent: ',a%z_bot,' km to ',a%z_top,' km geometric altitude'
+    Write(unit,'(A,ES24.16E3,A,ES24.16E3,A)') '  Extent: ',a%z_bot,' km to ',a%z_top,' km geometric altitude'
     Select Case (a%model_index)
         Case (atm_mod_IsoTherm)
-            Write(unit,'(A,ES23.16E3,A,ES23.16E3,A,ES23.16E3,A)') '  Atmosphere Model:  Isothermal, ',a%Isothermal_temp,' K,',a%uniform_density_ratio*rho_SL,' g/m^3 @ sea-level,',scale_Height_conv*a%Isothermal_temp,' km scale height'
+            Write(unit,'(A,ES24.16E3,A,ES24.16E3,A,ES24.16E3,A)') '  Atmosphere Model:  Isothermal, ',a%Isothermal_temp,' K,',a%uniform_density_ratio*rho_SL,' g/m^3 @ sea-level,',scale_Height_conv*a%Isothermal_temp,' km scale height'
             Write(unit,'(2A27)') 'Alt [km]','Density [g/m^3]'
             Write(unit,'(2A27)') '-----------------------','-----------------------'
             i = 0
@@ -313,8 +313,8 @@ Subroutine Write_Atmosphere(a,file_name)
         Case Default
             Call Output_Message('ERROR:  Atmospheres: Write_Atmosphere: Undefined atmosphere composition',kill=.TRUE.)
     End Select
-    Write(unit,'(A,ES23.16E3,A)') '  Global Winds:  ',a%wind_AF(1),' [km/s] northerly'
-    Write(unit,'(A,ES23.16E3,A)') '                 ',a%wind_AF(2),' [km/s] westerly'
+    Write(unit,'(A,ES24.16E3,A)') '  Global Winds:  ',a%wind_AF(1),' [km/s] northerly'
+    Write(unit,'(A,ES24.16E3,A)') '                 ',a%wind_AF(2),' [km/s] westerly'
     Write(unit,*)
     Write(unit,*)
     Close(unit)
