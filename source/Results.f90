@@ -318,7 +318,7 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,tot_time,min_time,max_time,n_hist
 End Subroutine Image_Results_from_Disk
 # endif
 
-Subroutine Write_Run_Summary(n_img,t_process,t_elapsed_min,t_elapsed_max,n_h_hit,n_h_run,RNG,paths_files,a,sm,s,d,TE_tallies,Dir_tallies,file_name)
+Subroutine Write_Run_Summary(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,paths_files,a,sm,s,d,TE_tallies,Dir_tallies,file_name)
     Use Kinds, Only: dp
     Use Kinds, Only: id
     Use Setups, Only: paths_files_type
@@ -336,7 +336,8 @@ Subroutine Write_Run_Summary(n_img,t_process,t_elapsed_min,t_elapsed_max,n_h_hit
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Integer, Intent(In) :: n_img
-    Real(dp), Intent(In) :: t_process,t_elapsed_min,t_elapsed_max
+    Real(dp), Intent(In) :: t_runs(1:n_img)
+    Real(dp), Intent(In) :: t_waits(1:n_img)
     Integer(id), Intent(In) :: n_h_hit(1:n_img)
     Integer(id), Intent(In) :: n_h_run(1:n_img)
     Type(RNG_Type), Intent(In) :: RNG
@@ -353,7 +354,7 @@ Subroutine Write_Run_Summary(n_img,t_process,t_elapsed_min,t_elapsed_max,n_h_hit
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Results: Write_Run_Summary:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
     Close(unit)
-    Call Write_Setup_Information(n_img,t_process,t_elapsed_min,t_elapsed_max,n_h_hit,n_h_run,RNG,paths_files,file_name)
+    Call Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,paths_files,file_name)
     Call Write_Atmosphere(a,file_name)
     Call Write_Scatter_Model(sm,file_name)
     Call Write_Source(s,file_name)
