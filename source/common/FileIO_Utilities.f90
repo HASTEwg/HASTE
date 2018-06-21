@@ -119,14 +119,15 @@ Module FileIO_Utilities
         Character(1), Parameter :: slash = '\'  !<--WINDOWS implementation
 #   endif
     
+!  Arbitrary maximum string lengths, for portability
+    Integer, Parameter :: max_path_len = 255
+    Integer, Parameter :: max_line_len = 80
 !  Non-printing character constants for portability
     Character(1), Parameter :: creturn = achar(13)
     Character(1), Parameter :: newline = achar(10)
     Character(1), Parameter :: ding = achar(7)
-    
-!  Arbitrary maximum string lengths, for portability
-    Integer, Parameter :: max_path_len = 255
-    Integer, Parameter :: max_line_len = 80
+!  Non-printing character constants for portability
+    Character(80), Parameter :: long_dash_line = '--------------------------------------------------------------------------------'
     
 Contains
 
@@ -1004,9 +1005,7 @@ Subroutine Make_Boom()
     Write(*,'(A)') '        .-=| : : |=-.        '
     Write(*,'(A)') '        `-=#$%&%$#=-`        '
     Write(*,'(A)') '           |:   :|           '
-    Write(*,'(A)') '  _____.(~#%&$@%#&#~)._____  '
-    Write(*,*) ding
-    Write(*,*)
+    Write(*,'(A)') '  _____.(~#%&$@%#&#~)._____  '//ding
 End Subroutine Make_Boom
 
 Subroutine Output_Message_C(message,kill)
