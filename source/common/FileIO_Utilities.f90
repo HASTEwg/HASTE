@@ -1289,15 +1289,15 @@ Function Get_Host_Name() Result(s)
     
 #   if IFORT
         stat = HOSTNAM(s)  !<--IFORT implementation
-        If (stat .NE. 0) s = 'UNKNOWN'
+        If (stat .NE. 0) s = '<<UNKNOWN>>'
 #   else
-        s = 'UNKNOWN'
+        s = '<<UNKNOWN>>'
 #   endif
 #   if GFORT
         Call HOSTNM(s,stat)  !<--GFORT implementation
-        If (stat .NE. 0) s = 'UNKNOWN'
+        If (stat .NE. 0) s = '<<UNKNOWN>>'
 #   else
-        s = 'UNKNOWN'
+        s = '<<UNKNOWN>>'
 #   endif
 End Function Get_Host_Name
 
