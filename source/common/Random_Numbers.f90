@@ -31,6 +31,7 @@ Module Random_Numbers
         Integer :: seed  !value used to seed the RNG
         Integer(id) :: q_refreshed  !number of times the random array has been filled
         ! Number of random numbers used is q_size*(q_refreshed - 1) + q_index - 1
+        Real(dp) :: t_wait  !number of seconds spent waiting on RNG generation (refreshes)
     Contains
         Procedure, Pass :: Get_Random => Get_1_Random
         Procedure, Pass :: Get_Randoms => Get_n_Randoms
@@ -125,17 +126,20 @@ Subroutine Initialize_RNG(RNG,seed,thread,size)  !Initializes a RNG and returns 
         If (Not(rng_stat.EQ.VSL_ERROR_OK .OR. rng_stat.EQ.VSL_STATUS_OK)) Call Output_Message('ERROR:  Random_Numbers: Initialize_RNG:  MKL RNG stream initial fill q failed, STAT = ',rng_stat,kill=.TRUE.)
 #   else
         If (Present(thread)) Then  !Parallel execution
-            Call Output_Message('ERROR:  Random_Numbers: Initialize_RNG:  Local MT19937 PRNG not configured for parallel execution.',kill=.TRUE.)
             !HACK Parallel implementation with single local MT19937 run by worker #1
+            !Initialize worker #1 RNG stream
             If (thread .EQ. 0) Call RNG%stream%seed(RNG%seed)
+            !Share streams with all other workers via files to initialize theire RNGs
             Call Do_RNG_Stream_Files(RNG) !<--This routine contains a SYNC ALL barrier
             RNG%RNG_by_Stream_Files = .TRUE.
+            t_wait = 0._dp
         Else  !serial execution
             Call RNG%stream%seed(RNG%seed)
             Do i = 1,RNG%q_size
                 RNG%q(i) = RNG%stream%r()
             End Do
             RNG%RNG_by_Stream_Files = .FALSE.
+            t_wait = 0._dp
         End If
 #   endif
     RNG%q_index = 1
@@ -231,7 +235,9 @@ Subroutine Refresh_Random_Array(RNG)
         Use MKL_VSL, Only: vdrnguniform,VSL_RNG_METHOD_UNIFORM_STD
 #   endif
     Use Kinds, Only: dp
+    Use Kinds, Only: il
     Use FileIO_Utilities, Only: Output_Message
+    Use FileIO_Utilities, Only: Delta_Time
     Implicit None
     Type(RNG_Type), Intent(InOut) :: RNG
 #   if IMKL
@@ -239,7 +245,9 @@ Subroutine Refresh_Random_Array(RNG)
 #   else
         Integer :: i
 #   endif
+    Integer(il) :: c
     
+    Call SYSTEM_CLOCK(c)  !for tracking wait time
 #   if IMKL
         rng_stat = vdrnguniform(VSL_RNG_METHOD_UNIFORM_STD,RNG%stream,RNG%q_size,RNG%q,0._dp,1._dp)
         If (Not(rng_stat.EQ.VSL_ERROR_OK .OR. rng_stat.EQ.VSL_STATUS_OK)) Call Output_Message('ERROR:  Random_Numbers: Refresh_Random_Array:  MKL RNG q_fill failed, STAT = ',rng_stat,kill=.TRUE.)
@@ -254,6 +262,7 @@ Subroutine Refresh_Random_Array(RNG)
 #   endif
     RNG%q_index = 1
     RNG%q_refreshed = RNG%q_refreshed + 1
+    RNG%t_wait = RNG%t_wait + Delta_Time(clock_then=c)  !increment wait time counter
 End Subroutine Refresh_Random_Array
 
 !HACK This routine is commented out because it may no longer be required in the scope of the project...
