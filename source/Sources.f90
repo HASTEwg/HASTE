@@ -330,30 +330,30 @@ Subroutine Write_Source(s,file_name)
     Write(unit,'(A)') 'SOURCE INFORMATION'
     Write(unit,'(A)') '--------------------------------------------------'
     Write(unit,'(A)') '  Position:'
-    Write(unit,'(A,ES23.16E3,A)') '    x = ',s%r(1),' km'
-    Write(unit,'(A,ES23.16E3,A)') '    y = ',s%r(2),' km'
-    Write(unit,'(A,ES23.16E3,A)') '    z = ',s%r(3),' km'
-    Write(unit,'(A,ES23.16E3,A)') '    Right Ascension = ',Acos(s%r(1)/(Vector_Length(s%r)*Cos(Asin(s%r(3)/Vector_Length(s%r))))) / (Pi/180._dp),' deg'
-    Write(unit,'(A,ES23.16E3,A)') '    Declination     = ',Asin(s%r(3)/Vector_Length(s%r)) / (Pi/180._dp),' deg'
-    Write(unit,'(A,ES23.16E3,A)') '    Geometric Alt   = ',Vector_Length(s%r)-R_Earth,' km'
+    Write(unit,'(A,ES24.16E3,A)') '    x = ',s%r(1),' km'
+    Write(unit,'(A,ES24.16E3,A)') '    y = ',s%r(2),' km'
+    Write(unit,'(A,ES24.16E3,A)') '    z = ',s%r(3),' km'
+    Write(unit,'(A,ES24.16E3,A)') '    Right Ascension = ',Acos(s%r(1)/(Vector_Length(s%r)*Cos(Asin(s%r(3)/Vector_Length(s%r))))) / (Pi/180._dp),' deg'
+    Write(unit,'(A,ES24.16E3,A)') '    Declination     = ',Asin(s%r(3)/Vector_Length(s%r)) / (Pi/180._dp),' deg'
+    Write(unit,'(A,ES24.16E3,A)') '    Geometric Alt   = ',Vector_Length(s%r)-R_Earth,' km'
     If (s%exoatmospheric) Then
         Write(unit,'(A)') '    Source is EXOatmospheric'
     Else
         Write(unit,'(A)') '    Source is ENDOatmospheric'
     End If
     Write(unit,'(A)') '  Velocity:'
-    Write(unit,'(A,ES23.16E3,A)') '    x = ',s%v(1),' km/s'
-    Write(unit,'(A,ES23.16E3,A)') '    y = ',s%v(2),' km/s'
-    Write(unit,'(A,ES23.16E3,A)') '    z = ',s%v(3),' km/s'
+    Write(unit,'(A,ES24.16E3,A)') '    x = ',s%v(1),' km/s'
+    Write(unit,'(A,ES24.16E3,A)') '    y = ',s%v(2),' km/s'
+    Write(unit,'(A,ES24.16E3,A)') '    z = ',s%v(3),' km/s'
     Write(unit,*)
     Write(unit,'(A)') '  Energy Distribution:'
     Select Case (s%E_dist_index)
         Case (source_E_dist_Line)
-            Write(unit,'(A,ES23.16E3,A)') '    Line, ',s%E_high,' keV'
+            Write(unit,'(A,ES24.16E3,A)') '    Line, ',s%E_high,' keV'
         Case (source_E_dist_Unif)
-            Write(unit,'(A,ES23.16E3,A,ES23.16E3,A)') '    Uniform, ',s%E_low,' keV to ',s%E_high,' keV'
+            Write(unit,'(A,ES24.16E3,A,ES24.16E3,A)') '    Uniform, ',s%E_low,' keV to ',s%E_high,' keV'
         Case (source_E_dist_Watt235)
-            Write(unit,'(A,ES22.16E3,A)') '    Watt-235, ',s%E_high,' keV max'
+            Write(unit,'(A,ES24.16E3,A)') '    Watt-235, ',s%E_high,' keV max'
         Case (source_E_dist_Type3)
             Write(unit,'(A)') '    Type 3, fission'
         Case (source_E_dist_Type5)
