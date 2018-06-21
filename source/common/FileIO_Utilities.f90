@@ -127,7 +127,9 @@ Module FileIO_Utilities
     Character(1), Parameter :: newline = achar(10)
     Character(1), Parameter :: ding = achar(7)
 !  Non-printing character constants for portability
-    Character(80), Parameter :: long_dash_line = '--------------------------------------------------------------------------------'
+    Character(80), Parameter :: long_dash_line =   '--------------------------------------------------------------------------------'
+    Character(40), Parameter :: medium_dash_line = '------------------------------------------------------------'
+    Character(40), Parameter :: short_dash_line =  '----------------------------------------'
     
 Contains
 
