@@ -319,6 +319,7 @@ Subroutine Write_Source(s,file_name)
     Use Global, Only: R_Earth
     Use Utilities, Only: Vector_Length
     Use FileIO_Utilities, Only: Output_Message
+    Use FileIO_Utilities, Only: half_dash_line
     Implicit None
     Type(Source_Type), Intent(In) :: s
     Character(*), Intent(In) :: file_name
@@ -326,9 +327,9 @@ Subroutine Write_Source(s,file_name)
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Sources: Write_Source:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') 'SOURCE INFORMATION'
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') '  Position:'
     Write(unit,'(A,ES24.16E3,A)') '    x = ',s%r(1),' km'
     Write(unit,'(A,ES24.16E3,A)') '    y = ',s%r(2),' km'

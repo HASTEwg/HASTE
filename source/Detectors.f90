@@ -541,6 +541,7 @@ Subroutine Write_Detector(d,file_name)
     Use Global, Only: R_Earth
     Use Utilities, Only: Vector_Length
     Use FileIO_Utilities, Only: Output_Message
+    Use FileIO_Utilities, Only: half_dash_line
     Implicit None
     Type(Detector_Type), Intent(In) :: d
     Character(*), Intent(In) :: file_name
@@ -551,9 +552,9 @@ Subroutine Write_Detector(d,file_name)
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Detectors: Write_Detector:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') 'DETECTOR INFORMATION'
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') '  Position (t = 0) :'
     Write(unit,'(A,ES24.16E3,A)') '    x = ',d%sat%r0(1),' km'
     Write(unit,'(A,ES24.16E3,A)') '    y = ',d%sat%r0(2),' km'

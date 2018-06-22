@@ -515,15 +515,14 @@ Subroutine Initialize_Paths_Files(paths_files)
 End Subroutine Initialize_Paths_Files
 
 Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,paths_files,file_name)
-    !TODO Add tracking and processing of actual spin time from various sources (run length, RNG waiting, etc.)
     Use Kinds, Only: dp
     Use Kinds, Only: id
     Use Random_Numbers, Only: RNG_Type
     Use FileIO_Utilities, Only: Date_Time_string
     Use FileIO_Utilities, Only: Get_Host_Name
     Use FileIO_Utilities, Only: Output_Message
-    Use FileIO_Utilities, Only: short_dash_line
-    Use FileIO_Utilities, Only: long_dash_line
+    Use FileIO_Utilities, Only: full_dash_line
+    Use FileIO_Utilities, Only: half_dash_line
     Implicit None
     Integer, Intent(In) :: n_img
     Real(dp), Intent(In) :: t_runs(1:n_img)
@@ -539,15 +538,15 @@ Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,path
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Setups: Write_Setup_Information:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    Write(unit,'(A)') long_dash_line
+    Write(unit,'(A)') full_dash_line
     Write(unit,'(A)') paths_files%app_title
-    Write(unit,'(A)') long_dash_line
+    Write(unit,'(A)') full_dash_line
     Write(unit,'(2A)') '  Run Complete: ',Date_Time_string()
     Write(unit,'(A,F11.3,A)') '  Total Compute Time: ',Sum(t_runs),' sec'
-    Write(unit,'(A,F11.3,A)') '  Min Compute Time:   ',Min(t_runs),' sec'
-    Write(unit,'(A,F11.3,A)') '  Max Compute Time:   ',Max(t_runs),' sec'
+    Write(unit,'(A,F11.3,A)') '  Min Compute Time:   ',MinVal(t_runs),' sec'
+    Write(unit,'(A,F11.3,A)') '  Max Compute Time:   ',MaxVal(t_runs),' sec'
     !spin time is computed as time spent waiting (sources of waiting are different run end times and random number generation)
-    Write(unit,'(A,F7.2,A)') '  Spin Fraction:  ',100._dp * (Sum(t_runs) - Sum(t_waits) - Sum(Max(t_runs)-t_runs)) / Sum(t_runs),'%'
+    Write(unit,'(A,F7.2,A)') '  Spin Fraction:  ',100._dp * (Sum(t_runs) - Sum(t_waits) - Sum(MaxVal(t_runs)-t_runs)) / Sum(t_runs),'%'
     hostname = Get_Host_Name()
     If (n_img .GT. 1) Then
         Write(unit,'(A,I0,A)') '  Host: '//Trim(hostname)//', ',n_img,' coarray images'
@@ -556,9 +555,9 @@ Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,path
     End If
     Write(unit,*)
     Write(unit,*)
-    Write(unit,'(A)') short_dash_line
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') 'SETUP INFORMATION'
-    Write(unit,'(A)') short_dash_line
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') '  Paths & Files:'
     Write(unit,'(2A)') '    Executable:     ',paths_files%program_exe
     Write(unit,'(2A)') '    Setup File:     ',paths_files%setup_file
@@ -582,6 +581,10 @@ Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,path
     Write(unit,'(2A)') '    Slice Shape files:    ',paths_files%s_file_name//'<<...>>.txt'
     Write(unit,*)
     Write(unit,'(A,I11)') '  RNG Seed: ',RNG%seed
+    Write(unit,'(A,I11)') '  RNG Array Length:    ',RNG%q_size
+    Write(unit,'(A,I11)') '  RNG Array Used:      ',RNG%q_index - 1
+    Write(unit,'(A,I11)') '  RNG Array Refreshes: ',RNG%q_refreshed
+    Write(unit,'(A,I18)') '  RNG Array Refreshes: ',RNG%q_refreshed * Int(RNG%q_size,id) + Int(RNG%q_index - 1,id)
     Write(unit,'(A,I0,A,I0,A,F6.2,A)') '  Number of Histories:  ',Sum(n_h_hit),' contributing, ',Sum(n_h_run),' total run, (',100._dp*Real(Sum(n_h_hit),dp)/Real(Sum(n_h_run),dp),'% efficency)'
     Write(unit,'(A)') '  Histories per image/thread:'
     Write(unit,'(A11,2A17)') 'Image','Contributing','Total Run'

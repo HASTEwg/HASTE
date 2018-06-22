@@ -250,6 +250,7 @@ End Function Setup_Atmosphere
 Subroutine Write_Atmosphere(a,file_name)
     Use Kinds, Only: dp
     Use FileIO_Utilities, Only: Output_Message
+    Use FileIO_Utilities, Only: half_dash_line
     Implicit None
     Type(Atmosphere_Type), Intent(In) :: a
     Character(*), Intent(In) :: file_name
@@ -259,9 +260,9 @@ Subroutine Write_Atmosphere(a,file_name)
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Atmospheres: Write_Atmosphere:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') 'ATMOSPHERE INFORMATION'
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A,ES24.16E3,A,ES24.16E3,A)') '  Extent: ',a%z_bot,' km to ',a%z_top,' km geometric altitude'
     Select Case (a%model_index)
         Case (atm_mod_IsoTherm)

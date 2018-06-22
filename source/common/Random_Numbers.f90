@@ -132,14 +132,14 @@ Subroutine Initialize_RNG(RNG,seed,thread,size)  !Initializes a RNG and returns 
             !Share streams with all other workers via files to initialize theire RNGs
             Call Do_RNG_Stream_Files(RNG) !<--This routine contains a SYNC ALL barrier
             RNG%RNG_by_Stream_Files = .TRUE.
-            t_wait = 0._dp
+            RNG%t_wait = 0._dp
         Else  !serial execution
             Call RNG%stream%seed(RNG%seed)
             Do i = 1,RNG%q_size
                 RNG%q(i) = RNG%stream%r()
             End Do
             RNG%RNG_by_Stream_Files = .FALSE.
-            t_wait = 0._dp
+            RNG%t_wait = 0._dp
         End If
 #   endif
     RNG%q_index = 1

@@ -565,6 +565,7 @@ Subroutine Write_Results_summary(TE_list,Dir_List,d,n_h,file_name)
     Use Statistics, Only: Std_Err
     Use FileIO_Utilities, Only: n_Workers
     Use FileIO_Utilities, Only: Output_Message
+    Use FileIO_Utilities, Only: half_dash_line
     Implicit None
     Type(Contrib_array), Intent(In) :: TE_list
     Type(Contrib_array), Intent(In) :: Dir_list
@@ -579,9 +580,9 @@ Subroutine Write_Results_summary(TE_list,Dir_List,d,n_h,file_name)
     n_img = n_Workers()
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Results: Write_Results:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') 'TALLIES'
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A,I11)')           '  Number of TE bins:             ',d%TE_grid(1)%n_bins * d%TE_grid(2)%n_bins
     Write(unit,'(A,I11,A,F6.2,A)') '  Number of TE bins w/ tallies:  ',TE_list%index,' (',100._dp*Real(TE_list%index,dp)/Real(d%TE_grid(1)%n_bins*d%TE_grid(2)%n_bins,dp),'% of detector grid)'
     If (n_img .EQ. 1) Write(unit,'(A,I11,A,F6.2,A)') '  TE bins list size (% used):    ',TE_list%size,' (',100._dp*Real(TE_list%index,dp)/Real(TE_list%size,dp),'%)'
@@ -591,9 +592,9 @@ Subroutine Write_Results_summary(TE_list,Dir_List,d,n_h,file_name)
     If (n_img .EQ. 1) Write(unit,'(A,I11,A,F6.2,A)') '  Dir bins list size (% used):   ',Dir_list%size,' (',100._dp*Real(Dir_list%index,dp)/Real(Dir_list%size,dp),'%)'
     Write(unit,*)
     Write(unit,*)
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') 'RESULTS'
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     If (Sum(TE_list%contribs(1:TE_list%index)%f).EQ.0._dp .AND. Sum(Dir_list%contribs(1:Dir_list%index)%f).EQ.0._dp) Then
         Write(unit,'(A)') 'No contributions recorded at detector.'
     Else

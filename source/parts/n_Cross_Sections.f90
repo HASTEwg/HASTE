@@ -1559,6 +1559,7 @@ End Function Broad_Integrand
 
 Subroutine Write_Cross_Sections(CS,Broadened_CS,file_name)
     Use Kinds, Only: dp
+    Use FileIO_Utilities, Only: half_dash_line
     Implicit None
     Type(CS_Type), Intent(In) :: CS
     Logical, Intent(In) :: Broadened_CS
@@ -1572,9 +1573,9 @@ Subroutine Write_Cross_Sections(CS,Broadened_CS,file_name)
         Print *,'ERROR:  Cross_Sections: Write_Cross_Sections:  File open error, '//file_name//', IOSTAT=',stat
         ERROR STOP
     End If
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') 'CROSS SECTIONS INFORMATION'
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') '  Microscopic cross sections for total atmosphere:'
     Write(unit,*)
     If (Broadened_CS) Then

@@ -46,7 +46,7 @@ Use FileIO_Utilities, Only: Worker_Index
 Use FileIO_Utilities, Only: n_Workers
 Use FileIO_Utilities, Only: Make_Boom
 Use FileIO_Utilities, Only: creturn
-Use FileIO_Utilities, Only: long_dash_line
+Use FileIO_Utilities, Only: full_dash_line
 Use FileIO_Utilities, Only: Delta_Time
 # if CAF
     Use Setups, Only: Setup_info_to_disk
@@ -76,7 +76,9 @@ Real(dp) :: dt,ETTC  !times (in seconds) for computing estimated time to complet
 Integer :: HH,MM,SS  !integer times for computing estimated time to completion
 Integer(id) :: n_p,p  !loop counter for histories
 Logical :: contributed  !flag indicating that at least one contribution was accumulated for the current history
-Real(dp) :: t_tot,t_min,t_max
+Real(dp) :: t_tot
+Real(dp), Allocatable :: t_runs(:)
+Real(dp), Allocatable :: t_waits(:)
 Integer :: n_img,i_img
 Integer(id) :: n_done
 Integer(id), Allocatable :: n_hist_run(:),n_hist_hit(:)
@@ -84,9 +86,9 @@ Integer(id), Allocatable :: n_hist_run(:),n_hist_hit(:)
 n_img = n_Workers()
 i_img = Worker_Index()
 If (i_img .EQ. 1) Then
-    Write(*,'(A)') long_dash_line
+    Write(*,'(A)') full_dash_line
     Write(*,'(A)') title
-    Write(*,'(A)') long_dash_line
+    Write(*,'(A)') full_dash_line
     Write(*,'(A)') 'Setting up... '
     Call Setup_HATS(prompt_exit,screen_progress,paths_files,n_histories,absolute_n_histories)
     paths_files%app_title = title
@@ -228,13 +230,13 @@ End If
 # if LIN_OS
     If (i_img .EQ. 1) Then
         Call Make_Boom()
-        Write(*,'(A)') long_dash_line
+        Write(*,'(A)') full_dash_line
         Write(*,*)
     End If
 # else
     If (i_img .EQ. 1) Then
         Call Make_Boom()
-        Write(*,'(A)') long_dash_line
+        Write(*,'(A)') full_dash_line
         If (prompt_exit) Pause 'Finished.  Press RETURN to exit...'
     End If
 # endif

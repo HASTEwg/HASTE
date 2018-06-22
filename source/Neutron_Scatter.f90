@@ -660,6 +660,7 @@ End Subroutine Load_ScatMod_counts
 Subroutine Write_Scatter_Model(s,file_name)
     Use n_Cross_Sections, Only: Write_Cross_Sections
     Use FileIO_Utilities, Only: Output_Message
+    Use FileIO_Utilities, Only: half_dash_line
     Implicit None
     Type(Scatter_Model_Type), Intent(In) :: s
     Character(*), Intent(In) :: file_name
@@ -667,9 +668,9 @@ Subroutine Write_Scatter_Model(s,file_name)
     
     Open(NEWUNIT = unit , FILE = file_name , STATUS = 'UNKNOWN' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Neutron_Scatter: Write_Scatter_Model:  File open error, '//file_name//', IOSTAT=',stat,kill=.TRUE.)
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') 'SCATTER MODEL INFORMATION'
-    Write(unit,'(A)') '--------------------------------------------------'
+    Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') '  Scatter Model Fidelity:'
     If (s%aniso_dist) Then
         Write(unit,'(A)') '    Scatter Model:       Anisotropic Center-of-Mass'
