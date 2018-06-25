@@ -162,26 +162,33 @@ Module US_Std_Atm_1976
     Real(dp), Parameter :: inv_Na = 1._dp / Na
     Real(dp), Parameter :: N_star = R_star / Na
     Real(dp), Parameter :: K0 = 1.2E2_dp
-    Real(dp), Parameter :: Mi(1:3) = (/ 28.0134_dp, & !N2
-                                      & 15.9994_dp, & !O1
-                                      & 31.9988_dp /) !O2
-    Real(dp), Parameter :: ai(2:3) = (/ 6.986E20_dp, & !O1
-                                      & 4.863E20_dp /) !O2
-    Real(dp), Parameter :: bi = 0.750_dp  !same for O1 and O2
-    Real(dp), Parameter :: bigQi(2:3) = (/ -5.809644E-4_dp, & !O1
-                                         &  1.366212E-4_dp /) !O2
-    Real(dp), Parameter :: bigUi(2:3) = (/ 56.90311_dp, & !O1
-                                         & 86._dp /) !O2
-    Real(dp), Parameter :: bigWi(2:3) = (/ 2.706240E-5_dp, & !O1
-                                         & 8.333333E-5_dp /) !O2
-    Real(dp), Parameter :: littleQi = -3.416248E-3_dp  !only defined for O1
-    Real(dp), Parameter :: littleUi = 97._dp  !only defined for O1
-    Real(dp), Parameter :: littleWi = 5.008765E-4_dp  !only defined for O1
+    Real(dp), Parameter :: Mi(1:4) = (/ 28.0134_dp, &  !N2
+                                      & 15.9994_dp, &  !O1
+                                      & 31.9988_dp, &  !O2
+                                      & 39.948_dp   /) !Ar  !US Standard Atmosphere 1976 table 3
+    Real(dp), Parameter :: ai(2:4) = (/ 6.986E20_dp, &  !O1
+                                      & 4.863E20_dp, &  !O2
+                                      & 4.487E20_dp  /) !Ar  !US Standard Atmosphere 1976 table 6
+    Real(dp), Parameter :: bi(2:4) = (/ 0.750_dp, &  !O1
+                                      & 0.750_dp, &  !O2
+                                      & 0.870_dp  /) !Ar  !US Standard Atmosphere 1976 table 6
+    Real(dp), Parameter :: bigQi(2:4) = (/ -5.809644E-4_dp, &  !O1
+                                         &  1.366212E-4_dp, &  !O2
+                                         &  9.434079E-5_dp  /) !Ar  !US Standard Atmosphere 1976 table 7
+    Real(dp), Parameter :: bigUi(2:4) = (/ 56.90311_dp, &  !O1
+                                         & 86._dp,      &  !O2
+                                         & 86._dp       /) !Ar  !US Standard Atmosphere 1976 table 7
+    Real(dp), Parameter :: bigWi(2:4) = (/ 2.706240E-5_dp, &  !O1
+                                         & 8.333333E-5_dp, &  !O2
+                                         & 8.333333E-5_dp  /) !Ar  !US Standard Atmosphere 1976 table 7
+    Real(dp), Parameter :: littleQi = -3.416248E-3_dp !only defined for O1  !US Standard Atmosphere 1976 table 7
+    Real(dp), Parameter :: littleUi = 97._dp          !only defined for O1  !US Standard Atmosphere 1976 table 7
+    Real(dp), Parameter :: littleWi = 5.008765E-4_dp  !only defined for O1  !US Standard Atmosphere 1976 table 7
     Real(dp), Parameter :: N7(1:5) = (/ 1.129794E20_dp, &  !N2
-                                      & 8.6E16_dp, &  !O1
+                                      & 8.6E16_dp,      &  !O1
                                       & 3.030898E19_dp, &  !O2
                                       & 1.351400E18_dp, &  !Ar
-                                      & 7.5817E14_dp /)  !He  !US Standard Atmosphere 1976 table 9    
+                                      & 7.5817E14_dp    /) !He  !US Standard Atmosphere 1976 table 9    
     !Precomuted parameters for Romberg Quadrature routines
     Real(dp), Parameter :: Romb1(1:10) = (/ 4._dp, &
                                           & 4._dp**2, &
@@ -430,8 +437,8 @@ Function nO1_O2_integrand1(Z,b)  !for 86 to 95 km
     Real(dp) :: D(1:2)
     
     Tz = T(Z,b+1)
-    D = ai * (Tz / 273.15_dp)**bi / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
-    nO1_O2_integrand1 = g(Z) * D * (Mi(2:3) + M0*K0/D) / (R_star * Tz * (D + K0)) + bigQi * (Z - bigUi)**2 * Exp(-bigWi*(Z - bigUi)**3)
+    D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
+    nO1_O2_integrand1 = g(Z) * D * (Mi(2:3) + M0*K0/D) / (R_star * Tz * (D + K0)) + bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
     nO1_O2_integrand1(1) = nO1_O2_integrand1(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
 End Function nO1_O2_integrand1
 
@@ -446,9 +453,9 @@ Function nO1_O2_integrand2(Z,b)  !for 95 to 97 km
     Real(dp) :: K
     
     Tz = T(Z,b+1)
-    D = ai * (Tz / 273.15_dp)**bi / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
+    D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
     K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
-    nO1_O2_integrand2 = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + bigQi * (Z - bigUi)**2 * Exp(-bigWi*(Z - bigUi)**3)
+    nO1_O2_integrand2 = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
     nO1_O2_integrand2(1) = nO1_O2_integrand2(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
 End Function nO1_O2_integrand2
 
@@ -463,9 +470,9 @@ Function nO1_O2_integrand3(Z,b)  !for 97 to 100 km
     Real(dp) :: K
 
     Tz = T(Z,b+1)
-    D = ai * (Tz / 273.15_dp)**bi / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
+    D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
     K = 1.2E2_dp * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
-    nO1_O2_integrand3 = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + bigQi * (Z - bigUi)**2 * Exp(-bigWi*(Z - bigUi)**3)
+    nO1_O2_integrand3 = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand3
 
 Function nO1_O2_integrand4(Z,b)  !for 100 to 115 km
@@ -479,9 +486,9 @@ Function nO1_O2_integrand4(Z,b)  !for 100 to 115 km
     Real(dp) :: K
     
     Tz = T(Z,b+1)
-    D = ai * (Tz / 273.15_dp)**bi / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
+    D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
     K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
-    nO1_O2_integrand4 = g(Z) * D * (Mi(2:3) + Mi(1)*K/D) / (R_star * Tz * (D + K)) + bigQi * (Z - bigUi)**2 * Exp(-bigWi*(Z - bigUi)**3)
+    nO1_O2_integrand4 = g(Z) * D * (Mi(2:3) + Mi(1)*K/D) / (R_star * Tz * (D + K)) + bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand4
 
 Function nO1_O2_integrand5(Z,b)  !for 115 to 1000 km
@@ -491,7 +498,7 @@ Function nO1_O2_integrand5(Z,b)  !for 115 to 1000 km
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
 
-    nO1_O2_integrand5 = g(Z) * Mi(2:3) / (R_star * T(Z,b+1)) + bigQi * (Z - bigUi)**2 * Exp(-bigWi*(Z - bigUi)**3)
+    nO1_O2_integrand5 = g(Z) * Mi(2:3) / (R_star * T(Z,b+1)) + bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand5
 
 Subroutine N_density(Z,Tz,b,N,f)
@@ -504,6 +511,7 @@ Subroutine N_density(Z,Tz,b,N,f)
     Real(dp), Intent(Out) :: N
     Real(dp), Intent(Out), Optional :: f(1:3)
     Real(dp) :: x(1:3)
+    !UNDONE Extend N_density (and other functionality in this module) to compute N for Ar, He, and H
     
     f = 0._dp
     !N2 power
@@ -530,7 +538,7 @@ Function Romberg_Quad_nN2(a,b,p) Result(q)
     Integer, Intent(In) :: p
     Real(dp) :: R(0:10,0:10)  !Romberg table
     Integer :: n,i,j
-    Real(dp) :: h,s,ai
+    Real(dp) :: h,s,as
     Real(dp), Parameter :: rTol = 1.E-12_dp
 
     n = 1
@@ -542,8 +550,8 @@ Function Romberg_Quad_nN2(a,b,p) Result(q)
         n = n * 2
         h = (b - a) / Real(n,dp)
         Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-            ai = a + Real(j,dp)*h
-            s = s + g(ai) / T(ai,p+1)
+            as = a + Real(j,dp)*h
+            s = s + g(as) / T(as,p+1)
         End Do
         R(0,i) = h * s
         !fill out Romberg table row
@@ -572,7 +580,7 @@ Recursive Subroutine Continue_Romberg_nN2(a,b,p,s,d,R0,level,q)  !adds 10 more r
     Real(dp), Intent(Out) :: q    !the result of the integration, if convergence attained
     Real(dp) :: R(0:d+10,0:10)  !Romberg table extension
     Integer :: n,i,j
-    Real(dp) :: h,ai
+    Real(dp) :: h,as
     Integer :: fours
     Real(dp), Parameter :: rTol = 1.E-12_dp
     
@@ -582,8 +590,8 @@ Recursive Subroutine Continue_Romberg_nN2(a,b,p,s,d,R0,level,q)  !adds 10 more r
         n = 2**(d+i)
         h = (b - a) / Real(n,dp)
         Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-            ai = a + Real(j,dp)*h
-            s = s + g(ai) / T(ai,p+1)
+            as = a + Real(j,dp)*h
+            s = s + g(as) / T(as,p+1)
         End Do
         R(0,i) = h * s
         !fill out Romberg table row
@@ -715,7 +723,7 @@ Function P(Z,layer,layer_range)
     Real(dp), Intent(In) :: Z ![km]
     Integer, Intent(In), Optional :: layer
     Integer, Intent(In), Optional :: layer_range(1:3)
-    Real(dp) :: T,N
+    Real(dp) :: Tz,N
     Integer :: b
     
     !find atmospheric base layer
@@ -728,30 +736,31 @@ Function P(Z,layer,layer_range)
     End If
     If (Lb_nonzero(b)) Then
         If (T_linear_by_H(b)) Then
-            T = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
-            If (b.EQ.6 .AND. Z.GT.80._dp) T = T * T_M0_correction(Z)  !US Standard Atmosphere 1976 equation 22
+            Tz = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
+            If (b.EQ.6 .AND. Z.GT.80._dp) Tz = Tz * T_M0_correction(Z)  !US Standard Atmosphere 1976 equation 22
         Else
-            T = Tb(b) + Lb(b) * (Z - Zb(b))  !US Standard Atmosphere 1976 equation 29
+            Tz = Tb(b) + Lb(b) * (Z - Zb(b))  !US Standard Atmosphere 1976 equation 29
         End If
         If (P_rho_not_by_N(b)) Then
-            P = Pb_Tb_L_star_Lb(b) * T**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
+            P = Pb_Tb_L_star_Lb(b) * Tz**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
         Else
-            Call N_density(Z,T,b,N)
-            P = N * T * N_star  !US Standard Atmosphere 1976 equation 33c
+            Call N_density(Z,Tz,b,N)
+            P = N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
         End If
     Else If (T_exponential(b)) Then
-        T = T_inf - (T_inf - Tb(b)) * Exp(-lambda * (Z - Zb(b)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
-        Call N_density(Z,T,b,N)
-        P = N * T * N_star  !US Standard Atmosphere 1976 equation 33c
+        Tz = T_inf - (T_inf - Tb(b)) * Exp(-lambda * (Z - Zb(b)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
+        Call N_density(Z,Tz,b,N)
+        P = N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
     Else If (T_elliptical(b)) Then
-        T = Tc + big_A * Sqrt(1._dp - ((Z - Zb(b)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
-        Call N_density(Z,T,b,N)
-        P = N * T * N_star  !US Standard Atmosphere 1976 equation 33c
+        Tz = Tc + big_A * Sqrt(1._dp - ((Z - Zb(b)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
+        Call N_density(Z,Tz,b,N)
+        P = N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
     Else !zero lapse rate
+        Tz = Tb(b)
         If (P_rho_not_by_N(b)) Then
             P = Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
         Else
-            Call N_density(Z,T,b,N)
+            Call N_density(Z,Tz,b,N)
             P = N * Tb(b) * N_star  !US Standard Atmosphere 1976 equation 33c
         End If
     End If
@@ -764,7 +773,7 @@ Function rho(Z,layer,layer_range)
     Real(dp), Intent(In) :: Z ![km]
     Integer, Intent(In), Optional :: layer
     Integer, Intent(In), Optional :: layer_range(1:3)
-    Real(dp) :: T,P,N,f(1:3)
+    Real(dp) :: Tz,Pz,N,f(1:3)
     Integer :: b
     
     !find atmospheric base layer
@@ -777,36 +786,36 @@ Function rho(Z,layer,layer_range)
     End If
     If (Lb_nonzero(b)) Then
         If (T_linear_by_H(b)) Then
-            T = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
-            If (b.EQ.6 .AND. Z.GT.80._dp) T = T * T_M0_correction(Z)  !US Standard Atmosphere 1976 equation 22
+            Tz = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
+            If (b.EQ.6 .AND. Z.GT.80._dp) Tz = Tz * T_M0_correction(Z)  !US Standard Atmosphere 1976 equation 22
         Else
-            T = Tb(b) + Lb(b) * (Z - Zb(b))  !US Standard Atmosphere 1976 equation 29
+            Tz = Tb(b) + Lb(b) * (Z - Zb(b))  !US Standard Atmosphere 1976 equation 29
         End If
         If (P_rho_not_by_N(b)) Then
-            P = Pb_Tb_L_star_Lb(b) * T**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
-            rho = P * rho_star /  T  !US Standard Atmosphere 1976 equation 42-1
+            Pz = Pb_Tb_L_star_Lb(b) * Tz**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
+            rho = P * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
         Else
-            Call N_density(Z,T,b,N,f)
+            Call N_density(Z,Tz,b,N,f)
             rho = Sum(f*N * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
             rho = rho * 1000._dp  !convert kg/m^3 to g/m^3
         End If
     Else If (T_exponential(b)) Then
-        T = T_inf - (T_inf - Tb(b)) * Exp(-lambda * (Z - Zb(b)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
-        Call N_density(Z,T,b,N,f)
+        Tz = T_inf - (T_inf - Tb(b)) * Exp(-lambda * (Z - Zb(b)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
+        Call N_density(Z,Tz,b,N,f)
         rho = Sum(f*N * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
         rho = rho * 1000._dp  !convert kg/m^3 to g/m^3
     Else If (T_elliptical(b)) Then
-        T = Tc + big_A * Sqrt(1._dp - ((Z - Zb(b)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
-        Call N_density(Z,T,b,N,f)
+        Tz = Tc + big_A * Sqrt(1._dp - ((Z - Zb(b)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
+        Call N_density(Z,Tz,b,N,f)
         rho = Sum(f*N * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
         rho = rho * 1000._dp  !convert kg/m^3 to g/m^3
     Else !zero lapse rate
-        T = Tb(b)
+        Tz = Tb(b)
         If (P_rho_not_by_N(b)) Then
-            P = Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
-            rho = P * rho_star /  T  !US Standard Atmosphere 1976 equation 42-1
+            Pz = Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
+            rho = Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
         Else
-            Call N_density(Z,T,b,N,f)
+            Call N_density(Z,Tz,b,N,f)
             rho = Sum(f*N * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
             rho = rho * 1000._dp  !convert kg/m^3 to g/m^3
         End If
