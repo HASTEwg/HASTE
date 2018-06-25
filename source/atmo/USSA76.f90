@@ -31,23 +31,23 @@ Module US_Std_Atm_1976
                                        & Hb(4) * R_Earth / (R_Earth - Hb(4)), & 
                                        & Hb(5) * R_Earth / (R_Earth - Hb(5)), & 
                                        & Hb(6) * R_Earth / (R_Earth - Hb(6)), &
-                                       & 86._dp, &
-                                       & 91._dp, &
+                                       & 86._dp,  &
+                                       & 91._dp,  &
                                        & 110._dp, &
                                        & 120._dp, &
                                        & 1000._dp /)
     Real(dp), Parameter :: Lb(0:11) = (/ -6.5_dp, &  ![K/km] temperature lapse rates in each layer, US Standard Atmosphere 1976 table 4 
-                                       & 0._dp, & 
-                                       & 1._dp, & 
-                                       & 2.8_dp, & 
-                                       & 0._dp, & 
+                                       &  0._dp,  & 
+                                       &  1._dp,  & 
+                                       &  2.8_dp, & 
+                                       &  0._dp,  & 
                                        & -2.8_dp, & 
-                                       & -2._dp, &
-                                       & 0._dp, &
-                                       & 0._dp, &
-                                       & 12._dp, &
-                                       & 0._dp, &
-                                       & 0._dp /)
+                                       & -2._dp,  &
+                                       &  0._dp,  &
+                                       &  0._dp,  &
+                                       &  12._dp, &
+                                       &  0._dp,  &
+                                       &  0._dp   /)
     Real(dp), Parameter :: Tb(0:11) = (/ 288.15_dp, &  ![K] Computed temperature at layer boundaries 
                                       & 216.65_dp, & 
                                       & 216.65_dp, & 
@@ -69,27 +69,27 @@ Module US_Std_Atm_1976
                                       & 110.905629143702212828_dp, & 
                                       & 66.9384346263881217465_dp, & 
                                       & 3.95638449983647254755_dp, &
-                                      !& 0.37337628269333201966_dp /) !<--value is for when M0 correction is NOT accounted for
-                                      & 0.37069900314554960416_dp /)  !<--value is for when M0 correction is accounted for
-    Logical, Parameter :: Lb_nonzero(0:11) = (/ .TRUE., & 
+                                      !& 0.37337628269333201966_dp  /) !<--value is for when M0 correction is NOT accounted for
+                                      & 0.37069900314554960416_dp  /)  !<--value is for when M0 correction is accounted for
+    Logical, Parameter :: Lb_nonzero(0:11) = (/ .TRUE.,  & 
                                               & .FALSE., & 
-                                              & .TRUE., & 
-                                              & .TRUE., & 
+                                              & .TRUE.,  & 
+                                              & .TRUE.,  & 
                                               & .FALSE., & 
-                                              & .TRUE., & 
-                                              & .TRUE., &
+                                              & .TRUE.,  & 
+                                              & .TRUE.,  &
                                               & .FALSE., &
                                               & .FALSE., &
-                                              & .TRUE., &
+                                              & .TRUE.,  &
                                               & .FALSE., &
                                               & .FALSE.  /)  !flags indicating non-zero lapse rate
-    Logical, Parameter :: T_linear_by_H(0:11) = (/ .TRUE., & 
+    Logical, Parameter :: T_linear_by_H(0:11) = (/ .TRUE.,  & 
                                                  & .FALSE., & 
-                                                 & .TRUE., & 
-                                                 & .TRUE., & 
+                                                 & .TRUE.,  & 
+                                                 & .TRUE.,  & 
                                                  & .FALSE., & 
-                                                 & .TRUE., & 
-                                                 & .TRUE., &
+                                                 & .TRUE.,  & 
+                                                 & .TRUE.,  &
                                                  & .FALSE., &
                                                  & .FALSE., &
                                                  & .FALSE., &
@@ -103,7 +103,7 @@ Module US_Std_Atm_1976
                                                 & .FALSE., & 
                                                 & .FALSE., &
                                                 & .FALSE., &
-                                                & .TRUE., &
+                                                & .TRUE.,  &
                                                 & .FALSE., &
                                                 & .FALSE., &
                                                 & .FALSE.  /)  !flags indicating elliptical temperature by geometric height
@@ -117,15 +117,15 @@ Module US_Std_Atm_1976
                                                  & .FALSE., &
                                                  & .FALSE., &
                                                  & .FALSE., &
-                                                 & .TRUE., &
+                                                 & .TRUE.,  &
                                                  & .FALSE.  /)  !flags indicating exponential temperature by geometric height
-    Logical, Parameter :: P_rho_not_by_N(0:11) = (/ .TRUE., & 
-                                                  & .TRUE., & 
-                                                  & .TRUE., & 
-                                                  & .TRUE., & 
-                                                  & .TRUE., & 
-                                                  & .TRUE., & 
-                                                  & .TRUE., &
+    Logical, Parameter :: P_rho_not_by_N(0:11) = (/ .TRUE.,  & 
+                                                  & .TRUE.,  & 
+                                                  & .TRUE.,  & 
+                                                  & .TRUE.,  & 
+                                                  & .TRUE.,  & 
+                                                  & .TRUE.,  & 
+                                                  & .TRUE.,  &
                                                   & .FALSE., &
                                                   & .FALSE., &
                                                   & .FALSE., &
@@ -134,21 +134,21 @@ Module US_Std_Atm_1976
     Real(dp), Parameter :: Tb_minus_LbHb(0:7) = Tb(0:7) - Lb(0:7)*Hb(0:7)  !precomputed quantity for 1976 temperature calculations
     Real(dp), Parameter :: L_star = g0 * M0 / R_star  !precomputed quantity for 1976 pressure calculations
     Real(dp), Parameter :: L_star_Lb(0:7) = (/ L_star / Lb(0), &  !precomputed quantity for 1976 pressure calculations
-                                             & 0._dp, & 
+                                             & 0._dp,          & 
                                              & L_star / Lb(2), & 
                                              & L_star / Lb(3), & 
-                                             & 0._dp, & 
+                                             & 0._dp,          & 
                                              & L_star / Lb(5), & 
                                              & L_star / Lb(6), &
-                                             & 0._dp /)
+                                             & 0._dp           /)
     Real(dp), Parameter :: Pb_Tb_L_star_Lb(0:7) = (/ Pb(0) * Tb(0)**L_star_Lb(0), &  !precomputed quantity for 1976 pressure calculations
-                                                   & Pb(1), & 
+                                                   & Pb(1),                       & 
                                                    & Pb(2) * Tb(2)**L_star_Lb(2), & 
                                                    & Pb(3) * Tb(3)**L_star_Lb(3), & 
-                                                   & Pb(4), & 
+                                                   & Pb(4),                       & 
                                                    & Pb(5) * Tb(5)**L_star_Lb(5), & 
                                                    & Pb(6) * Tb(6)**L_star_Lb(6), &
-                                                   & Pb(7) /)
+                                                   & Pb(7)                        /)
     Real(dp), Parameter :: L_star_Tb(0:7) = -L_star / Tb(0:7)  !precomputed quantity for 1976 pressure calculations
     Real(dp), Parameter :: rho_star = M0 / R_star  !precomputed quantity for 1976 density calculations
     Real(dp), Parameter :: Tc = (Lb(9) * (Zb(9)-Zb(8)) * Tb(9) + Tb(8)**2 - Tb(9)**2) / &
@@ -162,25 +162,30 @@ Module US_Std_Atm_1976
     Real(dp), Parameter :: inv_Na = 1._dp / Na
     Real(dp), Parameter :: N_star = R_star / Na
     Real(dp), Parameter :: K0 = 1.2E2_dp
-    Real(dp), Parameter :: Mi(1:4) = (/ 28.0134_dp, &  !N2
+    Real(dp), Parameter :: Mi(1:5) = (/ 28.0134_dp, &  !N2
                                       & 15.9994_dp, &  !O1
                                       & 31.9988_dp, &  !O2
                                       & 39.948_dp   /) !Ar  !US Standard Atmosphere 1976 table 3
-    Real(dp), Parameter :: ai(2:4) = (/ 6.986E20_dp, &  !O1
+    Real(dp), Parameter :: ai(2:5) = (/ 6.986E20_dp, &  !O1
                                       & 4.863E20_dp, &  !O2
-                                      & 4.487E20_dp  /) !Ar  !US Standard Atmosphere 1976 table 6
-    Real(dp), Parameter :: bi(2:4) = (/ 0.750_dp, &  !O1
+                                      & 4.487E20_dp, &  !Ar
+                                      & 1.700E21_dp  /) !He  !US Standard Atmosphere 1976 table 6
+    Real(dp), Parameter :: bi(2:5) = (/ 0.750_dp, &  !O1
                                       & 0.750_dp, &  !O2
-                                      & 0.870_dp  /) !Ar  !US Standard Atmosphere 1976 table 6
-    Real(dp), Parameter :: bigQi(2:4) = (/ -5.809644E-4_dp, &  !O1
+                                      & 0.870_dp, &  !Ar
+                                      & 0.691_dp  /) !He  !US Standard Atmosphere 1976 table 6
+    Real(dp), Parameter :: bigQi(2:5) = (/ -5.809644E-4_dp, &  !O1
                                          &  1.366212E-4_dp, &  !O2
-                                         &  9.434079E-5_dp  /) !Ar  !US Standard Atmosphere 1976 table 7
-    Real(dp), Parameter :: bigUi(2:4) = (/ 56.90311_dp, &  !O1
+                                         &  9.434079E-5_dp, &  !Ar
+                                         & -2.457369E-4_dp  /) !He  !US Standard Atmosphere 1976 table 7
+    Real(dp), Parameter :: bigUi(2:5) = (/ 56.90311_dp, &  !O1
                                          & 86._dp,      &  !O2
-                                         & 86._dp       /) !Ar  !US Standard Atmosphere 1976 table 7
-    Real(dp), Parameter :: bigWi(2:4) = (/ 2.706240E-5_dp, &  !O1
+                                         & 86._dp,      &  !Ar
+                                         & 86._dp       /) !He  !US Standard Atmosphere 1976 table 7
+    Real(dp), Parameter :: bigWi(2:5) = (/ 2.706240E-5_dp, &  !O1
                                          & 8.333333E-5_dp, &  !O2
-                                         & 8.333333E-5_dp  /) !Ar  !US Standard Atmosphere 1976 table 7
+                                         & 8.333333E-5_dp, &  !Ar
+                                         & 6.666667E-4_dp  /) !He  !US Standard Atmosphere 1976 table 7
     Real(dp), Parameter :: littleQi = -3.416248E-3_dp !only defined for O1  !US Standard Atmosphere 1976 table 7
     Real(dp), Parameter :: littleUi = 97._dp          !only defined for O1  !US Standard Atmosphere 1976 table 7
     Real(dp), Parameter :: littleWi = 5.008765E-4_dp  !only defined for O1  !US Standard Atmosphere 1976 table 7
@@ -190,7 +195,7 @@ Module US_Std_Atm_1976
                                       & 1.351400E18_dp, &  !Ar
                                       & 7.5817E14_dp    /) !He  !US Standard Atmosphere 1976 table 9    
     !Precomuted parameters for Romberg Quadrature routines
-    Real(dp), Parameter :: Romb1(1:10) = (/ 4._dp, &
+    Real(dp), Parameter :: Romb1(1:10) = (/ 4._dp,    &
                                           & 4._dp**2, &
                                           & 4._dp**3, &
                                           & 4._dp**4, &
