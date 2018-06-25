@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# CLEAN OLD BUILD FILES
+./clean
+
+# SET COMPILER FLAGS
+. ./set_flags
+. ./echo_flags
+
+# COMMON MODULES
+SRC_PATH="../source/common/"
+FNAME="Kinds"; . ./compile_it
+FNAME="Utilities"; . ./compile_it
+FNAME="Interpolation"; . ./compile_it
+
+# ATMOSPHERE MODULES
+SRC_PATH="../source/atmo/"
+FNAME="USSA76"; . ./compile_it
+
+#TEST PROGRAM
+SRC_PATH="../testing/USSA76/"
+BLD_PATH="../build/"
+FNAME="testUSSA76"
+echo "Compiling and linking testCR..."
+gfortran $GFORT_FLAGS -o ${SRC_PATH}${FNAME}.out ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
+
+#RUN THE TEST PROGRAM
+echo "Running..."
+cd ${SRC_PATH}
+./${FNAME}.out

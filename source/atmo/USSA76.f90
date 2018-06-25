@@ -231,7 +231,6 @@ Function T(Z,layer,layer_range)
     End If
     If (Lb_nonzero(b)) Then
         If (T_linear_by_H(b)) Then
-            !T = Tb(b) + Lb(b) * (Z_to_H(Z) - Hb(b))  !US Standard Atmosphere 1976 equation 23
             T = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
             If (b.EQ.6 .AND. Z.GT.80._dp) T = T * T_M0_correction(Z)  !US Standard Atmosphere 1976 equation 22
         Else
@@ -321,10 +320,10 @@ Function nN2_power(Z,b) Result(x)
     Real(dp) :: M_over_R
     Logical :: Z_below_100
     Real(dp), Parameter :: xb(7:10) = (/ 0._dp, &  !Z = 86km
-                                       & 0.8891736933272194_dp, &  !Z = 91km
-                                       & 3.9815991755600772_dp, &  !Z = 110km
-                                       & 5.0588189719155327_dp /)  !Z = 120km
-    Real(dp), Parameter :: xb_100 = 2.4639385720488779_dp  !Z = 100km
+                                       & 0.8891738712368936_dp, &  !Z = 91km
+                                       & 3.9815997728018476_dp, &  !Z = 110km
+                                       & 5.0588195691573031_dp /)  !Z = 120km
+    Real(dp), Parameter :: xb_100 = 2.4639390409132486_dp  !Z = 100km
     Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE., &
                                                 & .FALSE., &
                                                 & .TRUE., &
@@ -366,22 +365,22 @@ Function nO1_O2_powers(Z,b) Result(x)
     Integer, Intent(In) :: b
     Logical :: Z_below_97
     Real(dp), Parameter :: xb(1:2,7:10) = Reshape( (/ 0._dp, &                   !O1, Z = 86km
-                                                    & -1.2335160528821659_dp, &  !O1, Z = 91km
-                                                    & -1.2350408308007523_dp, &  !O1, Z = 110km
-                                                    & -0.7312343085877384_dp, &  !O1, Z = 120km
                                                     &  0._dp, &                  !O2, Z = 86km
-                                                    &  0.8987087875276969_dp, &  !O2, Z = 91km
-                                                    &  4.5003520516313137_dp, &  !O2, Z = 110km
-                                                    &  5.8804674730121536_dp /), &  !O2, Z = 120km
+                                                    & -1.2335158785532025_dp, &  !O1, Z = 91km
+                                                    &  0.8987089660301271_dp, &  !O2, Z = 91km
+                                                    & -1.2350403922105528_dp, &  !O1, Z = 110km
+                                                    &  4.5003526937771803_dp, &  !O2, Z = 110km
+                                                    & -0.7312338738839638_dp, &  !O1, Z = 120km
+                                                    &  5.8804681169361679_dp /), &  !O2, Z = 120km
                                                     & (/2,4/) )
-    Real(dp), Parameter :: xb_95(1:2) = (/ -1.6326230599173679_dp, &  !O1, Z = 95km
-                                         &  1.6401382531252131_dp /)  !O2, Z = 95km
-    Real(dp), Parameter :: xb_97(1:2) = (/ -1.6736400073418874_dp, &  !O1, Z = 97km
-                                         &  2.0206761115485280_dp /)  !O2, Z = 97km
-    Real(dp), Parameter :: xb_100(1:2) = (/ -1.6519509369598046_dp, &  !O1, Z = 100km
-                                          &  2.6026364795542958_dp /)  !O2, Z = 100km
-    Real(dp), Parameter :: xb_115(1:2) = (/ -0.9801501587157719_dp, &  !O1, Z = 115km
-                                          &  5.2767043940711219_dp /)  !O2, Z = 115km
+    Real(dp), Parameter :: xb_95(1:2) = (/ -1.6326227572400966_dp, &  !O1, Z = 95km
+                                         &  1.6401385731339726_dp /)  !O2, Z = 95km
+    Real(dp), Parameter :: xb_97(1:2) = (/ -1.6736396506936295_dp, &  !O1, Z = 97km
+                                         &  2.0206764985042182_dp /)  !O2, Z = 97km
+    Real(dp), Parameter :: xb_100(1:2) = (/ -1.6519505201748717_dp, &  !O1, Z = 100km
+                                          &  2.6026369578525224_dp /)  !O2, Z = 100km
+    Real(dp), Parameter :: xb_115(1:2) = (/ -0.9801497240119973_dp, &  !O1, Z = 115km
+                                          &  5.2767050379951361_dp /)  !O2, Z = 115km
     Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE., &
                                                 & .FALSE., &
                                                 & .FALSE., &
@@ -430,7 +429,7 @@ Function nO1_O2_integrand1(Z,b)  !for 86 to 95 km
     Real(dp) :: Tz
     Real(dp) :: D(1:2)
     
-    Tz = T(Z,b)
+    Tz = T(Z,b+1)
     D = ai * (Tz / 273.15_dp)**bi / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
     nO1_O2_integrand1 = g(Z) * D * (Mi(2:3) + M0*K0/D) / (R_star * Tz * (D + K0)) + bigQi * (Z - bigUi)**2 * Exp(-bigWi*(Z - bigUi)**3)
     nO1_O2_integrand1(1) = nO1_O2_integrand1(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
@@ -446,7 +445,7 @@ Function nO1_O2_integrand2(Z,b)  !for 95 to 97 km
     Real(dp) :: D(1:2)
     Real(dp) :: K
     
-    Tz = T(Z,b)
+    Tz = T(Z,b+1)
     D = ai * (Tz / 273.15_dp)**bi / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
     K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
     nO1_O2_integrand2 = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + bigQi * (Z - bigUi)**2 * Exp(-bigWi*(Z - bigUi)**3)
@@ -463,7 +462,7 @@ Function nO1_O2_integrand3(Z,b)  !for 97 to 100 km
     Real(dp) :: D(1:2)
     Real(dp) :: K
 
-    Tz = T(Z,b)
+    Tz = T(Z,b+1)
     D = ai * (Tz / 273.15_dp)**bi / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
     K = 1.2E2_dp * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
     nO1_O2_integrand3 = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + bigQi * (Z - bigUi)**2 * Exp(-bigWi*(Z - bigUi)**3)
@@ -479,7 +478,7 @@ Function nO1_O2_integrand4(Z,b)  !for 100 to 115 km
     Real(dp) :: D(1:2)
     Real(dp) :: K
     
-    Tz = T(Z,b)
+    Tz = T(Z,b+1)
     D = ai * (Tz / 273.15_dp)**bi / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
     K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
     nO1_O2_integrand4 = g(Z) * D * (Mi(2:3) + Mi(1)*K/D) / (R_star * Tz * (D + K)) + bigQi * (Z - bigUi)**2 * Exp(-bigWi*(Z - bigUi)**3)
@@ -492,7 +491,7 @@ Function nO1_O2_integrand5(Z,b)  !for 115 to 1000 km
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
 
-    nO1_O2_integrand5 = g(Z) * Mi(2:3) / (R_star * T(Z,b)) + bigQi * (Z - bigUi)**2 * Exp(-bigWi*(Z - bigUi)**3)
+    nO1_O2_integrand5 = g(Z) * Mi(2:3) / (R_star * T(Z,b+1)) + bigQi * (Z - bigUi)**2 * Exp(-bigWi*(Z - bigUi)**3)
 End Function nO1_O2_integrand5
 
 Subroutine N_density(Z,Tz,b,N,f)
@@ -513,13 +512,13 @@ Subroutine N_density(Z,Tz,b,N,f)
     x(2:3) = nO1_O2_powers(Z,b)
     If (Present(f)) Then
         !compute number densities of each species
-        f = N7(1:3) * Tb(7) * Exp(x) / Tz
+        f = N7(1:3) * Tb(7) * Exp(-x) / Tz
         !compute total number density
         N = Sum(f)
         !convert species number densities to fractions
         f = f / N
     Else
-        N = Sum(N7(1:3) * Tb(7) * Exp(x)) / Tz
+        N = Sum(N7(1:3) * Tb(7) * Exp(-x)) / Tz
     End If
 End Subroutine N_density
 
@@ -532,11 +531,11 @@ Function Romberg_Quad_nN2(a,b,p) Result(q)
     Real(dp) :: R(0:10,0:10)  !Romberg table
     Integer :: n,i,j
     Real(dp) :: h,s,ai
-    Real(dp), Parameter :: rTol = 1.E-9_dp
+    Real(dp), Parameter :: rTol = 1.E-12_dp
 
     n = 1
     h = b - a
-    s = 0.5_dp * (g(a) / T(a,p) + g(b) / T(b,p))
+    s = 0.5_dp * (g(a) / T(a,p+1) + g(b) / T(b,p+1))
     R(0,0) = h * s
     Do i = 1,10
         !compute trapezoid estimate for next row of table
@@ -544,7 +543,7 @@ Function Romberg_Quad_nN2(a,b,p) Result(q)
         h = (b - a) / Real(n,dp)
         Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
             ai = a + Real(j,dp)*h
-            s = s + g(ai) / T(ai,p)
+            s = s + g(ai) / T(ai,p+1)
         End Do
         R(0,i) = h * s
         !fill out Romberg table row
@@ -575,7 +574,7 @@ Recursive Subroutine Continue_Romberg_nN2(a,b,p,s,d,R0,level,q)  !adds 10 more r
     Integer :: n,i,j
     Real(dp) :: h,ai
     Integer :: fours
-    Real(dp), Parameter :: rTol = 1.E-9_dp
+    Real(dp), Parameter :: rTol = 1.E-12_dp
     
     R(0:d,0) = R0
     Do i = 1,10
@@ -584,7 +583,7 @@ Recursive Subroutine Continue_Romberg_nN2(a,b,p,s,d,R0,level,q)  !adds 10 more r
         h = (b - a) / Real(n,dp)
         Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
             ai = a + Real(j,dp)*h
-            s = s + g(ai) / T(ai,p)
+            s = s + g(ai) / T(ai,p+1)
         End Do
         R(0,i) = h * s
         !fill out Romberg table row
@@ -613,12 +612,12 @@ Function Romberg_Quad_nO1_O2(f,a,b,p) Result(q)
     Implicit None
     Real(dp):: q(1:2)    !the result of the integration
     Interface
-        Function f(x,i)    !the function to be integrated
+        Function f(x,k)    !the function to be integrated
             Use Kinds,Only: dp
             Implicit None
             Real(dp) :: f(1:2)
             Real(dp), Intent(In) :: x
-            Integer, Intent(In) :: i
+            Integer, Intent(In) :: k
         End Function f
     End Interface
     Real(dp), Intent(In) :: a,b    !limits of integration
@@ -626,7 +625,7 @@ Function Romberg_Quad_nO1_O2(f,a,b,p) Result(q)
     Real(dp) :: R(1:2,0:10,0:10)  !Romberg table
     Integer :: n,i,j
     Real(dp) :: h,s(1:2)
-    Real(dp), Parameter :: rTol = 1.E-6_dp
+    Real(dp), Parameter :: rTol = 1.E-9_dp
 
     n = 1
     h = b - a
@@ -658,12 +657,12 @@ Recursive Subroutine Continue_Romberg_nO1_O2(f,a,b,p,s,d,R0,level,q)  !adds 10 m
     Use Kinds, Only: dp
     Implicit None
     Interface
-        Function f(x,i)    !the function to be integrated
+        Function f(x,k)    !the function to be integrated
             Use Kinds,Only: dp
             Implicit None
             Real(dp) :: f(1:2)
             Real(dp), Intent(In) :: x
-            Integer, Intent(In) :: i
+            Integer, Intent(In) :: k
         End Function f
     End Interface
     Real(dp), Intent(In) :: a,b    !limits of integration
@@ -677,7 +676,7 @@ Recursive Subroutine Continue_Romberg_nO1_O2(f,a,b,p,s,d,R0,level,q)  !adds 10 m
     Integer :: n,i,j
     Real(dp) :: h
     Integer :: fours
-    Real(dp), Parameter :: rTol = 1.E-6_dp
+    Real(dp), Parameter :: rTol = 1.E-9_dp
     
     R(:,0:d,0) = R0
     Do i = 1,10
@@ -729,7 +728,6 @@ Function P(Z,layer,layer_range)
     End If
     If (Lb_nonzero(b)) Then
         If (T_linear_by_H(b)) Then
-            !T = Tb(b) + Lb(b) * (Z_to_H(Z) - Hb(b))  !US Standard Atmosphere 1976 equation 23
             T = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
             If (b.EQ.6 .AND. Z.GT.80._dp) T = T * T_M0_correction(Z)  !US Standard Atmosphere 1976 equation 22
         Else
@@ -779,7 +777,6 @@ Function rho(Z,layer,layer_range)
     End If
     If (Lb_nonzero(b)) Then
         If (T_linear_by_H(b)) Then
-            !T = Tb(b) + Lb(b) * (Z_to_H(Z) - Hb(b))  !US Standard Atmosphere 1976 equation 23
             T = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
             If (b.EQ.6 .AND. Z.GT.80._dp) T = T * T_M0_correction(Z)  !US Standard Atmosphere 1976 equation 22
         Else
@@ -790,16 +787,19 @@ Function rho(Z,layer,layer_range)
             rho = P * rho_star /  T  !US Standard Atmosphere 1976 equation 42-1
         Else
             Call N_density(Z,T,b,N,f)
-            rho = Sum(N * f * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
+            rho = Sum(f*N * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
+            rho = rho * 1000._dp  !convert kg/m^3 to g/m^3
         End If
     Else If (T_exponential(b)) Then
         T = T_inf - (T_inf - Tb(b)) * Exp(-lambda * (Z - Zb(b)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
         Call N_density(Z,T,b,N,f)
-        rho = Sum(N * f * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
+        rho = Sum(f*N * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
+        rho = rho * 1000._dp  !convert kg/m^3 to g/m^3
     Else If (T_elliptical(b)) Then
         T = Tc + big_A * Sqrt(1._dp - ((Z - Zb(b)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
         Call N_density(Z,T,b,N,f)
-        rho = Sum(N * f * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
+        rho = Sum(f*N * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
+        rho = rho * 1000._dp  !convert kg/m^3 to g/m^3
     Else !zero lapse rate
         T = Tb(b)
         If (P_rho_not_by_N(b)) Then
@@ -807,7 +807,8 @@ Function rho(Z,layer,layer_range)
             rho = P * rho_star /  T  !US Standard Atmosphere 1976 equation 42-1
         Else
             Call N_density(Z,T,b,N,f)
-            rho = Sum(N * f * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
+            rho = Sum(f*N * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
+            rho = rho * 1000._dp  !convert kg/m^3 to g/m^3
         End If
     End If
 End Function rho
