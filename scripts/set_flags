@@ -17,6 +17,8 @@ ALWAYS_FLAGS="-ffree-line-length-0 -fimplicit-none -fmax-errors=5 ${DIR_FLAGS}"
 COMP_FLAGS="-g -Og -Wall -pedantic -fcheck=all -fbacktrace ${ALWAYS_FLAGS}"
 # RELEASE Compiler Flags (optimize for runtime speed)
 #COMP_FLAGS="-Ofast ${ALWAYS_FLAGS}"
+# RASPBERRY PI RELEASE Compiler Flags (because this development environment is super-high performance!)
+#COMP_FLAGS="-Ofast -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mtune=cortex-a53 ${ALWAYS_FLAGS}"
 
 # LINKER Flags
 LINK_FLAGS="-flto -fuse-linker-plugin"
