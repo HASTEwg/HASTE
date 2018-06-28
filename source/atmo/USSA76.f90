@@ -165,7 +165,8 @@ Module US_Std_Atm_1976
     Real(dp), Parameter :: Mi(1:5) = (/ 28.0134_dp, &  !N2
                                       & 15.9994_dp, &  !O1
                                       & 31.9988_dp, &  !O2
-                                      & 39.948_dp   /) !Ar  !US Standard Atmosphere 1976 table 3
+                                      & 39.948_dp,  &  !Ar
+                                      &  4.0026_dp  /) !He  !US Standard Atmosphere 1976 table 3
     Real(dp), Parameter :: ai(2:5) = (/ 6.986E20_dp, &  !O1
                                       & 4.863E20_dp, &  !O2
                                       & 4.487E20_dp, &  !Ar
@@ -813,7 +814,7 @@ Function rho(Z,layer,layer_range)
         End If
         If (P_rho_not_by_N(b)) Then
             Pz = Pb_Tb_L_star_Lb(b) * Tz**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
-            rho = P * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
+            rho = Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
         Else
             Call rho_N(Z,Tz,b,N)
             rho = Sum(N * Mi(1:3)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
