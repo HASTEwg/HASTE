@@ -12,13 +12,23 @@ OBJ_DIR="../build/obj/"
 DIR_FLAGS="-I${OBJ_DIR} -J${OBJ_DIR}"
 ALWAYS_FLAGS="-ffree-line-length-0 -fimplicit-none -fmax-errors=5 ${DIR_FLAGS}"
 # DEVELOPMENT Flags (fastest compile cycle, no object files, no linking)
-#COMP_FLAGS="-O0 -fmax-errors=5 -Wall -Wextra -pedantic ${ALWAYS_FLAGS} -fsyntax-only"
+SYNTAX_FLAGS="-O0 -fmax-errors=5 -Wall -Wextra -pedantic ${ALWAYS_FLAGS} -fsyntax-only"
 # DEBUG Compiler Flags (for debug builds, fast compile with full debug information)
-COMP_FLAGS="-g -Og -Wall -pedantic -fcheck=all -fbacktrace ${ALWAYS_FLAGS}"
+DEBUG_FLAGS="-g -Og -Wall -pedantic -fcheck=all -fbacktrace ${ALWAYS_FLAGS}"
 # RELEASE Compiler Flags (optimize for runtime speed)
-#COMP_FLAGS="-Ofast ${ALWAYS_FLAGS}"
+RELEASE_FLAGS="-Ofast ${ALWAYS_FLAGS}"
 # RASPBERRY PI RELEASE Compiler Flags (because this development environment is super-high performance!)
-#COMP_FLAGS="-Ofast -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mtune=cortex-a53 ${ALWAYS_FLAGS}"
+RELEASE_FLAGS_PI="-Ofast -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mtune=cortex-a53 ${ALWAYS_FLAGS}"
+# Set compiler flags based on command flag
+while getopts 'sdrp' flag; do
+  case "${flag}" in
+    s) COMP_FLAGS="${SYNTAX_FLAGS}" ;;
+    d) COMP_FLAGS="${DEBUG_FLAGS}" ;;
+    r) COMP_FLAGS="${RELEASE_FLAGS}" ;;
+    p) COMP_FLAGS="${RELEASE_FLAGS_PI}" ;;
+    *) COMP_FLAGS="${DEBUG_FLAGS}" ;;
+  esac
+done
 
 # LINKER Flags
 LINK_FLAGS="-flto -fuse-linker-plugin"
