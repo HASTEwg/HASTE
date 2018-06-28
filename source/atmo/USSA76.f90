@@ -16,7 +16,7 @@ Module US_Std_Atm_1976
     Real(dp), Parameter :: R_Earth = 6356.766_dp  ![km]  Radius of earth (nominal) at 45 deg latitude, used to relate geometric and geopotential heights, from US Std Atmosphere 1976
     Real(dp), Parameter :: R_star = 8.31432_dp  ![J / (mol*K)]  Universal gas constant as defined in US Standard Atmosphere 1976
     Real(dp), Parameter :: M0 = 28.964425912034_dp  ![kg / kmol] Average molecular weight of the ten most abundant species in air, weighted by relative abundance, from US Std Atmosphere 1976
-    Real(dp), Parameter :: Hb(0:7) = (/ 0._dp, &  ![km] geopotential heights of layer boundaries, US Standard Atmosphere 1976 table 4 
+    Real(dp), Parameter :: Hb(0:7) = (/ 0._dp,  &  ![km] geopotential heights of layer boundaries, US Standard Atmosphere 1976 table 4 
                                       & 11._dp, & 
                                       & 20._dp, & 
                                       & 32._dp, & 
@@ -49,19 +49,19 @@ Module US_Std_Atm_1976
                                        &  0._dp,  &
                                        &  0._dp   /)
     Real(dp), Parameter :: Tb(0:11) = (/ 288.15_dp, &  ![K] Computed temperature at layer boundaries 
-                                      & 216.65_dp, & 
-                                      & 216.65_dp, & 
-                                      & 228.65_dp, & 
-                                      & 270.65_dp, & 
-                                      & 270.65_dp, & 
-                                      & 214.65_dp, &
-                                      !& 186.9459083101885122_dp, & !<--value is for when M0 correction is NOT accounted for
-                                      !& 186.9459083101885122_dp, & !<--value is for when M0 correction is NOT accounted for
-                                      & 186.8671666936082608_dp, & !<--value is for when M0 correction is accounted for
-                                      & 186.8671666936082608_dp, & !<--value is for when M0 correction is accounted for
-                                      & 240._dp, &
-                                      & 360._dp, &
-                                      & 1000._dp /)
+                                       & 216.65_dp, & 
+                                       & 216.65_dp, & 
+                                       & 228.65_dp, & 
+                                       & 270.65_dp, & 
+                                       & 270.65_dp, & 
+                                       & 214.65_dp, &
+                                       !& 186.9459083101885122_dp, & !<--value is for when M0 correction is NOT accounted for
+                                       !& 186.9459083101885122_dp, & !<--value is for when M0 correction is NOT accounted for
+                                       & 186.8671666936082608_dp, & !<--value is for when M0 correction is accounted for
+                                       & 186.8671666936082608_dp, & !<--value is for when M0 correction is accounted for
+                                       & 240._dp, &
+                                       & 360._dp, &
+                                       & 1000._dp /)
     Real(dp), Parameter :: Pb(0:7) = (/ 101325._dp, &   ![Pa] Computed pressure at layer boundaries
                                       & 22632.0336238972840275_dp, & 
                                       & 5474.87437675730708586_dp, & 
@@ -207,6 +207,11 @@ Module US_Std_Atm_1976
                                           & 4._dp**10 /)
     Real(dp), Parameter :: Romb2(1:10) = 1._dp / (Romb1 - 1._dp)
     
+    Interface rho_N
+        Module Procedure N_densities
+        Module Procedure N_density
+    End Interface rho_N
+    
 Contains
 
 Function Find_Base_Layer(Z,iZb) Result(b)
@@ -292,20 +297,20 @@ Function T_M0_correction(Z) Result(c)
     Real(dp) :: c
     Real(dp), Intent(In) :: Z
     Integer :: i
-    Real(dp), Parameter :: Zm_corr(0:12) = (/ 80._dp, &
+    Real(dp), Parameter :: Zm_corr(0:12) = (/ 80._dp,  &
                                             & 80.5_dp, &
-                                            & 81._dp, &
+                                            & 81._dp,  &
                                             & 81.5_dp, &
-                                            & 82._dp, &
+                                            & 82._dp,  &
                                             & 82.5_dp, &
-                                            & 83._dp, &
+                                            & 83._dp,  &
                                             & 83.5_dp, &
-                                            & 84._dp, &
+                                            & 84._dp,  &
                                             & 84.5_dp, &
-                                            & 85._dp, &
+                                            & 85._dp,  &
                                             & 85.5_dp, &
-                                            & 86._dp /)
-    Real(dp), Parameter :: M0_corr(0:12) = (/ 1._dp, &
+                                            & 86._dp   /)
+    Real(dp), Parameter :: M0_corr(0:12) = (/ 1._dp,       &
                                             & 0.999996_dp, &
                                             & 0.999989_dp, &
                                             & 0.999971_dp, &
@@ -331,15 +336,15 @@ Function nN2_power(Z,b) Result(x)
     Integer, Intent(In) :: b
     Real(dp) :: M_over_R
     Logical :: Z_below_100
-    Real(dp), Parameter :: xb(7:10) = (/ 0._dp, &  !Z = 86km
+    Real(dp), Parameter :: xb(7:10) = (/ 0._dp,                 &  !Z = 86km
                                        & 0.8891738712368936_dp, &  !Z = 91km
                                        & 3.9815997728018476_dp, &  !Z = 110km
-                                       & 5.0588195691573031_dp /)  !Z = 120km
+                                       & 5.0588195691573031_dp  /) !Z = 120km
     Real(dp), Parameter :: xb_100 = 2.4639390409132486_dp  !Z = 100km
-    Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE., &
+    Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE.,  &
                                                 & .FALSE., &
-                                                & .TRUE., &
-                                                & .TRUE. /)
+                                                & .TRUE.,  &
+                                                & .TRUE.   /)
     Real(dp), Parameter :: rho_star_N2 = Mi(1) / R_star
     
     If (Z .LE. 100._dp) Then
@@ -383,20 +388,20 @@ Function nO1_O2_powers(Z,b) Result(x)
                                                     & -1.2350403922105528_dp, &  !O1, Z = 110km
                                                     &  4.5003526937771803_dp, &  !O2, Z = 110km
                                                     & -0.7312338738839638_dp, &  !O1, Z = 120km
-                                                    &  5.8804681169361679_dp /), &  !O2, Z = 120km
+                                                    &  5.8804681169361679_dp  /), &  !O2, Z = 120km
                                                     & (/2,4/) )
-    Real(dp), Parameter :: xb_95(1:2) = (/ -1.6326227572400966_dp, &  !O1, Z = 95km
-                                         &  1.6401385731339726_dp /)  !O2, Z = 95km
-    Real(dp), Parameter :: xb_97(1:2) = (/ -1.6736396506936295_dp, &  !O1, Z = 97km
-                                         &  2.0206764985042182_dp /)  !O2, Z = 97km
+    Real(dp), Parameter :: xb_95(1:2) =  (/ -1.6326227572400966_dp, &  !O1, Z = 95km
+                                          &  1.6401385731339726_dp  /) !O2, Z = 95km
+    Real(dp), Parameter :: xb_97(1:2) =  (/ -1.6736396506936295_dp, &  !O1, Z = 97km
+                                          &  2.0206764985042182_dp  /) !O2, Z = 97km
     Real(dp), Parameter :: xb_100(1:2) = (/ -1.6519505201748717_dp, &  !O1, Z = 100km
-                                          &  2.6026369578525224_dp /)  !O2, Z = 100km
+                                          &  2.6026369578525224_dp  /) !O2, Z = 100km
     Real(dp), Parameter :: xb_115(1:2) = (/ -0.9801497240119973_dp, &  !O1, Z = 115km
-                                          &  5.2767050379951361_dp /)  !O2, Z = 115km
-    Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE., &
+                                          &  5.2767050379951361_dp  /) !O2, Z = 115km
+    Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE.,  &
                                                 & .FALSE., &
                                                 & .FALSE., &
-                                                & .TRUE. /)
+                                                & .TRUE.   /)
     
     If (Z .LE. 97._dp) Then
         Z_below_97 = .TRUE.
@@ -443,8 +448,10 @@ Function nO1_O2_integrand1(Z,b)  !for 86 to 95 km
     
     Tz = T(Z,b+1)
     D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
-    nO1_O2_integrand1 = g(Z) * D * (Mi(2:3) + M0*K0/D) / (R_star * Tz * (D + K0)) + bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
-    nO1_O2_integrand1(1) = nO1_O2_integrand1(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
+    nO1_O2_integrand1 = g(Z) * D * (Mi(2:3) + M0*K0/D) / (R_star * Tz * (D + K0)) + & 
+                      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
+    nO1_O2_integrand1(1) = nO1_O2_integrand1(1) + & 
+                         & littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
 End Function nO1_O2_integrand1
 
 Function nO1_O2_integrand2(Z,b)  !for 95 to 97 km
@@ -460,8 +467,10 @@ Function nO1_O2_integrand2(Z,b)  !for 95 to 97 km
     Tz = T(Z,b+1)
     D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
     K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
-    nO1_O2_integrand2 = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
-    nO1_O2_integrand2(1) = nO1_O2_integrand2(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
+    nO1_O2_integrand2 = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + & 
+                      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
+    nO1_O2_integrand2(1) = nO1_O2_integrand2(1) + &
+                         & littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
 End Function nO1_O2_integrand2
 
 Function nO1_O2_integrand3(Z,b)  !for 97 to 100 km
@@ -477,7 +486,8 @@ Function nO1_O2_integrand3(Z,b)  !for 97 to 100 km
     Tz = T(Z,b+1)
     D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
     K = 1.2E2_dp * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
-    nO1_O2_integrand3 = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
+    nO1_O2_integrand3 = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + & 
+                      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand3
 
 Function nO1_O2_integrand4(Z,b)  !for 100 to 115 km
@@ -493,7 +503,8 @@ Function nO1_O2_integrand4(Z,b)  !for 100 to 115 km
     Tz = T(Z,b+1)
     D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
     K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
-    nO1_O2_integrand4 = g(Z) * D * (Mi(2:3) + Mi(1)*K/D) / (R_star * Tz * (D + K)) + bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
+    nO1_O2_integrand4 = g(Z) * D * (Mi(2:3) + Mi(1)*K/D) / (R_star * Tz * (D + K)) + & 
+                      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand4
 
 Function nO1_O2_integrand5(Z,b)  !for 115 to 1000 km
@@ -503,36 +514,41 @@ Function nO1_O2_integrand5(Z,b)  !for 115 to 1000 km
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
 
-    nO1_O2_integrand5 = g(Z) * Mi(2:3) / (R_star * T(Z,b+1)) + bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
+    nO1_O2_integrand5 = g(Z) * Mi(2:3) / (R_star * T(Z,b+1)) + & 
+                      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand5
 
-Subroutine N_density(Z,Tz,b,N,f)
-    !returns total number density and fractional composition of atmosphere above 86km geometric altitude
+Subroutine N_densities(Z,Tz,b,N)
+    !returns number density of each atmospheric constituent above 86km geometric altitude
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp), Intent(In) :: Z
+    Real(dp), Intent(In) :: Tz
+    Integer, Intent(In) :: b
+    Real(dp), Intent(Out) :: N(1:3)
+    Real(dp) :: x(1:3)
+    !UNDONE Extend N_density (and other functionality in this module) to compute N for Ar, He, and H
+    
+    !N2 power
+    x(1) = nN2_power(Z,b)
+    !O1 & O2 powers
+    x(2:3) = nO1_O2_powers(Z,b)
+    !compute number densities of each species
+    N = N7(1:3) * Tb(7) * Exp(-x) / Tz
+End Subroutine N_densities
+
+Subroutine N_density(Z,Tz,b,N)
+    !returns total number density of atmosphere above 86km geometric altitude
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: Z
     Real(dp), Intent(In) :: Tz
     Integer, Intent(In) :: b
     Real(dp), Intent(Out) :: N
-    Real(dp), Intent(Out), Optional :: f(1:3)
-    Real(dp) :: x(1:3)
-    !UNDONE Extend N_density (and other functionality in this module) to compute N for Ar, He, and H
+    Real(dp) :: Ns(1:3)
     
-    f = 0._dp
-    !N2 power
-    x(1) = nN2_power(Z,b)
-    !O1 & O2 powers
-    x(2:3) = nO1_O2_powers(Z,b)
-    If (Present(f)) Then
-        !compute number densities of each species
-        f = N7(1:3) * Tb(7) * Exp(-x) / Tz
-        !compute total number density
-        N = Sum(f)
-        !convert species number densities to fractions
-        f = f / N
-    Else
-        N = Sum(N7(1:3) * Tb(7) * Exp(-x)) / Tz
-    End If
+    Call N_densities(Z,Tz,b,Ns)
+    N = Sum(Ns)
 End Subroutine N_density
 
 Function Romberg_Quad_nN2(a,b,p) Result(q)
@@ -604,7 +620,6 @@ Recursive Subroutine Continue_Romberg_nN2(a,b,p,s,d,R0,level,q)  !adds 10 more r
         Do j = 1,d+i
             fours = fours * 4
             R(j,i) = (Real(fours,dp) * R(j-1,i) - R(j-1,i-1)) / Real(fours - 1,dp)
-            !R(j,i) = (((4._dp)**j) * R(j-1,i) - R(j-1,i-1)) / (((4._dp)**j) - 1._dp)
         End Do
         !check for convergence
         If ( Abs(R(i-1,i-1) - R(i,i)) .LE. rTol * Abs(R(i,i)) ) Then
@@ -705,7 +720,6 @@ Recursive Subroutine Continue_Romberg_nO1_O2(f,a,b,p,s,d,R0,level,q)  !adds 10 m
         Do j = 1,d+i
             fours = fours * 4
             R(:,j,i) = (Real(fours,dp) * R(:,j-1,i) - R(:,j-1,i-1)) / Real(fours - 1,dp)
-            !R(:,j,i) = (((4._dp)**j) * R(:,j-1,i) - R(:,j-1,i-1)) / (((4._dp)**j) - 1._dp)
         End Do
         !check for convergence
         If ( All( Abs(R(:,i-1,i-1) - R(:,i,i)) .LE. rTol * Abs(R(:,i,i)) ) ) Then
@@ -749,23 +763,23 @@ Function P(Z,layer,layer_range)
         If (P_rho_not_by_N(b)) Then
             P = Pb_Tb_L_star_Lb(b) * Tz**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
         Else
-            Call N_density(Z,Tz,b,N)
+            Call rho_N(Z,Tz,b,N)
             P = N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
         End If
     Else If (T_exponential(b)) Then
         Tz = T_inf - (T_inf - Tb(b)) * Exp(-lambda * (Z - Zb(b)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
-        Call N_density(Z,Tz,b,N)
+        Call rho_N(Z,Tz,b,N)
         P = N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
     Else If (T_elliptical(b)) Then
         Tz = Tc + big_A * Sqrt(1._dp - ((Z - Zb(b)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
-        Call N_density(Z,Tz,b,N)
+        Call rho_N(Z,Tz,b,N)
         P = N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
     Else !zero lapse rate
         Tz = Tb(b)
         If (P_rho_not_by_N(b)) Then
             P = Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
         Else
-            Call N_density(Z,Tz,b,N)
+            Call rho_N(Z,Tz,b,N)
             P = N * Tb(b) * N_star  !US Standard Atmosphere 1976 equation 33c
         End If
     End If
@@ -778,8 +792,9 @@ Function rho(Z,layer,layer_range)
     Real(dp), Intent(In) :: Z ![km]
     Integer, Intent(In), Optional :: layer
     Integer, Intent(In), Optional :: layer_range(1:3)
-    Real(dp) :: Tz,Pz,N,f(1:3)
+    Real(dp) :: Tz,Pz,N(1:3)
     Integer :: b
+    Real(dp), Parameter :: kg2g = 1000._dp  !conversion for kg to g
     
     !find atmospheric base layer
     If (Present(layer)) Then
@@ -800,29 +815,25 @@ Function rho(Z,layer,layer_range)
             Pz = Pb_Tb_L_star_Lb(b) * Tz**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
             rho = P * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
         Else
-            Call N_density(Z,Tz,b,N,f)
-            rho = Sum(f*N * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
-            rho = rho * 1000._dp  !convert kg/m^3 to g/m^3
+            Call rho_N(Z,Tz,b,N)
+            rho = Sum(N * Mi(1:3)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
         End If
     Else If (T_exponential(b)) Then
         Tz = T_inf - (T_inf - Tb(b)) * Exp(-lambda * (Z - Zb(b)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
-        Call N_density(Z,Tz,b,N,f)
-        rho = Sum(f*N * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
-        rho = rho * 1000._dp  !convert kg/m^3 to g/m^3
+        Call rho_N(Z,Tz,b,N)
+        rho = Sum(N * Mi(1:3)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
     Else If (T_elliptical(b)) Then
         Tz = Tc + big_A * Sqrt(1._dp - ((Z - Zb(b)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
-        Call N_density(Z,Tz,b,N,f)
-        rho = Sum(f*N * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
-        rho = rho * 1000._dp  !convert kg/m^3 to g/m^3
+        Call rho_N(Z,Tz,b,N)
+        rho = Sum(N * Mi(1:3)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
     Else !zero lapse rate
         Tz = Tb(b)
         If (P_rho_not_by_N(b)) Then
             Pz = Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
             rho = Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
         Else
-            Call N_density(Z,Tz,b,N,f)
-            rho = Sum(f*N * Mi(1:3)) * inv_Na  !US Standard Atmosphere 1976 equation 42-3
-            rho = rho * 1000._dp  !convert kg/m^3 to g/m^3
+            Call rho_N(Z,Tz,b,N)
+            rho = Sum(N * Mi(1:3)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
         End If
     End If
 End Function rho
