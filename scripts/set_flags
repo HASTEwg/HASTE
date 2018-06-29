@@ -20,13 +20,13 @@ RELEASE_FLAGS="-Ofast ${ALWAYS_FLAGS}"
 # RASPBERRY PI RELEASE Compiler Flags (because this development environment is super-high performance!)
 RELEASE_FLAGS_PI="-Ofast -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mtune=cortex-a53 ${ALWAYS_FLAGS}"
 # Set compiler flags based on command flag
+COMP_FLAGS="${DEBUG_FLAGS}"
 while getopts 'sdrp' flag; do
   case "${flag}" in
     s) COMP_FLAGS="${SYNTAX_FLAGS}" ;;
     d) COMP_FLAGS="${DEBUG_FLAGS}" ;;
     r) COMP_FLAGS="${RELEASE_FLAGS}" ;;
     p) COMP_FLAGS="${RELEASE_FLAGS_PI}" ;;
-    *) COMP_FLAGS="${DEBUG_FLAGS}" ;;
   esac
 done
 

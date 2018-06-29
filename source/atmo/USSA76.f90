@@ -438,9 +438,9 @@ Function nO1_O2_powers(Z,b) Result(x)
                 x = xb_100 + Romberg_Quad_nO1_O2(nO1_O2_integrand3,100._dp,Z,b)
             Else !b=9
                 If (Z .LT. 115._dp) Then
-                    x = xb(:,9) + Romberg_Quad_nO1_O2(nO1_O2_integrand3,Zb(9),Z,b)
+                    x = xb(:,9) + Romberg_Quad_nO1_O2(nO1_O2_integrand4,Zb(9),Z,b)
                 Else
-                    x = xb_115 + Romberg_Quad_nO1_O2(nO1_O2_integrand4,115._dp,Z,b)
+                    x = xb_115 + Romberg_Quad_nO1_O2(nO1_O2_integrand5,115._dp,Z,b)
                 End If
             End If
         End If

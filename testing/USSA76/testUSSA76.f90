@@ -9,45 +9,42 @@ Implicit None
 
 Integer :: i,j,unit
 Real(dp) :: z
+Real(dp) :: temp,pres,dens
 
-Real(dp), Parameter :: dZmax = 1.E-3 !1 meter
+Real(dp), Parameter :: dZmax = 1.E-3_dp !1 meter
 
 Open(NEWUNIT=unit,FILE='TPRho.tst',ACTION='WRITE',STATUS='REPLACE')
-z = Zb(0)
 i = 1
 j = 1
+z = 0._dp
+Write(*,*)
+Write(*,'(A9,3A14)') ' Z [km] ','   T [K]   ','   P [pa]   ',' rho [g/m^3]'
+Write(*,'(A9,3A14)') '--------','-----------','------------','------------'
+temp = T(z)
+pres = P(z)
+dens = rho(z)
+Write(*,'(A,F9.3,3ES14.6)') ACHAR(13),z,temp,pres,dens
+Write(unit,'(F9.3,3ES24.16)') z,temp,pres,dens
 Do
-    Write(unit,'(4ES24.16)') z,T(z),P(z),rho(z)
+    temp = T(z)
+    pres = P(z)
+    dens = rho(z)
+    Write(*,'(A,F9.3,3ES14.6)',ADVANCE='NO') ACHAR(13),z,temp,pres,dens
+    Write(unit,'(F9.3,3ES24.16)') z,temp,pres,dens
     z = Real(j,dp) * dZmax
     If (z .GE. Zb(i)) Then
         If (i .GT. Size(Zb)+1) Exit
-        z = Zb(i)
+        temp = T(Zb(i))
+        pres = P(Zb(i))
+        dens = rho(Zb(i))
+        Write(*,'(A,F9.3,3ES14.6)') ACHAR(13),Zb(i),temp,pres,dens
+        Write(unit,'(F9.3,3ES24.16)') Zb(i),temp,pres,dens
         i = i + 1
     Else
         j = j + 1
     End If
 End Do
 Close(unit)
-
-z = 0._dp
-Write(*,'(F9.3,F32.15)') z,rho(z)
-z = 86._dp
-Write(*,'(F9.3,F32.15)') z,rho(z)
-z = 90._dp
-Write(*,'(F9.3,F32.15)') z,rho(z)
-z = 91._dp
-Write(*,'(F9.3,F32.15)') z,rho(z)
-z = 92._dp
-Write(*,'(F9.3,F32.15)') z,rho(z)
-z = 97._dp
-Write(*,'(F9.3,F32.15)') z,rho(z)
-z = 100._dp
-Write(*,'(F9.3,F32.15)') z,rho(z)
-z = 115._dp
-Write(*,'(F9.3,F32.15)') z,rho(z)
-z = 250._dp
-Write(*,'(F9.3,F32.15)') z,rho(z)
-z = 500._dp
-Write(*,'(F9.3,F32.15)') z,rho(z)
+Write(*,*)
 
 End Program
