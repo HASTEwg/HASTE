@@ -986,18 +986,18 @@ Function nH(Z)
         nH = nH500
         RETURN
     End If
-    nH = p6(Z,-1._dp) * (nH500 + phiH * Romberg_Quad_nH(Z,500._dp))
+    nH = (nH500 + phiH * Romberg_Quad_nH(Z,500._dp)) / p6(Z)
 End Function nH
 
-Function p6(Z,c)
+Function p6(Z)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: p6
-    Real(dp), Intent(In) :: Z,c
+    Real(dp), Intent(In) :: Z
     !TODO Get a higher precision value for T500
     Real(dp), Parameter :: T500 = 999.235602_dp
     
-    p6 = (T(Z,11) / T500)**(c*(1._dp + alphai(6))) * Exp(-c * Romberg_Quad_nH_p6(Z,500._dp))
+    p6 = (T(Z,11) / T500)**(1._dp + alphai(6)) * Exp(Romberg_Quad_nH_p6(Z,500._dp))
 End Function p6
 
 Function nH_integrand(Z) Result(f)
@@ -1013,7 +1013,7 @@ Function nH_integrand(Z) Result(f)
       & ( (N7(1) * Tb(7) * Exp(-nN2_power(Z,10)) + & 
       &    Sum(N7(2:3) * Tb(7) * Exp(-nO1_O2_power(Z,10)) + & 
       &    Sum(N7(4:5) * Tb(7) * Exp(-nAr_He_power(Z,10))) ) / Tz)
-    f = p6(Z,1._dp) / D
+    f = p6(Z) / D
 End Function nH_integrand
 
 Function Romberg_Quad_nH(a,b) Result(q)
