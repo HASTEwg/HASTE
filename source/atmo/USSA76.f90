@@ -8,8 +8,11 @@ Module US_Std_Atm_1976
     Public :: P
     Public :: rho    
     Public :: Zb
-    !TEMPORARILY PUBLIC
-    Public :: nN2_power_stops,nO1_O2_power_stops,nAr_He_power_stops
+#   if TEST
+        Public :: nN2_power_stops
+        Public :: nO1_O2_power_stops
+        Public :: nAr_He_power_stops
+#   endif
 
     !US Standard Atmosphere 1976 parameters
     !The following constants are defined here to ensure consistency with 1976 atmosphere model definition.
@@ -1310,10 +1313,12 @@ Elemental Function H_to_Z(H) Result(Z)
     Z = H * R_Earth / (R_Earth - H)
 End Function H_to_Z
 
+# if TEST
 !---------------------------------------------------------------------------------
 !  The following routines are used only for computing the 'stop' values for the 
 !  number density integrals:  Used to compute necessary constants which are then 
-!  hard-coded in the source.
+!  hard-coded in the source.  They are included in compilation by defining 'TEST' 
+!  as a conditional compiler directive for the preprocessor
 !---------------------------------------------------------------------------------
 Function nN2_power_stops() Result(xb)
     Use Kinds, Only: dp
@@ -1820,5 +1825,6 @@ Function nO1_O2_powers_hi(Z,b) Result(x)
         End If
     End If
 End Function nO1_O2_powers_hi
+# endif
 
 End Module US_Std_Atm_1976
