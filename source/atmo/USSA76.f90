@@ -1318,21 +1318,22 @@ End Function H_to_Z
 Function nN2_power_stops() Result(xb)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: xb(1:5)
+    Real(dp) :: xb(1:5,1:2)
     Real(dp), Parameter :: Zs(1:5) = (/  86._dp, &
-                                          &  91._dp, & 
-                                          & 100._dp, & 
-                                          & 110._dp, & 
-                                          & 120._dp  /)
+                                      &  91._dp, & 
+                                      & 100._dp, & 
+                                      & 110._dp, & 
+                                      & 120._dp  /)
     Integer, Parameter :: bs(1:5) = (/  7, &
                                      &  8, & 
                                      &  8, & 
                                      &  9, & 
                                      & 10  /)
 
-    xb = 0._dp
+    xb(:,1) = Zs
+    xb(:,2) = 0._dp
     Do i = 2,5
-        xb(i) = Sum(xb(1:i-1)) + Romberg_Quad_nN2_hi(Zs(i-1),Zs(i),b(i-1))
+        xb(i,2) = Sum(xb(1:i-1,2)) + Romberg_Quad_nN2_hi(Zs(i-1),Zs(i),b(i-1))
     End Do
 End Function nN2_power_stops
 
@@ -1423,7 +1424,7 @@ End Subroutine Continue_Romberg_nN2_hi
 Function nO1_O2_power_stops() Result(xb)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: xb(1:8,1:2)
+    Real(dp) :: xb(1:8,1:3)
     Real(dp), Parameter :: Zs(1:8) = (/  86._dp, &
                                       &  91._dp, & 
                                       &  95._dp, & 
@@ -1441,14 +1442,15 @@ Function nO1_O2_power_stops() Result(xb)
                                      &  9, & 
                                      & 10  /)
 
-    xb = 0._dp
-    xb(2,:) = Sum(xb(1:1,:),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand1_hi,Zs(1),Zs(2),b(1)) !up to 91km
-    xb(3,:) = Sum(xb(1:2,:),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand1_hi,Zs(2),Zs(3),b(2)) !up to 95km
-    xb(4,:) = Sum(xb(1:3,:),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand2_hi,Zs(3),Zs(4),b(3)) !up to 97km
-    xb(5,:) = Sum(xb(1:4,:),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand3_hi,Zs(4),Zs(5),b(4)) !up to 100km
-    xb(6,:) = Sum(xb(1:5,:),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand4_hi,Zs(5),Zs(6),b(5)) !up to 110km
-    xb(7,:) = Sum(xb(1:6,:),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand4_hi,Zs(6),Zs(7),b(6)) !up to 115km
-    xb(8,:) = Sum(xb(1:7,:),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand5,Zs(7),Zs(8),b(7)) !up to 120km
+    xb(:,1) = Zs
+    xb(:,2:3) = 0._dp
+    xb(2,2:3) = Sum(xb(1:1,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand1_hi,Zs(1),Zs(2),b(1)) !up to 91km
+    xb(3,2:3) = Sum(xb(1:2,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand1_hi,Zs(2),Zs(3),b(2)) !up to 95km
+    xb(4,2:3) = Sum(xb(1:3,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand2_hi,Zs(3),Zs(4),b(3)) !up to 97km
+    xb(5,2:3) = Sum(xb(1:4,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand3_hi,Zs(4),Zs(5),b(4)) !up to 100km
+    xb(6,2:3) = Sum(xb(1:5,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand4_hi,Zs(5),Zs(6),b(5)) !up to 110km
+    xb(7,2:3) = Sum(xb(1:6,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand4_hi,Zs(6),Zs(7),b(6)) !up to 115km
+    xb(8,2:3) = Sum(xb(1:7,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand5,Zs(7),Zs(8),b(7)) !up to 120km
 End Function nO1_O2_power_stops
 
 Function nO1_O2_integrand1_hi(Z,b) Result(f)  !for 86 to 95 km
@@ -1660,7 +1662,7 @@ End Subroutine Continue_Romberg_nO1_O2_Ar_he_hi
 Function nAr_He_power_stops() Result(xb)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: xb(1:7,1:2)
+    Real(dp) :: xb(1:7,1:3)
     Real(dp), Parameter :: Zs(1:7) = (/  86._dp, &
                                       &  91._dp, & 
                                       &  95._dp, & 
@@ -1676,13 +1678,14 @@ Function nAr_He_power_stops() Result(xb)
                                      &  9, & 
                                      & 10  /)
 
-    xb = 0._dp
-    xb(2,:) = Sum(xb(1:1,:),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand1_hi,Zs(1),Zs(2),b(1)) !up to 91km
-    xb(3,:) = Sum(xb(1:2,:),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand1_hi,Zs(2),Zs(3),b(2)) !up to 95km
-    xb(4,:) = Sum(xb(1:3,:),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand2_hi,Zs(3),Zs(4),b(3)) !up to 100km
-    xb(5,:) = Sum(xb(1:4,:),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand4_hi,Zs(4),Zs(5),b(4)) !up to 110km
-    xb(6,:) = Sum(xb(1:5,:),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand4_hi,Zs(5),Zs(6),b(5)) !up to 115km
-    xb(7,:) = Sum(xb(1:6,:),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand5,Zs(6),Zs(7),b(6)) !up to 120km
+    xb(:,1) = Zs
+    xb(:,2:3) = 0._dp
+    xb(2,2:3) = Sum(xb(1:1,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand1_hi,Zs(1),Zs(2),b(1)) !up to 91km
+    xb(3,2:3) = Sum(xb(1:2,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand1_hi,Zs(2),Zs(3),b(2)) !up to 95km
+    xb(4,2:3) = Sum(xb(1:3,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand2_hi,Zs(3),Zs(4),b(3)) !up to 100km
+    xb(5,2:3) = Sum(xb(1:4,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand4_hi,Zs(4),Zs(5),b(4)) !up to 110km
+    xb(6,2:3) = Sum(xb(1:5,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand4_hi,Zs(5),Zs(6),b(5)) !up to 115km
+    xb(7,2:3) = Sum(xb(1:6,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand5,Zs(6),Zs(7),b(6)) !up to 120km
 End Function nAr_He_power_stops
 
 Function nAr_He_integrand1_hi(Z,b) Result(f)  !for 86 to 95 km
