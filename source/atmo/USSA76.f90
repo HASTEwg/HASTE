@@ -339,6 +339,27 @@ Function T_M0_correction(Z) Result(c)
     c = Linear_Interp(Z,Zm_corr(i-1),Zm_corr(i),M0_corr(i-1),M0_corr(i))
 End Function T_M0_correction
 
+Function nN2_power_stops() Result(xb)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: xb(1:5)
+    Real(dp), Parameter :: Zs(1:5) = (/  86._dp, &
+                                          &  91._dp, & 
+                                          & 100._dp, & 
+                                          & 110._dp, & 
+                                          & 120._dp  /)
+    Integer, Parameter :: bs(1:5) = (/  7, &
+                                     &  8, & 
+                                     &  8, & 
+                                     &  9, & 
+                                     & 10  /)
+
+    xb = 0._dp
+    Do i = 2,5
+        xb(i) = Sum(xb(1:i-1)) + Romberg_Quad_nN2_stops(Zs(i-1),Zs(i),b(i))
+    End Do
+End Function nN2_power_stops
+
 Function nN2_power(Z,b) Result(x)
     Use Kinds, Only: dp
     Implicit None
