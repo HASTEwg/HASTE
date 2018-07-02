@@ -339,27 +339,6 @@ Function T_M0_correction(Z) Result(c)
     c = Linear_Interp(Z,Zm_corr(i-1),Zm_corr(i),M0_corr(i-1),M0_corr(i))
 End Function T_M0_correction
 
-Function nN2_power_stops() Result(xb)
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp) :: xb(1:5)
-    Real(dp), Parameter :: Zs(1:5) = (/  86._dp, &
-                                          &  91._dp, & 
-                                          & 100._dp, & 
-                                          & 110._dp, & 
-                                          & 120._dp  /)
-    Integer, Parameter :: bs(1:5) = (/  7, &
-                                     &  8, & 
-                                     &  8, & 
-                                     &  9, & 
-                                     & 10  /)
-
-    xb = 0._dp
-    Do i = 2,5
-        xb(i) = Sum(xb(1:i-1)) + Romberg_Quad_nN2_stops(Zs(i-1),Zs(i),b(i))
-    End Do
-End Function nN2_power_stops
-
 Function nN2_power(Z,b) Result(x)
     Use Kinds, Only: dp
     Implicit None
@@ -1327,5 +1306,113 @@ Elemental Function H_to_Z(H) Result(Z)
     
     Z = H * R_Earth / (R_Earth - H)
 End Function H_to_Z
+
+!---------------------------------------------------------
+!  The following routines are used only for computing the 'stop' values
+!  for the number density integrals
+Function nN2_power_stops() Result(xb)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: xb(1:5)
+    Real(dp), Parameter :: Zs(1:5) = (/  86._dp, &
+                                          &  91._dp, & 
+                                          & 100._dp, & 
+                                          & 110._dp, & 
+                                          & 120._dp  /)
+    Integer, Parameter :: bs(1:5) = (/  7, &
+                                     &  8, & 
+                                     &  8, & 
+                                     &  9, & 
+                                     & 10  /)
+
+    xb = 0._dp
+    Do i = 2,5
+        xb(i) = Sum(xb(1:i-1)) + Romberg_Quad_nN2_stops(Zs(i-1),Zs(i),b(i))
+    End Do
+End Function nN2_power_stops
+Function Romberg_Quad_nN2(a,b,p) Result(q)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp):: q    !the result of the integration
+    Real(dp), Intent(In) :: a,b    !limits of integration
+    Integer, Intent(In) :: p
+    Real(dp) :: R(0:10,0:10)  !Romberg table
+    Integer :: n,i,j
+    Real(dp) :: h,s,as
+    Real(dp), Parameter :: rtol = 1.E-16_dp
+
+    n = 1
+    h = b - a
+    s = 0.5_dp * (g(a) / T(a,p+1) + g(b) / T(b,p+1))
+    R(0,0) = h * s
+    Do i = 1,10
+        !compute trapezoid estimate for next row of table
+        n = n * 2
+        h = (b - a) / Real(n,dp)
+        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
+            as = a + Real(j,dp)*h
+            s = s + g(as) / T(as,p+1)
+        End Do
+        R(0,i) = h * s
+        !fill out Romberg table row
+        Do j = 1,i
+            R(j,i) = Romb2(j) * (Romb1(j) * R(j-1,i) - R(j-1,i-1))
+        End Do
+        !check for convergence
+        If ( Abs(R(i-1,i-1) - R(i,i)) .LE. rTol * Abs(R(i,i)) ) Then
+            q = R(i,i)  !R(i,i) is the position of the highest precision converged value
+            Return  !Normal exit
+        End If
+    End Do
+    !If we get this far, we did not converge
+    Call Continue_Romberg_nN2_stops(a,b,p,s,10,R(:,10),2,q)
+End Function Romberg_Quad_nN2
+Recursive Subroutine Continue_Romberg_nN2_stops(a,b,p,s,d,R0,level,q)  !adds 10 more rows to the previous Romberg_Quad table
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp), Intent(In) :: a,b    !limits of integration
+    Integer, Intent(In) :: p
+    Real(dp), Intent(InOut) :: s  !previous sum of ordinates
+    Integer, Intent(In) :: d  !length of final row in OLD Romberg Table
+    Real(dp), Intent(In) :: R0(0:d)  !final row of OLD romberg table
+    Integer, Intent(In) :: level
+    Real(dp), Intent(Out) :: q    !the result of the integration, if convergence attained
+    Real(dp) :: R(0:d+10,0:10)  !Romberg table extension
+    Integer :: n,i,j
+    Real(dp) :: h,as
+    Integer :: fours
+    Real(dp), Parameter :: rtol = 1.E-16_dp
+    
+    R(0:d,0) = R0
+    Do i = 1,10
+        !compute trapezoid estimate for next row of table
+        n = 2**(d+i)
+        h = (b - a) / Real(n,dp)
+        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
+            as = a + Real(j,dp)*h
+            s = s + g(as) / T(as,p+1)
+        End Do
+        R(0,i) = h * s
+        !fill out Romberg table row
+        fours = 1
+        Do j = 1,d+i
+            fours = fours * 4
+            R(j,i) = (Real(fours,dp) * R(j-1,i) - R(j-1,i-1)) / Real(fours - 1,dp)
+        End Do
+        !check for convergence
+        If ( Abs(R(i-1,i-1) - R(i,i)) .LE. rTol * Abs(R(i,i)) ) Then
+            q = R(d+i,i)
+            Return  !Normal exit
+        End If
+    End Do
+    If (level .GT. 10) Then !max allowed recursion depth, interval has been split 100 times...
+        Print *,"ERROR:  US_Std_Atm_1976: Continue_Romberg_nN2_stops:  Failed to converge before reaching max recursion depth."
+        ERROR STOP
+    End If
+    !If we get this far, we did not converge, recurse to add 10 more rows
+    Call Continue_Romberg_nN2_stops(a,b,p,s,d+10,R(:,10),level+1,q)
+End Subroutine Continue_Romberg_nN2_stops
+
+
 
 End Module US_Std_Atm_1976
