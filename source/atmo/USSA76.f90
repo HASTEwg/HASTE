@@ -169,10 +169,11 @@ Module US_Std_Atm_1976
                                       &  4.0026_dp  /) !He  !US Standard Atmosphere 1976 table 3
     Real(dp), Parameter :: alphai(5:6) = (/ -0.40_dp, &  !He
                                           & -0.25_dp  /) !H  !US Standard Atmosphere 1976 table 6
-    Real(dp), Parameter :: ai(2:5) = (/ 6.986E20_dp, &  !O1
+    Real(dp), Parameter :: ai(2:6) = (/ 6.986E20_dp, &  !O1
                                       & 4.863E20_dp, &  !O2
                                       & 4.487E20_dp, &  !Ar
-                                      & 1.700E21_dp  /) !He  !US Standard Atmosphere 1976 table 6
+                                      & 1.700E21_dp, &  !He
+                                      & 3.305E21_dp  /) !H1  !US Standard Atmosphere 1976 table 6
     Real(dp), Parameter :: bi(2:5) = (/ 0.750_dp, &  !O1
                                       & 0.750_dp, &  !O2
                                       & 0.870_dp, &  !Ar
@@ -532,22 +533,21 @@ Function nAr_He_powers(Z,b) Result(x)
     Real(dp) :: x(1:2)
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
-    Logical :: Z_below_97
     Real(dp), Parameter :: xb(1:2,7:10) = Reshape( (/  0._dp, &  !Ar, Z = 86km
                                                     &  0._dp, &  !He, Z = 86km
-                                                    & _dp, &  !Ar, Z = 91km
-                                                    & _dp, &  !He, Z = 91km
-                                                    & _dp, &  !Ar, Z = 110km
-                                                    & _dp, &  !He, Z = 110km
-                                                    & _dp, &  !Ar, Z = 120km
-                                                    & _dp  /), &  !He, Z = 120km
+                                                    &  0.9029433887519961_dp, &  !Ar, Z = 91km
+                                                    &  0.7963213747812477_dp, &  !He, Z = 91km
+                                                    &  4.6108383812528880_dp, &  !Ar, Z = 110km
+                                                    &  2.3167238396434371_dp, &  !He, Z = 110km
+                                                    &  6.2412684806214495_dp, &  !Ar, Z = 120km
+                                                    &  2.3147895408503995_dp  /), &  !He, Z = 120km
                                                     & (/2,4/) )
-    Real(dp), Parameter :: xb_95(1:2) =  (/ _dp, &  !Ar, Z = 95km
-                                          & _dp  /) !He, Z = 95km
-    Real(dp), Parameter :: xb_100(1:2) = (/ _dp, &  !Ar, Z = 100km
-                                          & _dp  /) !He, Z = 100km
-    Real(dp), Parameter :: xb_115(1:2) = (/ _dp, &  !Ar, Z = 115km
-                                          & _dp  /) !He, Z = 115km
+    Real(dp), Parameter :: xb_95(1:2) =  (/ 1.6463776323299731_dp, &  !Ar, Z = 95km
+                                          & 1.3378385484034475_dp  /) !He, Z = 95km
+    Real(dp), Parameter :: xb_100(1:2) = (/ 2.6119420164281658_dp, &  !Ar, Z = 100km
+                                          & 1.8579919647339275_dp  /) !He, Z = 100km
+    Real(dp), Parameter :: xb_115(1:2) = (/ 5.5159366790272590_dp, &  !Ar, Z = 115km
+                                          & 2.3185678009807535_dp  /) !He, Z = 115km
     Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE.,  &
                                                 & .FALSE., &
                                                 & .FALSE., &
@@ -590,8 +590,8 @@ Function nAr_He_integrand1(Z,b) Result(f)  !for 86 to 95 km
     Real(dp) :: y(1:2)
     
     Tz = T(Z,b+1)
-    Nb(1) = (N7(1) * Tb(7) * Exp(-nN2_power(Z,b))
-    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_power(Z,b)))
+    Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power(Z,b))
+    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,b))
     Nb = Nb / Tz
     D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
     y = D / (R_star * Tz * (D + K0))
@@ -613,8 +613,8 @@ Function nAr_He_integrand2(Z,b) Result(f)  !for 95 to 100 km
     Real(dp) :: K
     
     Tz = T(Z,b+1)
-    Nb(1) = (N7(1) * Tb(7) * Exp(-nN2_power(Z,b))
-    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_power(Z,b)))
+    Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power(Z,b))
+    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,b))
     Nb = Nb / Tz
     D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
     K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
@@ -637,8 +637,8 @@ Function nAr_He_integrand4(Z,b) Result(f)  !for 100 to 115 km
     Real(dp) :: K
     
     Tz = T(Z,b+1)
-    Nb(1) = (N7(1) * Tb(7) * Exp(-nN2_power(Z,b))
-    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_power(Z,b)))
+    Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power(Z,b))
+    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,b))
     Nb = Nb / Tz
     D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
     K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
@@ -920,7 +920,7 @@ Function Romberg_Quad_nAr_He(f,a,b,p) Result(q)
     !If we get this far, we did not converge
     Call Continue_Romberg_nAr_He(f,a,b,p,s,10,R(:,:,10),2,q)
 End Function Romberg_Quad_nAr_He
-Recursive Subroutine Continue_Romberg_nAr_He,a,b,p,s,d,R0,level,q)  !adds 10 more rows to the previous Romberg_Quad table
+Recursive Subroutine Continue_Romberg_nAr_He(f,a,b,p,s,d,R0,level,q)  !adds 10 more rows to the previous Romberg_Quad table
     Use Kinds, Only: dp
     Implicit None
     Interface
@@ -997,22 +997,22 @@ Function p6(Z)
     !TODO Get a higher precision value for T500
     Real(dp), Parameter :: T500 = 999.235602_dp
     
-    p6 = (T(Z,11) / T500)**(1._dp + alphai(6)) * Exp(Romberg_Quad_nH_p6(Z,500._dp))
+    p6 = (T(Z,11) / T500)**(1._dp + alphai(6)) * Exp(Romberg_Quad_p6(Z,500._dp))
 End Function p6
 
 Function nH_integrand(Z) Result(f)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: f
-    Real(dp), Intent(In)
+    Real(dp), Intent(In) :: Z
     Real(dp) :: Tz
     Real(dp) :: D
     
     Tz = T(Z,11)
-    D = ai(6) * (Tz / 273.15_dp)**bi(6) / & 
-      & ( (N7(1) * Tb(7) * Exp(-nN2_power(Z,10)) + & 
-      &    Sum(N7(2:3) * Tb(7) * Exp(-nO1_O2_power(Z,10)) + & 
-      &    Sum(N7(4:5) * Tb(7) * Exp(-nAr_He_power(Z,10))) ) / Tz)
+    D = ai(6) * Sqrt(Tz / 273.15_dp) / & 
+      & (      N7(1) *   Tb(7) * Exp(-nN2_power(Z,10)) + & 
+      &    Sum(N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,10))) + & 
+      &    Sum(N7(4:5) * Tb(7) * Exp(-nAr_He_powers(Z,10)))     ) / Tz
     f = p6(Z) / D
 End Function nH_integrand
 
@@ -1097,14 +1097,14 @@ Function p6_integrand(Z) Result(f)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: f
-    Real(dp), Intent(In)
+    Real(dp), Intent(In) :: Z
     Real(dp) :: Tz
     Real(dp) :: Nb(1:5)
     
     Tz = T(Z,11)
-    Nb(1) = (N7(1) * Tb(7) * Exp(-nN2_power(Z,10))
-    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_power(Z,10)))
-    Nb(4:5) = N7(4:5) * Tb(7) * Exp(-nAr_He_power(Z,10)))
+    Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power(Z,10))
+    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,10))
+    Nb(4:5) = N7(4:5) * Tb(7) * Exp(-nAr_He_powers(Z,10))
     Nb = Nb / Tz
     f = (Sum(Nb*Mi(1:5))/Sum(Nb)) * g(Z) / (R_star * Tz)
 End Function p6_integrand
