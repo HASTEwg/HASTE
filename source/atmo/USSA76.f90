@@ -1312,7 +1312,8 @@ End Function H_to_Z
 
 !---------------------------------------------------------------------------------
 !  The following routines are used only for computing the 'stop' values for the 
-!  number density integrals
+!  number density integrals:  Used to compute necessary constants which are then 
+!  hard-coded in the source.
 !---------------------------------------------------------------------------------
 Function nN2_power_stops() Result(xb)
     Use Kinds, Only: dp
@@ -1365,7 +1366,7 @@ Function Romberg_Quad_hi(a,b,p) Result(q)
             R(j,i) = Romb2(j) * (Romb1(j) * R(j-1,i) - R(j-1,i-1))
         End Do
         !check for convergence
-        If ( Converged(R(i-1,i-1),R(i,i),rtol=1.E-18_dp,atol=1.E-24_dp) ) Then
+        If ( Converged(R(i-1,i-1),R(i,i),rtol=1.E-18_dp,atol=1.E-21_dp) ) Then
             q = R(i,i)  !R(i,i) is the position of the highest precision converged value
             Return  !Normal exit
         End If
@@ -1406,7 +1407,7 @@ Recursive Subroutine Continue_Romberg_nN2_hi(a,b,p,s,d,R0,level,q)  !adds 10 mor
             R(j,i) = (Real(fours,dp) * R(j-1,i) - R(j-1,i-1)) / Real(fours - 1,dp)
         End Do
         !check for convergence
-        If ( Converged(R(i-1,i-1),R(i,i),rtol=1.E-18_dp,atol=1.E-24_dp) ) Then
+        If ( Converged(R(i-1,i-1),R(i,i),rtol=1.E-18_dp,atol=1.E-21_dp) ) Then
             q = R(d+i,i)
             Return  !Normal exit
         End If
@@ -1592,8 +1593,8 @@ Function Romberg_Quad_nO1_O2Ar_he_hi(f,a,b,p) Result(q)
             R(:,j,i) = Romb2(j) * (Romb1(j) * R(:,j-1,i) - R(:,j-1,i-1))
         End Do
         !check for convergence
-        If ( Converged(R(1,i-1,i-1),R(1,i,i)rtol=1.E-17_dp,atol=1.E-23_dp) .AND. & 
-           & Converged(R(2,i-1,i-1),R(2,i,i)rtol=1.E-17_dp,atol=1.E-23_dp)       ) Then
+        If ( Converged(R(1,i-1,i-1),R(1,i,i)rtol=1.E-16_dp,atol=1.E-20_dp) .AND. & 
+           & Converged(R(2,i-1,i-1),R(2,i,i)rtol=1.E-16_dp,atol=1.E-20_dp)       ) Then
             q = R(:,i,i)  !R(i,i) is the position of the highest precision converged value
             Return  !Normal exit
         End If
@@ -1642,8 +1643,8 @@ Recursive Subroutine Continue_Romberg_nO1_O2_Ar_he_hi(f,a,b,p,s,d,R0,level,q)  !
             R(:,j,i) = (Real(fours,dp) * R(:,j-1,i) - R(:,j-1,i-1)) / Real(fours - 1,dp)
         End Do
         !check for convergence
-        If ( Converged(R(1,i-1,i-1),R(1,i,i)rtol=1.E-17_dp,atol=1.E-23_dp) .AND. & 
-           & Converged(R(2,i-1,i-1),R(2,i,i)rtol=1.E-17_dp,atol=1.E-23_dp)       ) Then
+        If ( Converged(R(1,i-1,i-1),R(1,i,i)rtol=1.E-16_dp,atol=1.E-20_dp) .AND. & 
+           & Converged(R(2,i-1,i-1),R(2,i,i)rtol=1.E-16_dp,atol=1.E-20_dp)       ) Then
             q = R(:,d+i,i)
             Return  !Normal exit
         End If
