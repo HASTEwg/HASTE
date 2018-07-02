@@ -5,6 +5,7 @@
 
 # SET COMPILER FLAGS
 . ./set_flags
+$GFORT_FLAGS = "${GFORT_FLAGS} -DTEST"
 . ./echo_flags
 
 # COMMON MODULES
