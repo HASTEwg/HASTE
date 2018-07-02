@@ -19,17 +19,57 @@ Real(dp) :: temp,pres,dens
 
 Real(dp), Parameter :: dZmax = 1.E-3_dp !1 meter resolution
 
-Write(*,*)
-Write(*,'(A)') 'N-density Integrand stops: N2'
-Write(*,'(A9,A23)') ' Z [km] ','        x          '
-Write(*,'(A9,A23)') '--------','-------------------'
+Open(NEWUNIT=unit,FILE='IntegrandStops.tst',ACTION='WRITE',STATUS='REPLACE')
+Write(*   ,*)
+Write(unit,*)
+Write(*   ,'(A)') 'N-density Integrand stops: N2'
+Write(unit,'(A)') 'N-density Integrand stops: N2'
+Write(*   ,'(A9,A23)') ' Z [km] ','        x          '
+Write(unit,'(A9,A23)') ' Z [km] ','        x          '
+Write(*   ,'(A9,A23)') '--------','-------------------'
+Write(unit,'(A9,A23)') '--------','-------------------'
 ZxN2 = nN2_power_stops()
 Do i = 2,5
-    Write(*,'(F9.3,F23.16)') Zx(i,1),Zx(i,2)
+    Write(*   ,'(F9.3,F23.16)') ZxN2(i,1),ZxN2(i,2)
+    Write(unit,'(F9.3,F23.16)') ZxN2(i,1),ZxN2(i,2)
 End Do
+Close(unit)
+STOP  !TEMPORARY STOP
+Open(NEWUNIT=unit,FILE='IntegrandStops.tst',ACTION='WRITE',STATUS='OLD',POSITION='APPEND')
+Write(*   ,*)
+Write(unit,*)
+Write(*   ,'(A)') 'N-density Integrand stops: O1 & O2'
+Write(unit,'(A)') 'N-density Integrand stops: O1 & O2'
+Write(*   ,'(A9,2A23)') ' Z [km] ','      x - O1       ','      x - O2       '
+Write(unit,'(A9,2A23)') ' Z [km] ','      x - O1       ','      x - O2       '
+Write(*   ,'(A9,2A23)') '--------','-------------------','-------------------'
+Write(unit,'(A9,2A23)') '--------','-------------------','-------------------'
+ZxO1O2 = nO1O2_power_stops()
+Do i = 2,8
+    Write(*   ,'(F9.3,2F23.16)') ZxO1O2(i,1),ZxO1O2(i,2),ZxO1O2(i,3)
+    Write(unit,'(F9.3,2F23.16)') ZxO1O2(i,1),ZxO1O2(i,2),ZxO1O2(i,3)
+End Do
+Close(unit)
+STOP  !TEMPORARY STOP
+Open(NEWUNIT=unit,FILE='IntegrandStops.tst',ACTION='WRITE',STATUS='OLD',POSITION='APPEND')
+Write(*   ,*)
+Write(unit,*)
+Write(*   ,'(A)') 'N-density Integrand stops: Ar & He'
+Write(unit,'(A)') 'N-density Integrand stops: Ar & He'
+Write(*   ,'(A9,2A23)') ' Z [km] ','      x - Ar       ','      x - He       '
+Write(unit,'(A9,2A23)') ' Z [km] ','      x - Ar       ','      x - He       '
+Write(*   ,'(A9,2A23)') '--------','-------------------','-------------------'
+Write(unit,'(A9,2A23)') '--------','-------------------','-------------------'
+ZxArHe = nArHe_power_stops()
+Do i = 2,7
+    Write(*   ,'(F9.3,2F23.16)') ZxArHe(i,1),ZxArHe(i,2),ZxArHe(i,3)
+    Write(unit,'(F9.3,2F23.16)') ZxArHe(i,1),ZxArHe(i,2),ZxArHe(i,3)
+End Do
+Close(unit)
 STOP  !TEMPORARY STOP
 
 Write(*,*)
+Write(*,'(A)') 'Temperature, Pressure, & Density as a function of altitude'
 Write(*,'(A9,3A14)') ' Z [km] ','   T [K]   ','   P [pa]   ',' rho [g/m^3]'
 Write(*,'(A9,3A14)') '--------','-----------','------------','------------'
 temp = T(0._dp)
@@ -46,7 +86,11 @@ Do
     temp = T(z)
     pres = P(z)
     dens = rho(z)
-    Write(*,'(A,F9.3,3ES14.6)',ADVANCE='NO') ACHAR(13),z,temp,pres,dens
+    If ( Any( Int(z/dZmax).EQ.(/250000,500000/) ) ) Then  !make 250km and 500km lines persistent
+        Write(*,'(A,F9.3,3ES14.6)',ADVANCE='YES') ACHAR(13),z,temp,pres,dens
+    Else
+        Write(*,'(A,F9.3,3ES14.6)',ADVANCE='NO') ACHAR(13),z,temp,pres,dens
+    End If
     Write(unit,'(F9.3,3ES24.16)') z,temp,pres,dens
     If (Real(j+1,dp)*dZmax .GE. Zb(i)) Then !the NEXT z will pass the next base layer
         If (Real(j+1,dp)*dZmax .NE. Zb(i)) Then !the NEXT z will get the base value
