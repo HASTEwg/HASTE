@@ -610,7 +610,7 @@ Function nAr_He_integrand1(Z,b) Result(f)  !for 86 to 95 km
     y = D / (R_star * Tz * (D + K0))
     f = g(Z) * y * (Mi(4:5) + M0*K0/D) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y(2) * alphai(5) * dT_dZ(Z,b+1)
+    f(2) = f(2) + y(2) * alphai(5) * R_star * dT_dZ(Z,b+1)
 End Function nAr_He_integrand1
 
 Function nAr_He_integrand2(Z,b) Result(f)  !for 95 to 100 km
@@ -634,7 +634,7 @@ Function nAr_He_integrand2(Z,b) Result(f)  !for 95 to 100 km
     y = D / (R_star * Tz * (D + K))
     f = g(Z) * y * (Mi(4:5) + M0*K/D) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y(2) * alphai(5) * dT_dZ(Z,b+1)
+    f(2) = f(2) + y(2) * alphai(5) * R_star * dT_dZ(Z,b+1)
 End Function nAr_He_integrand2
 
 Function nAr_He_integrand4(Z,b) Result(f)  !for 100 to 115 km
@@ -658,7 +658,7 @@ Function nAr_He_integrand4(Z,b) Result(f)  !for 100 to 115 km
     y = D / (R_star * Tz * (D + K))
     f = g(Z) * y * (Mi(4:5) + (Sum(Nb*Mi(1:3))/Sum(Nb))*K/D) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y(2) * alphai(5) * dT_dZ(Z,b+1)
+    f(2) = f(2) + y(2) * alphai(5) * R_star * dT_dZ(Z,b+1)
 End Function nAr_He_integrand4
 
 Function nAr_He_integrand5(Z,b) Result(f)  !for 115 to 1000 km
@@ -672,7 +672,7 @@ Function nAr_He_integrand5(Z,b) Result(f)  !for 115 to 1000 km
     y = 1._dp / (R_star * T(Z,b+1))
     f = g(Z) * y * Mi(4:5) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y * alphai(5) * dT_dZ(Z,b+1)
+    f(2) = f(2) + y * alphai(5) * R_star * dT_dZ(Z,b+1)
 End Function nAr_He_integrand5
 
 Subroutine N_densities(Z,Tz,b,N)
@@ -684,7 +684,7 @@ Subroutine N_densities(Z,Tz,b,N)
     Integer, Intent(In) :: b
     Real(dp), Intent(Out) :: N(1:5)
     Real(dp) :: x(1:5)
-    !UNDONE Extend N_density (and other functionality in this module) to compute N for Ar, He, and H
+    !UNDONE Extend N_density (and other functionality in this module) to compute N for H1
     
     !N2 power
     x(1) = nN2_power(Z,b)
