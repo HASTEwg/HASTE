@@ -7,10 +7,13 @@ Module US_Std_Atm_1976
     Public :: T
     Public :: P
     Public :: rho    
+    Public :: rho_N    
     Public :: Zb
+#   if TEST_CODE
         Public :: nN2_power_stops
         Public :: nO1_O2_power_stops
         Public :: nAr_He_power_stops
+#   endif
 
     !US Standard Atmosphere 1976 parameters
     !The following constants are defined here to ensure consistency with 1976 atmosphere model definition.
@@ -993,7 +996,7 @@ Function nH(Z)
         nH = 0._dp
         RETURN
     Else If (Z .GT. 500._dp) Then
-        nH = nH500
+        nH = nH500 / p6(Z)
         RETURN
     End If
     nH = (nH500 + phiH * Romberg_Quad_nH(Z,500._dp)) / p6(Z)
