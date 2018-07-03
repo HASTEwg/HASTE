@@ -34,7 +34,7 @@ Do i = 2,5
     Write(unit,'(F9.3,F23.16)') ZxN2(i,1),ZxN2(i,2)
 End Do
 Close(unit)
-
+STOP  !TEMP STOP
 Open(NEWUNIT=unit,FILE='IntegrandStops.tst',ACTION='WRITE',STATUS='OLD',POSITION='APPEND')
 Write(*   ,*)
 Write(unit,*)
@@ -50,7 +50,7 @@ Do i = 2,8
     Write(unit,'(F9.3,2F23.16)') ZxO1O2(i,1),ZxO1O2(i,2),ZxO1O2(i,3)
 End Do
 Close(unit)
-
+STOP  !TEMP STOP
 Open(NEWUNIT=unit,FILE='IntegrandStops.tst',ACTION='WRITE',STATUS='OLD',POSITION='APPEND')
 Write(*   ,*)
 Write(unit,*)
@@ -66,7 +66,7 @@ Do i = 2,7
     Write(unit,'(F9.3,2F23.16)') ZxArHe(i,1),ZxArHe(i,2),ZxArHe(i,3)
 End Do
 Close(unit)
-STOP  !TEMPORARY STOP
+STOP  !TEMP STOP
 
 Write(*,*)
 Write(*,'(A)') 'Temperature, Pressure, & Density as a function of altitude'
