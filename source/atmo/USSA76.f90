@@ -216,11 +216,17 @@ Module US_Std_Atm_1976
                                           & 4._dp**10 /)
     Real(dp), Parameter :: Romb2(1:10) = 1._dp / (Romb1 - 1._dp)
     !Convergence criteria for Romberg Quadrature routines
-    Real(dp), Parameter :: rTol_tier1 = 1.E-12_dp  !N2
-    Real(dp), Parameter :: rTol_tier2 = 1.E-12_dp  !O1 and O2
-    Real(dp), Parameter :: rTol_tier3 = 1.E-9_dp  !Ar and He
-    Real(dp), Parameter :: rTol_tier4a = 1.E-6_dp  !H
-    Real(dp), Parameter :: rTol_tier4b = 1.E-5_dp  !H
+#   if EXT_PREC
+        Real(dp), Parameter :: rTol_tier1 = 1.E-18_dp  !N2
+        Real(dp), Parameter :: rTol_tier2 = 1.E-16_dp  !O1 and O2
+        Real(dp), Parameter :: rTol_tier3 = 1.E-15_dp  !Ar and He
+#   else
+        Real(dp), Parameter :: rTol_tier1 = 1.E-8_dp  !N2
+        Real(dp), Parameter :: rTol_tier2 = 1.E-7_dp  !O1 and O2
+        Real(dp), Parameter :: rTol_tier3 = 1.E-6_dp  !Ar and He
+#   endif
+    Real(dp), Parameter :: rTol_tier4a = 1.E-5_dp  !H
+    Real(dp), Parameter :: rTol_tier4b = 1.E-4_dp  !H
     
     Interface rho_N
         Module Procedure N_densities
@@ -1311,7 +1317,7 @@ Elemental Function H_to_Z(H) Result(Z)
     Z = H * R_Earth / (R_Earth - H)
 End Function H_to_Z
 
-
+# if TEST_CODE
 !---------------------------------------------------------------------------------
 !  The following routines are used only for computing the 'stop' values for the 
 !  number density integrals:  Used to compute necessary constants which are then 
@@ -1406,5 +1412,6 @@ Function nAr_He_power_stops() Result(xb)
     xb(6,2:3) = xb(5,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zs(5),Zs(6),bs(5)) !up to 115km
     xb(7,2:3) = xb(6,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand5,Zs(6),Zs(7),bs(6)) !up to 120km
 End Function nAr_He_power_stops
+# endif
 
 End Module US_Std_Atm_1976
