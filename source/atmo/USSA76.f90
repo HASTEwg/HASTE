@@ -1320,6 +1320,18 @@ Elemental Function H_to_Z(H) Result(Z)
     Z = H * R_Earth / (R_Earth - H)
 End Function H_to_Z
 
+Function nH_low(Z) Result(nH)
+    !Returns number density of hydrogen due to water vapor as a function of altitude
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: nH
+    Real(dp), Intent(In) :: Z
+    Real(dp), Parameter :: H2O_star = 2._dp * Na * rho_star / 18.01528_dp
+    
+    nH = H2O_star * 4686.E-6_dp  !Temporary value, midlat mean at the surface
+End Function nH_low
+
+
 # if TEST_CODE
 !---------------------------------------------------------------------------------
 !  The following routines are used only for computing the 'stop' values for the 
