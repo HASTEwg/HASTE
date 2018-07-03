@@ -8,11 +8,9 @@ Module US_Std_Atm_1976
     Public :: P
     Public :: rho    
     Public :: Zb
-#   if TEST
         Public :: nN2_power_stops
         Public :: nO1_O2_power_stops
         Public :: nAr_He_power_stops
-#   endif
 
     !US Standard Atmosphere 1976 parameters
     !The following constants are defined here to ensure consistency with 1976 atmosphere model definition.
@@ -218,9 +216,9 @@ Module US_Std_Atm_1976
                                           & 4._dp**10 /)
     Real(dp), Parameter :: Romb2(1:10) = 1._dp / (Romb1 - 1._dp)
     !Convergence criteria for Romberg Quadrature routines
-    Real(dp), Parameter :: rTol_tier1 = 1.E-9_dp  !N2
-    Real(dp), Parameter :: rTol_tier2 = 1.E-8_dp  !O1 and O2
-    Real(dp), Parameter :: rTol_tier3 = 1.E-7_dp  !Ar and He
+    Real(dp), Parameter :: rTol_tier1 = 1.E-12_dp  !N2
+    Real(dp), Parameter :: rTol_tier2 = 1.E-12_dp  !O1 and O2
+    Real(dp), Parameter :: rTol_tier3 = 1.E-9_dp  !Ar and He
     Real(dp), Parameter :: rTol_tier4a = 1.E-6_dp  !H
     Real(dp), Parameter :: rTol_tier4b = 1.E-5_dp  !H
     
@@ -354,10 +352,10 @@ Function nN2_power(Z,b) Result(x)
     Real(dp) :: M_over_R
     Logical :: Z_below_100
     Real(dp), Parameter :: xb(7:10) = (/ 0._dp,                 &  !Z = 86km
-                                       & 0.8891738712368936_dp, &  !Z = 91km
-                                       & 3.9815997728018476_dp, &  !Z = 110km
-                                       & 5.0588195691573031_dp  /) !Z = 120km
-    Real(dp), Parameter :: xb_100 = 2.4639390409132486_dp  !Z = 100km
+                                       & 0.8891738712368935_dp, &  !Z = 91km
+                                       & 3.9815997728018484_dp, &  !Z = 110km
+                                       & 5.0588195691573041_dp  /) !Z = 120km
+    Real(dp), Parameter :: xb_100 = 2.4639390409132487_dp  !Z = 100km
     Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE.,  &
                                                 & .FALSE., &
                                                 & .TRUE.,  &
@@ -1313,7 +1311,7 @@ Elemental Function H_to_Z(H) Result(Z)
     Z = H * R_Earth / (R_Earth - H)
 End Function H_to_Z
 
-# if TEST
+
 !---------------------------------------------------------------------------------
 !  The following routines are used only for computing the 'stop' values for the 
 !  number density integrals:  Used to compute necessary constants which are then 
@@ -1329,102 +1327,24 @@ Function nN2_power_stops() Result(xb)
                                       & 100._dp, & 
                                       & 110._dp, & 
                                       & 120._dp  /)
+    Real(dp), Parameter :: M_over_R(1:5) = (/ rho_star, &
+                                            & rho_star, &
+                                            & Mi(1) / R_star, &
+                                            & Mi(1) / R_star, &
+                                            & Mi(1) / R_star  /)
     Integer, Parameter :: bs(1:5) = (/  7, &
                                      &  8, & 
                                      &  8, & 
                                      &  9, & 
                                      & 10  /)
+    Integer :: i
 
     xb(:,1) = Zs
     xb(:,2) = 0._dp
     Do i = 2,5
-        xb(i,2) = Sum(xb(1:i-1,2)) + Romberg_Quad_nN2_hi(Zs(i-1),Zs(i),b(i-1))
+        xb(i,2) = xb(i-1,2) + M_over_R(i-1) * Romberg_Quad_nN2(Zs(i-1),Zs(i),bs(i-1))
     End Do
 End Function nN2_power_stops
-
-Function Romberg_Quad_hi(a,b,p) Result(q)
-    Use Kinds, Only: dp
-    Use Utilities, Only: Converged
-    Implicit None
-    Real(dp):: q    !the result of the integration
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Integer, Intent(In) :: p
-    Real(dp) :: R(0:10,0:10)  !Romberg table
-    Integer :: n,i,j
-    Real(dp) :: h,s,as
-    Real(dp), Parameter :: rtol = 1.E-16_dp
-
-    n = 1
-    h = b - a
-    s = 0.5_dp * (g(a) / T(a,p+1) + g(b) / T(b,p+1))
-    R(0,0) = h * s
-    Do i = 1,10
-        !compute trapezoid estimate for next row of table
-        n = n * 2
-        h = (b - a) / Real(n,dp)
-        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-            as = a + Real(j,dp)*h
-            s = s + g(as) / T(as,p+1)
-        End Do
-        R(0,i) = h * s
-        !fill out Romberg table row
-        Do j = 1,i
-            R(j,i) = Romb2(j) * (Romb1(j) * R(j-1,i) - R(j-1,i-1))
-        End Do
-        !check for convergence
-        If ( Converged(R(i-1,i-1),R(i,i),rtol=1.E-18_dp,atol=1.E-21_dp) ) Then
-            q = R(i,i)  !R(i,i) is the position of the highest precision converged value
-            Return  !Normal exit
-        End If
-    End Do
-    !If we get this far, we did not converge
-    Call Continue_Romberg_nN2_hi(a,b,p,s,10,R(:,10),2,q)
-End Function Romberg_Quad_nN2
-Recursive Subroutine Continue_Romberg_nN2_hi(a,b,p,s,d,R0,level,q)  !adds 10 more rows to the previous Romberg_Quad table
-    Use Kinds, Only: dp
-    Use Utilities, Only: Converged
-    Implicit None
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Integer, Intent(In) :: p
-    Real(dp), Intent(InOut) :: s  !previous sum of ordinates
-    Integer, Intent(In) :: d  !length of final row in OLD Romberg Table
-    Real(dp), Intent(In) :: R0(0:d)  !final row of OLD romberg table
-    Integer, Intent(In) :: level
-    Real(dp), Intent(Out) :: q    !the result of the integration, if convergence attained
-    Real(dp) :: R(0:d+10,0:10)  !Romberg table extension
-    Integer :: n,i,j
-    Real(dp) :: h,as
-    Integer :: fours
-        
-    R(0:d,0) = R0
-    Do i = 1,10
-        !compute trapezoid estimate for next row of table
-        n = 2**(d+i)
-        h = (b - a) / Real(n,dp)
-        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-            as = a + Real(j,dp)*h
-            s = s + g(as) / T(as,p+1)
-        End Do
-        R(0,i) = h * s
-        !fill out Romberg table row
-        fours = 1
-        Do j = 1,d+i
-            fours = fours * 4
-            R(j,i) = (Real(fours,dp) * R(j-1,i) - R(j-1,i-1)) / Real(fours - 1,dp)
-        End Do
-        !check for convergence
-        If ( Converged(R(i-1,i-1),R(i,i),rtol=1.E-18_dp,atol=1.E-21_dp) ) Then
-            q = R(d+i,i)
-            Return  !Normal exit
-        End If
-    End Do
-    If (level .GT. 10) Then !max allowed recursion depth, interval has been split 100 times...
-        Print *,"ERROR:  US_Std_Atm_1976: Continue_Romberg_nN2_hi:  Failed to converge before reaching max recursion depth."
-        ERROR STOP
-    End If
-    !If we get this far, we did not converge, recurse to add 10 more rows
-    Call Continue_Romberg_nN2_hi(a,b,p,s,d+10,R(:,10),level+1,q)
-End Subroutine Continue_Romberg_nN2_hi
 
 Function nO1_O2_power_stops() Result(xb)
     Use Kinds, Only: dp
@@ -1449,220 +1369,14 @@ Function nO1_O2_power_stops() Result(xb)
 
     xb(:,1) = Zs
     xb(:,2:3) = 0._dp
-    xb(2,2:3) = Sum(xb(1:1,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand1_hi,Zs(1),Zs(2),b(1)) !up to 91km
-    xb(3,2:3) = Sum(xb(1:2,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand1_hi,Zs(2),Zs(3),b(2)) !up to 95km
-    xb(4,2:3) = Sum(xb(1:3,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand2_hi,Zs(3),Zs(4),b(3)) !up to 97km
-    xb(5,2:3) = Sum(xb(1:4,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand3_hi,Zs(4),Zs(5),b(4)) !up to 100km
-    xb(6,2:3) = Sum(xb(1:5,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand4_hi,Zs(5),Zs(6),b(5)) !up to 110km
-    xb(7,2:3) = Sum(xb(1:6,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand4_hi,Zs(6),Zs(7),b(6)) !up to 115km
-    xb(8,2:3) = Sum(xb(1:7,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nO1_O2_integrand5,Zs(7),Zs(8),b(7)) !up to 120km
+    xb(2,2:3) = xb(1,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand1,Zs(1),Zs(2),bs(1)) !up to 91km
+    xb(3,2:3) = xb(2,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand1,Zs(2),Zs(3),bs(2)) !up to 95km
+    xb(4,2:3) = xb(3,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand2,Zs(3),Zs(4),bs(3)) !up to 97km
+    xb(5,2:3) = xb(4,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand3,Zs(4),Zs(5),bs(4)) !up to 100km
+    xb(6,2:3) = xb(5,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand4,Zs(5),Zs(6),bs(5)) !up to 110km
+    xb(7,2:3) = xb(6,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand4,Zs(6),Zs(7),bs(6)) !up to 115km
+    xb(8,2:3) = xb(7,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand5,Zs(7),Zs(8),bs(7)) !up to 120km
 End Function nO1_O2_power_stops
-
-Function nO1_O2_integrand1_hi(Z,b) Result(f)  !for 86 to 95 km
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp) :: f(1:2)
-    Real(dp), Intent(In) :: Z
-    Integer, Intent(In) :: b
-    Real(dp) :: Tz
-    Real(dp) :: D(1:2)
-    
-    Tz = T(Z,b+1)
-    D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power_hi(Z,b)) / Tz)
-    f = g(Z) * D * (Mi(2:3) + M0*K0/D) / (R_star * Tz * (D + K0)) + & 
-      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
-    f(1) = f(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
-End Function nO1_O2_integrand1_hi
-
-Function nO1_O2_integrand2_hi(Z,b) Result(f)  !for 95 to 97 km
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp) :: f(1:2)
-    Real(dp), Intent(In) :: Z
-    Integer, Intent(In) :: b
-    Real(dp) :: Tz
-    Real(dp) :: D(1:2)
-    Real(dp) :: K
-    
-    Tz = T(Z,b+1)
-    D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power_hi(Z,b)) / Tz)
-    K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
-    f = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + & 
-      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
-    f(1) = f(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
-End Function nO1_O2_integrand2_hi
-
-Function nO1_O2_integrand3_hi(Z,b) Result(f)  !for 97 to 100 km
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp) :: f(1:2)
-    Real(dp), Intent(In) :: Z
-    Integer, Intent(In) :: b
-    Real(dp) :: Tz
-    Real(dp) :: D(1:2)
-    Real(dp) :: K
-
-    Tz = T(Z,b+1)
-    D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power_hi(Z,b)) / Tz)
-    K = 1.2E2_dp * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
-    f = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + & 
-      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
-End Function nO1_O2_integrand3_hi
-
-Function nO1_O2_integrand4_hi(Z,b) Result(f)  !for 100 to 115 km
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp) :: f(1:2)
-    Real(dp), Intent(In) :: Z
-    Integer, Intent(In) :: b
-    Real(dp) :: Tz
-    Real(dp) :: D(1:2)
-    Real(dp) :: K
-    
-    Tz = T(Z,b+1)
-    D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power_hi(Z,b)) / Tz)
-    K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
-    f = g(Z) * D * (Mi(2:3) + Mi(1)*K/D) / (R_star * Tz * (D + K)) + & 
-      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
-End Function nO1_O2_integrand4_hi
-
-Function nN2_power_hi(Z,b) Result(x)
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp) :: x
-    Real(dp), Intent(In) :: Z
-    Integer, Intent(In) :: b
-    Real(dp) :: M_over_R
-    Logical :: Z_below_100
-    Real(dp), Parameter :: xb(7:10) = (/ 0._dp,                 &  !Z = 86km
-                                       & 0.8891738712368936_dp, &  !Z = 91km
-                                       & 3.9815997728018476_dp, &  !Z = 110km
-                                       & 5.0588195691573031_dp  /) !Z = 120km
-    Real(dp), Parameter :: xb_100 = 2.4639390409132486_dp  !Z = 100km
-    Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE.,  &
-                                                & .FALSE., &
-                                                & .TRUE.,  &
-                                                & .TRUE.   /)
-    Real(dp), Parameter :: rho_star_N2 = Mi(1) / R_star
-    
-    If (Z .LE. 100._dp) Then
-        M_over_R = rho_star
-        Z_below_100 = .TRUE.
-    Else
-        M_over_R = rho_star_N2
-        Z_below_100 = .FALSE.
-    End If
-    If (no_sublayers(b)) Then !b=7, 9, or 10
-        x = xb(b) + M_over_R * Romberg_Quad_nN2_hi(Zb(b),Z,b)
-    Else !b=8
-        If (Z_below_100) Then
-            x = xb(8) + M_over_R * Romberg_Quad_nN2_hi(Zb(8),Z,8)
-        Else
-            x = xb_100 + M_over_R * Romberg_Quad_nN2_hi(100._dp,Z,8)
-        End If
-    End If
-End Function nN2_power_hi
-
-Function Romberg_Quad_nO1_O2Ar_he_hi(f,a,b,p) Result(q)
-    Use Kinds, Only: dp
-    Use Utilities, Only: Converged
-    Implicit None
-    Real(dp):: q(1:2)    !the result of the integration
-    Interface
-        Function f(x,k)    !the function to be integrated
-            Use Kinds,Only: dp
-            Implicit None
-            Real(dp) :: f(1:2)
-            Real(dp), Intent(In) :: x
-            Integer, Intent(In) :: k
-        End Function f
-    End Interface
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Integer, Intent(In) :: p
-    Real(dp) :: R(1:2,0:10,0:10)  !Romberg table
-    Integer :: n,i,j
-    Real(dp) :: h,s(1:2)
-
-    n = 1
-    h = b - a
-    s = 0.5_dp * (f(a,p) + f(b,p))
-    R(:,0,0) = h * s
-    Do i = 1,10
-        !compute trapezoid estimate for next row of table
-        n = n * 2
-        h = (b - a) / Real(n,dp)
-        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-            s = s + f(a + Real(j,dp)*h,p)
-        End Do
-        R(:,0,i) = h * s
-        !fill out Romberg table row
-        Do j = 1,i
-            R(:,j,i) = Romb2(j) * (Romb1(j) * R(:,j-1,i) - R(:,j-1,i-1))
-        End Do
-        !check for convergence
-        If ( Converged(R(1,i-1,i-1),R(1,i,i)rtol=1.E-16_dp,atol=1.E-20_dp) .AND. & 
-           & Converged(R(2,i-1,i-1),R(2,i,i)rtol=1.E-16_dp,atol=1.E-20_dp)       ) Then
-            q = R(:,i,i)  !R(i,i) is the position of the highest precision converged value
-            Return  !Normal exit
-        End If
-    End Do
-    !If we get this far, we did not converge
-    Call Continue_Romberg_nO1_O2_Ar_he_hi(f,a,b,p,s,10,R(:,:,10),2,q)
-End Function Romberg_Quad_nO1_O2Ar_he_hi
-Recursive Subroutine Continue_Romberg_nO1_O2_Ar_he_hi(f,a,b,p,s,d,R0,level,q)  !adds 10 more rows to the previous Romberg_Quad table
-    Use Kinds, Only: dp
-    Use Utilities, Only: Converged
-    Implicit None
-    Interface
-        Function f(x,k)    !the function to be integrated
-            Use Kinds,Only: dp
-            Implicit None
-            Real(dp) :: f(1:2)
-            Real(dp), Intent(In) :: x
-            Integer, Intent(In) :: k
-        End Function f
-    End Interface
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Integer, Intent(In) :: p
-    Real(dp), Intent(InOut) :: s(1:2)  !previous sum of ordinates
-    Integer, Intent(In) :: d  !length of final row in OLD Romberg Table
-    Real(dp), Intent(In) :: R0(1:2,0:d)  !final row of OLD romberg table
-    Integer, Intent(In) :: level
-    Real(dp), Intent(Out) :: q(1:2)    !the result of the integration, if convergence attained
-    Real(dp) :: R(1:2,0:d+10,0:10)  !Romberg table extension
-    Integer :: n,i,j
-    Real(dp) :: h
-    Integer :: fours
-    
-    R(:,0:d,0) = R0
-    Do i = 1,10
-        !compute trapezoid estimate for next row of table
-        n = 2**(d+i)
-        h = (b - a) / Real(n,dp)
-        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-            s = s + f(a + Real(j,dp)*h,p)
-        End Do
-        R(:,0,i) = h * s
-        !fill out Romberg table row
-        fours = 1
-        Do j = 1,d+i
-            fours = fours * 4
-            R(:,j,i) = (Real(fours,dp) * R(:,j-1,i) - R(:,j-1,i-1)) / Real(fours - 1,dp)
-        End Do
-        !check for convergence
-        If ( Converged(R(1,i-1,i-1),R(1,i,i)rtol=1.E-16_dp,atol=1.E-20_dp) .AND. & 
-           & Converged(R(2,i-1,i-1),R(2,i,i)rtol=1.E-16_dp,atol=1.E-20_dp)       ) Then
-            q = R(:,d+i,i)
-            Return  !Normal exit
-        End If
-    End Do
-    If (level .GT. 10) Then !max allowed recursion depth, interval has been split 100 times...
-        Print *,"ERROR:  US_Std_Atm_1976: Continue_Romberg_nO1_O2_Ar_he_hi:  Failed to converge before reaching max recursion depth."
-        ERROR STOP
-    End If
-    !If we get this far, we did not converge, recurse to add 10 more rows
-    Call Continue_Romberg_nO1_O2_Ar_he_hi(f,a,b,p,s,d+10,R(:,:,10),level+1,q)
-End Subroutine Continue_Romberg_nO1_O2_Ar_he_hi
 
 Function nAr_He_power_stops() Result(xb)
     Use Kinds, Only: dp
@@ -1685,146 +1399,12 @@ Function nAr_He_power_stops() Result(xb)
 
     xb(:,1) = Zs
     xb(:,2:3) = 0._dp
-    xb(2,2:3) = Sum(xb(1:1,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand1_hi,Zs(1),Zs(2),b(1)) !up to 91km
-    xb(3,2:3) = Sum(xb(1:2,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand1_hi,Zs(2),Zs(3),b(2)) !up to 95km
-    xb(4,2:3) = Sum(xb(1:3,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand2_hi,Zs(3),Zs(4),b(3)) !up to 100km
-    xb(5,2:3) = Sum(xb(1:4,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand4_hi,Zs(4),Zs(5),b(4)) !up to 110km
-    xb(6,2:3) = Sum(xb(1:5,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand4_hi,Zs(5),Zs(6),b(5)) !up to 115km
-    xb(7,2:3) = Sum(xb(1:6,2:3),DIM=1) + Romberg_Quad_nO1_O2Ar_he_hi(nAr_He_integrand5,Zs(6),Zs(7),b(6)) !up to 120km
+    xb(2,2:3) = xb(1,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand1,Zs(1),Zs(2),bs(1)) !up to 91km
+    xb(3,2:3) = xb(2,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand1,Zs(2),Zs(3),bs(2)) !up to 95km
+    xb(4,2:3) = xb(3,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand2,Zs(3),Zs(4),bs(3)) !up to 100km
+    xb(5,2:3) = xb(4,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zs(4),Zs(5),bs(4)) !up to 110km
+    xb(6,2:3) = xb(5,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zs(5),Zs(6),bs(5)) !up to 115km
+    xb(7,2:3) = xb(6,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand5,Zs(6),Zs(7),bs(6)) !up to 120km
 End Function nAr_He_power_stops
-
-Function nAr_He_integrand1_hi(Z,b) Result(f)  !for 86 to 95 km
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp) :: f(1:2)
-    Real(dp), Intent(In) :: Z
-    Integer, Intent(In) :: b
-    Real(dp) :: Tz
-    Real(dp) :: Nb(1:3)
-    Real(dp) :: D(1:2)
-    Real(dp) :: y(1:2)
-    
-    Tz = T(Z,b+1)
-    Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power_hi(Z,b))
-    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers_hi(Z,b))
-    Nb = Nb / Tz
-    D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
-    y = D / (R_star * Tz * (D + K0))
-    f = g(Z) * y * (Mi(4:5) + M0*K0/D) + & 
-      & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y(2) * alphai(5) * dT_dZ(Z,b+1)
-End Function nAr_He_integrand1_hi
-
-Function nAr_He_integrand2_hi(Z,b) Result(f)  !for 95 to 100 km
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp) :: f(1:2)
-    Real(dp), Intent(In) :: Z
-    Integer, Intent(In) :: b
-    Real(dp) :: Tz
-    Real(dp) :: Nb(1:3)
-    Real(dp) :: D(1:2)
-    Real(dp) :: y(1:2)
-    Real(dp) :: K
-    
-    Tz = T(Z,b+1)
-    Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power_hi(Z,b))
-    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers_hi(Z,b))
-    Nb = Nb / Tz
-    D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
-    K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
-    y = D / (R_star * Tz * (D + K))
-    f = g(Z) * y * (Mi(4:5) + M0*K/D) + & 
-      & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y(2) * alphai(5) * dT_dZ(Z,b+1)
-End Function nAr_He_integrand2_hi
-
-Function nAr_He_integrand4_hi(Z,b) Result(f)  !for 100 to 115 km
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp) :: f(1:2)
-    Real(dp), Intent(In) :: Z
-    Integer, Intent(In) :: b
-    Real(dp) :: Tz
-    Real(dp) :: Nb(1:3)
-    Real(dp) :: D(1:2)
-    Real(dp) :: y(1:2)
-    Real(dp) :: K
-    
-    Tz = T(Z,b+1)
-    Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power_hi(Z,b))
-    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers_hi(Z,b))
-    Nb = Nb / Tz
-    D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
-    K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
-    y = D / (R_star * Tz * (D + K))
-    f = g(Z) * y * (Mi(4:5) + (Sum(Nb*Mi(1:3))/Sum(Nb))*K/D) + & 
-      & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y(2) * alphai(5) * dT_dZ(Z,b+1)
-End Function nAr_He_integrand4_hi
-
-Function nO1_O2_powers_hi(Z,b) Result(x)
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp) :: x(1:2)
-    Real(dp), Intent(In) :: Z
-    Integer, Intent(In) :: b
-    Logical :: Z_below_97
-    Real(dp), Parameter :: xb(1:2,7:10) = Reshape( (/  0._dp,                 &  !O1, Z = 86km
-                                                    &  0._dp,                 &  !O2, Z = 86km
-                                                    & -1.2335158785532025_dp, &  !O1, Z = 91km
-                                                    &  0.8987089660301271_dp, &  !O2, Z = 91km
-                                                    & -1.2350403922105528_dp, &  !O1, Z = 110km
-                                                    &  4.5003526937771803_dp, &  !O2, Z = 110km
-                                                    & -0.7312338738839638_dp, &  !O1, Z = 120km
-                                                    &  5.8804681169361679_dp  /), &  !O2, Z = 120km
-                                                    & (/2,4/) )
-    Real(dp), Parameter :: xb_95(1:2) =  (/ -1.6326227572400966_dp, &  !O1, Z = 95km
-                                          &  1.6401385731339726_dp  /) !O2, Z = 95km
-    Real(dp), Parameter :: xb_97(1:2) =  (/ -1.6736396506936295_dp, &  !O1, Z = 97km
-                                          &  2.0206764985042182_dp  /) !O2, Z = 97km
-    Real(dp), Parameter :: xb_100(1:2) = (/ -1.6519505201748717_dp, &  !O1, Z = 100km
-                                          &  2.6026369578525224_dp  /) !O2, Z = 100km
-    Real(dp), Parameter :: xb_115(1:2) = (/ -0.9801497240119973_dp, &  !O1, Z = 115km
-                                          &  5.2767050379951361_dp  /) !O2, Z = 115km
-    Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE.,  &
-                                                & .FALSE., &
-                                                & .FALSE., &
-                                                & .TRUE.   /)
-    
-    If (Z .LE. 97._dp) Then
-        Z_below_97 = .TRUE.
-    Else
-        Z_below_97 = .FALSE.
-    End If
-    If (no_sublayers(b)) Then
-        If (Z_below_97) Then !b=7
-            x = Romberg_Quad_nO1_O2_hi(nO1_O2_integrand1_hi,Zb(7),Z,7)
-        Else !b=10
-            x = xb(:,10) + Romberg_Quad_nO1_O2_hi(nO1_O2_integrand5,Zb(10),Z,10)
-        End If
-    Else
-        If (Z_below_97) Then !b=8
-            If (Z .LT. 95._dp) Then
-                x = xb(:,8) + Romberg_Quad_nO1_O2_hi(nO1_O2_integrand1_hi,Zb(8),Z,8)
-            Else
-                x = xb_95 + Romberg_Quad_nO1_O2_hi(nO1_O2_integrand2_hi,95._dp,Z,8)
-            End If
-        Else !b=8 OR b=9
-            If (Z .LT. 100._dp) Then !b=8
-                x = xb_97 + Romberg_Quad_nO1_O2_hi(nO1_O2_integrand2_hi,97._dp,Z,8)
-            Else If (b .EQ. 8) Then !b=8
-                x = xb_100 + Romberg_Quad_nO1_O2_hi(nO1_O2_integrand3_hi,100._dp,Z,8)
-            Else !b=9
-                If (Z .LT. 115._dp) Then
-                    x = xb(:,9) + Romberg_Quad_nO1_O2_hi(nO1_O2_integrand4_hi,Zb(9),Z,9)
-                Else
-                    x = xb_115 + Romberg_Quad_nO1_O2_hi(nO1_O2_integrand5,115._dp,Z,9)
-                End If
-            End If
-        End If
-    End If
-End Function nO1_O2_powers_hi
-# endif
 
 End Module US_Std_Atm_1976

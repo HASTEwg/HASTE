@@ -14,7 +14,7 @@ ALWAYS_FLAGS="-ffree-line-length-0 -fimplicit-none -fmax-errors=5 ${DIR_FLAGS}"
 # DEVELOPMENT Flags (fastest compile cycle, no object files, no linking)
 SYNTAX_FLAGS="-O0 -fmax-errors=5 -Wall -Wextra -pedantic ${ALWAYS_FLAGS} -fsyntax-only"
 # DEBUG Compiler Flags (for debug builds, fast compile with full debug information)
-DEBUG_FLAGS="-g -Og -Wall -pedantic -fcheck=all -fbacktrace ${ALWAYS_FLAGS}"
+DEBUG_FLAGS="-g -Og -Wall -pedantic -fcheck=all -fbacktrace -ffpe-trap=invalid,zero,overflow ${ALWAYS_FLAGS}"
 # RELEASE Compiler Flags (optimize for runtime speed)
 RELEASE_FLAGS="-Ofast ${ALWAYS_FLAGS}"
 # RASPBERRY PI RELEASE Compiler Flags (because this development environment is super-high performance!)
