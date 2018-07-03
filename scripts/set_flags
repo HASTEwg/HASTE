@@ -6,6 +6,7 @@
 #  - Coarray support (default off, -DCAF enables coarrays)
 #  - Compiler vendor (-DGFORT for gFortran, -DIFORT for Intel)
 PREP_FLAGS="-cpp -DLIN_OS -DGFORT"
+# Preprocessor flags may be appended to this using the '-p' flag from the command line
 
 # General compiler flags (applies to all builds)
 OBJ_DIR="../build/obj/"
@@ -19,28 +20,33 @@ DEBUG_FLAGS="-g -Og -Wall -pedantic -fcheck=all -fbacktrace -ffpe-trap=invalid,z
 RELEASE_FLAGS="-Ofast ${ALWAYS_FLAGS}"
 # RASPBERRY PI RELEASE Compiler Flags (because this development environment is super-high performance!)
 RELEASE_FLAGS_PI="-Ofast -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mtune=cortex-a53 ${ALWAYS_FLAGS}"
+
 # Set compiler flags based on command flag
 COMP_FLAGS="${DEBUG_FLAGS}"
-while getopts 'sdrp' flag; do
+while getopts 'sdrqp:c' flag; do
   case "${flag}" in
-    s) COMP_FLAGS="${SYNTAX_FLAGS}" ;;
-    d) COMP_FLAGS="${DEBUG_FLAGS}" ;;
-    r) COMP_FLAGS="${RELEASE_FLAGS}" ;;
-    p) COMP_FLAGS="${RELEASE_FLAGS_PI}" ;;
+    s) COMP_FLAGS="${SYNTAX_FLAGS}"
+       ;;
+    d) COMP_FLAGS="${DEBUG_FLAGS}"
+       ;;
+    r) COMP_FLAGS="${RELEASE_FLAGS}"
+       ;;
+    q) COMP_FLAGS="${RELEASE_FLAGS_PI}"
+       ;;
+    p) PREP_FLAGS="${PREP_FLAGS} ${OPTARG}"
+       ;;
+    c) 
+       PREP_FLAGS="${PREP_FLAGS} -DCAF"
+       #COMP_FLAGS="${COMP_FLAGS} -fcoarray=single"
+       #LIB_FLAGS="${COMP_FLAGS} -lcaf_single"
+       COMP_FLAGS="${COMP_FLAGS} -fcoarray=lib"
+       LIB_FLAGS="${COMP_FLAGS} -lcaf_mpi"
+       ;;
   esac
 done
 
 # LINKER Flags
 LINK_FLAGS="-flto -fuse-linker-plugin"
-
-# Uncomment to enable SINGLE coarray behavior
-#PREP_FLAGS="${PREP_FLAGS} -DCAF"
-#COMP_FLAGS="${COMP_FLAGS} -fcoarray=single"
-#LIB_FLAGS="${COMP_FLAGS} -lcaf_single"
-# Uncomment to enable full coarray execution
-#PREP_FLAGS="${PREP_FLAGS} -DCAF"
-#COMP_FLAGS="${COMP_FLAGS} -fcoarray=lib"
-#LIB_FLAGS="${COMP_FLAGS} -lcaf_mpi"
 
 GFORT_FLAGS="${PREP_FLAGS} ${COMP_FLAGS} ${LINK_FLAGS}"
 GFORT_FLAGS_o="${GFORT_FLAGS} -c"
