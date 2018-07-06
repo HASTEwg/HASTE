@@ -1016,8 +1016,7 @@ Function p6(Z)
     Implicit None
     Real(dp) :: p6
     Real(dp), Intent(In) :: Z
-    !TODO Get a higher precision value for T500
-    Real(dp), Parameter :: T500 = 999.235602_dp
+    Real(dp), Parameter :: T500 = 999.2356017626150686_dp
     
     p6 = (T(Z,11) / T500)**(1._dp + alphai(6)) * Exp(Romberg_Quad_p6(Z,500._dp))
 End Function p6
