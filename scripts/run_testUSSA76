@@ -4,7 +4,7 @@
 ./clean
 
 # SET COMPILER FLAGS
-. ./set_flags -p "-EXT_PREC -TEST_CODE"
+. ./set_flags
 . ./echo_flags
 
 # COMMON MODULES

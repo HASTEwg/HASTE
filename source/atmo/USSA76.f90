@@ -219,10 +219,10 @@ Module US_Std_Atm_1976
                                           & 4._dp**10 /)
     Real(dp), Parameter :: Romb2(1:10) = 1._dp / (Romb1 - 1._dp)
     !Convergence criteria for Romberg Quadrature routines
-#   if EXT_PREC
-        Real(dp), Parameter :: rTol_tier1 = 1.E-18_dp  !N2
-        Real(dp), Parameter :: rTol_tier2 = 1.E-16_dp  !O1 and O2
-        Real(dp), Parameter :: rTol_tier3 = 1.E-15_dp  !Ar and He
+#   if TEST_CODE
+        Real(dp), Parameter :: rTol_tier1 = 1.E-14_dp  !N2
+        Real(dp), Parameter :: rTol_tier2 = 1.E-13_dp  !O1 and O2
+        Real(dp), Parameter :: rTol_tier3 = 1.E-12_dp  !Ar and He
 #   else
         Real(dp), Parameter :: rTol_tier1 = 1.E-8_dp  !N2
         Real(dp), Parameter :: rTol_tier2 = 1.E-7_dp  !O1 and O2
@@ -305,10 +305,11 @@ Function dT_dZ(Z,layer,layer_range)
     End If
     If (Lb_nonzero(b)) Then
         dT_dZ = Lb(b)
-    Else If (T_exponential(b)) Then
-        dT_dZ = lambda * (T_inf - Tb(b)) * ((R_Earth + Zb(b)) / (R_Earth + Z))**2 * Exp(-lambda * (Z - Zb(b)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 32
-    Else If (T_elliptical(b)) Then
-        dT_dZ = -big_A * (Z - Zb(b)) / (little_A * Sqrt(1._dp - ((Z - Zb(b)) / little_A)**2))  !US Standard Atmosphere 1976 equation 28
+        If (b.EQ.6 .AND. Z.GT.80._dp) dT_dZ = dT_dZ * T_M0_correction(Z)  !US Standard Atmosphere 1976 equation 22
+    Else If (T_exponential(b)) Then  !b=10
+        dT_dZ = lambda * (T_inf - Tb(10)) * ((R_Earth + Zb(10)) / (R_Earth + Z))**2 * Exp(-lambda * (Z - Zb(10)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 32
+    Else If (T_elliptical(b)) Then  !b=8
+        dT_dZ = -big_A * (Z - Zb(8)) / ((little_A**2) * Sqrt(1._dp - ((Z - Zb(8)) / little_A)**2))  !US Standard Atmosphere 1976 equation 28
     Else
         dT_dZ = 0._dp
     End If
@@ -361,10 +362,10 @@ Function nN2_power(Z,b) Result(x)
     Real(dp) :: M_over_R
     Logical :: Z_below_100
     Real(dp), Parameter :: xb(7:10) = (/ 0._dp,                 &  !Z = 86km
-                                       & 0.8891738712368935_dp, &  !Z = 91km
-                                       & 3.9815997728018484_dp, &  !Z = 110km
-                                       & 5.0588195691573041_dp  /) !Z = 120km
-    Real(dp), Parameter :: xb_100 = 2.4639390409132487_dp  !Z = 100km
+                                       & 0.88917387123689_dp, &  !Z = 91km
+                                       & 3.98159977280185_dp, &  !Z = 110km
+                                       & 5.05881956915730_dp  /) !Z = 120km
+    Real(dp), Parameter :: xb_100 = 2.46393904091325_dp  !Z = 100km
     Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE.,  &
                                                 & .FALSE., &
                                                 & .TRUE.,  &
@@ -405,23 +406,21 @@ Function nO1_O2_powers(Z,b) Result(x)
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
     Logical :: Z_below_97
-    Real(dp), Parameter :: xb(1:2,7:10) = Reshape( (/  0._dp,                 &  !O1, Z = 86km
-                                                    &  0._dp,                 &  !O2, Z = 86km
-                                                    & -1.2335158785532025_dp, &  !O1, Z = 91km
-                                                    &  0.8987089660301271_dp, &  !O2, Z = 91km
-                                                    & -1.2350403922105528_dp, &  !O1, Z = 110km
-                                                    &  4.5003526937771803_dp, &  !O2, Z = 110km
-                                                    & -0.7312338738839638_dp, &  !O1, Z = 120km
-                                                    &  5.8804681169361679_dp  /), &  !O2, Z = 120km
-                                                    & (/2,4/) )
-    Real(dp), Parameter :: xb_95(1:2) =  (/ -1.6326227572400966_dp, &  !O1, Z = 95km
-                                          &  1.6401385731339726_dp  /) !O2, Z = 95km
-    Real(dp), Parameter :: xb_97(1:2) =  (/ -1.6736396506936295_dp, &  !O1, Z = 97km
-                                          &  2.0206764985042182_dp  /) !O2, Z = 97km
-    Real(dp), Parameter :: xb_100(1:2) = (/ -1.6519505201748717_dp, &  !O1, Z = 100km
-                                          &  2.6026369578525224_dp  /) !O2, Z = 100km
-    Real(dp), Parameter :: xb_115(1:2) = (/ -0.9801497240119973_dp, &  !O1, Z = 115km
-                                          &  5.2767050379951361_dp  /) !O2, Z = 115km
+    Real(dp), Parameter :: xb(1:2,8:10) = Reshape( (/ -1.2335158785532_dp, &  !O1, Z = 91km
+                                                    &  0.8987089660301_dp, &  !O2, Z = 91km
+                                                    & -1.2350403922106_dp, &  !O1, Z = 110km
+                                                    &  4.5003526937772_dp, &  !O2, Z = 110km
+                                                    & -0.7312338738840_dp, &  !O1, Z = 120km
+                                                    &  5.8804681169362_dp  /), &  !O2, Z = 120km
+                                                    & (/2,3/) )
+    Real(dp), Parameter :: xb_95(1:2) =  (/ -1.6326227572401_dp, &  !O1, Z = 95km
+                                          &  1.6401385731340_dp  /) !O2, Z = 95km
+    Real(dp), Parameter :: xb_97(1:2) =  (/ -1.6736396506936_dp, &  !O1, Z = 97km
+                                          &  2.0206764985042_dp  /) !O2, Z = 97km
+    Real(dp), Parameter :: xb_100(1:2) = (/ -1.6519505201749_dp, &  !O1, Z = 100km
+                                          &  2.6026369578525_dp  /) !O2, Z = 100km
+    Real(dp), Parameter :: xb_115(1:2) = (/ -0.9801497240120_dp, &  !O1, Z = 115km
+                                          &  5.2767050379951_dp  /) !O2, Z = 115km
     Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE.,  &
                                                 & .FALSE., &
                                                 & .FALSE., &
@@ -546,46 +545,56 @@ Function nAr_He_powers(Z,b) Result(x)
     Real(dp) :: x(1:2)
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
-    Real(dp), Parameter :: xb(1:2,7:10) = Reshape( (/  0._dp, &  !Ar, Z = 86km
-                                                    &  0._dp, &  !He, Z = 86km
-                                                    &  0.9029433887519961_dp, &  !Ar, Z = 91km
-                                                    &  0.7963213747812477_dp, &  !He, Z = 91km
-                                                    &  4.6108383812528880_dp, &  !Ar, Z = 110km
-                                                    &  2.3167238396434371_dp, &  !He, Z = 110km
-                                                    &  6.2412684806214495_dp, &  !Ar, Z = 120km
-                                                    &  2.3147895408503995_dp  /), &  !He, Z = 120km
-                                                    & (/2,4/) )
-    Real(dp), Parameter :: xb_95(1:2) =  (/ 1.6463776323299731_dp, &  !Ar, Z = 95km
-                                          & 1.3378385484034475_dp  /) !He, Z = 95km
-    Real(dp), Parameter :: xb_100(1:2) = (/ 2.6119420164281658_dp, &  !Ar, Z = 100km
-                                          & 1.8579919647339275_dp  /) !He, Z = 100km
-    Real(dp), Parameter :: xb_115(1:2) = (/ 5.5159366790272590_dp, &  !Ar, Z = 115km
-                                          & 2.3185678009807535_dp  /) !He, Z = 115km
+    Logical :: Z_below_97
+    Real(dp), Parameter :: xb(1:2,8:10) = Reshape( (/  0._dp, &  !Ar, Z = 91km
+                                                    &  0._dp, &  !He, Z = 91km
+                                                    &  0._dp, &  !Ar, Z = 110km
+                                                    &  0._dp, &  !He, Z = 110km
+                                                    &  0._dp, &  !Ar, Z = 120km
+                                                    &  0._dp  /), &  !He, Z = 120km
+                                                    & (/2,3/) )
+    Real(dp), Parameter :: xb_95(1:2) =  (/ 0._dp, &  !Ar, Z = 95km
+                                          & 0._dp  /) !He, Z = 95km
+    Real(dp), Parameter :: xb_97(1:2) =  (/ 0._dp, &  !Ar, Z = 97km
+                                          & 0._dp  /) !He, Z = 97km
+    Real(dp), Parameter :: xb_100(1:2) = (/ 0._dp, &  !Ar, Z = 100km
+                                          & 0._dp  /) !He, Z = 100km
+    Real(dp), Parameter :: xb_115(1:2) = (/ 0._dp, &  !Ar, Z = 115km
+                                          & 0._dp  /) !He, Z = 115km
     Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE.,  &
                                                 & .FALSE., &
                                                 & .FALSE., &
                                                 & .TRUE.   /)
     
+    If (Z .LE. 97._dp) Then
+        Z_below_97 = .TRUE.
+    Else
+        Z_below_97 = .FALSE.
+    End If
     If (no_sublayers(b)) Then
-        If (b .EQ. 7) Then !b=7
+        If (Z_below_97) Then !b=7
             x = Romberg_Quad_nAr_He(nAr_He_integrand1,Zb(7),Z,7)
         Else !b=10
             x = xb(:,10) + Romberg_Quad_nAr_He(nAr_He_integrand5,Zb(10),Z,10)
         End If
     Else
-        If (b .EQ. 8) Then !b=8
+        If (Z_below_97) Then !b=8
             If (Z .LT. 95._dp) Then
                 x = xb(:,8) + Romberg_Quad_nAr_He(nAr_He_integrand1,Zb(8),Z,8)
-            Else If (Z .LT. 100._dp) Then
-                x = xb_95 + Romberg_Quad_nAr_He(nAr_He_integrand2,95._dp,Z,8)
-            Else !Z > 100
-                x = xb_100 + Romberg_Quad_nAr_He(nAr_He_integrand4,100._dp,Z,8)
-            End If
-        Else !b=9
-            If (Z .LT. 115._dp) Then
-                x = xb(:,9) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zb(9),Z,9)
             Else
-                x = xb_115 + Romberg_Quad_nAr_He(nAr_He_integrand4,115._dp,Z,9)
+                x = xb_95 + Romberg_Quad_nAr_He(nAr_He_integrand2,95._dp,Z,8)
+            End If
+        Else !b=8 OR b=9
+            If (Z .LT. 100._dp) Then !b=8
+                x = xb_97 + Romberg_Quad_nAr_He(nAr_He_integrand2,97._dp,Z,8)
+            Else If (b .EQ. 8) Then !b=8
+                x = xb_100 + Romberg_Quad_nAr_He(nAr_He_integrand4,100._dp,Z,8)
+            Else !b=9
+                If (Z .LT. 115._dp) Then
+                    x = xb(:,9) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zb(9),Z,9)
+                Else
+                    x = xb_115 + Romberg_Quad_nAr_He(nAr_He_integrand5,115._dp,Z,9)
+                End If
             End If
         End If
     End If
@@ -1402,15 +1411,17 @@ End Function nO1_O2_power_stops
 Function nAr_He_power_stops() Result(xb)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: xb(1:7,1:3)
-    Real(dp), Parameter :: Zs(1:7) = (/  86._dp, &
+    Real(dp) :: xb(1:8,1:3)
+    Real(dp), Parameter :: Zs(1:8) = (/  86._dp, &
                                       &  91._dp, & 
                                       &  95._dp, & 
+                                      &  97._dp, &
                                       & 100._dp, & 
                                       & 110._dp, & 
                                       & 115._dp, & 
                                       & 120._dp  /)
-    Integer, Parameter :: bs(1:7) = (/  7, &
+    Integer, Parameter :: bs(1:8) = (/  7, &
+                                     &  8, & 
                                      &  8, & 
                                      &  8, & 
                                      &  8, & 
@@ -1422,10 +1433,11 @@ Function nAr_He_power_stops() Result(xb)
     xb(:,2:3) = 0._dp
     xb(2,2:3) = xb(1,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand1,Zs(1),Zs(2),bs(1)) !up to 91km
     xb(3,2:3) = xb(2,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand1,Zs(2),Zs(3),bs(2)) !up to 95km
-    xb(4,2:3) = xb(3,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand2,Zs(3),Zs(4),bs(3)) !up to 100km
-    xb(5,2:3) = xb(4,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zs(4),Zs(5),bs(4)) !up to 110km
-    xb(6,2:3) = xb(5,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zs(5),Zs(6),bs(5)) !up to 115km
-    xb(7,2:3) = xb(6,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand5,Zs(6),Zs(7),bs(6)) !up to 120km
+    xb(4,2:3) = xb(3,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand2,Zs(3),Zs(4),bs(3)) !up to 97km
+    xb(5,2:3) = xb(4,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand2,Zs(4),Zs(5),bs(4)) !up to 100km
+    xb(6,2:3) = xb(5,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zs(5),Zs(6),bs(5)) !up to 110km
+    xb(7,2:3) = xb(6,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zs(6),Zs(7),bs(6)) !up to 115km
+    xb(8,2:3) = xb(7,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand5,Zs(7),Zs(8),bs(7)) !up to 120km
 End Function nAr_He_power_stops
 # endif
 
