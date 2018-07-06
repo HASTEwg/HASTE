@@ -460,6 +460,18 @@ Function nO1_O2_powers(Z,b) Result(x)
     End If
 End Function nO1_O2_powers
 
+Function K95to115(Z) Result(K)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: K
+    Real(dp), Intent(In) :: Z
+    Real(dp) :: x
+    
+    !K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))  !US Standard Atmosphere 1976 equation 7b
+    x = (Z - 95._dp)**2
+    K = K0 * Exp(-x / (400._dp - x))  !US Standard Atmosphere 1976 equation 7b
+End Function K95to115
+
 Function nO1_O2_integrand1(Z,b) Result(f)  !for 86 to 95 km
     Use Kinds, Only: dp
     Implicit None
@@ -488,7 +500,7 @@ Function nO1_O2_integrand2(Z,b) Result(f)  !for 95 to 97 km
     
     Tz = T(Z,b+1)
     D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
-    K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
+    K = K95to115(Z) !K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
     f = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + & 
       & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
     f(1) = f(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
@@ -506,7 +518,7 @@ Function nO1_O2_integrand3(Z,b) Result(f)  !for 97 to 100 km
 
     Tz = T(Z,b+1)
     D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
-    K = 1.2E2_dp * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
+    K = K95to115(Z) !K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
     f = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + & 
       & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand3
@@ -523,7 +535,7 @@ Function nO1_O2_integrand4(Z,b) Result(f)  !for 100 to 115 km
     
     Tz = T(Z,b+1)
     D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
-    K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
+    K = K95to115(Z) !K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
     f = g(Z) * D * (Mi(2:3) + Mi(1)*K/D) / (R_star * Tz * (D + K)) + & 
       & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand4
@@ -639,7 +651,7 @@ Function nAr_He_integrand2(Z,b) Result(f)  !for 95 to 100 km
     Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,b))
     Nb = Nb / Tz
     D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
-    K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
+    K = K95to115(Z) !K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
     y = D / (R_star * Tz * (D + K))
     f = g(Z) * y * (Mi(4:5) + M0*K/D) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
@@ -663,7 +675,7 @@ Function nAr_He_integrand4(Z,b) Result(f)  !for 100 to 115 km
     Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,b))
     Nb = Nb / Tz
     D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
-    K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
+    K = K95to115(Z) !K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
     y = D / (R_star * Tz * (D + K))
     f = g(Z) * y * (Mi(4:5) + (Sum(Nb*Mi(1:3))/Sum(Nb))*K/D) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
