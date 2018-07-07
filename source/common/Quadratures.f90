@@ -17,6 +17,7 @@ Module Quadratures
     Public :: GaussLegendre16
     Public :: GaussLegendre96
     Public :: GaussLegendreN
+    Public :: Progressive_GaussLegendre
     
     Real(dp), Parameter :: one_third = 1._dp / 3._dp
     Real(dp), Parameter :: one_sixth = 1._dp / 6._dp
@@ -1149,5 +1150,46 @@ Function GaussLegendreN(N,f,a,b) Result(q)
     End Select
     q = GaussLegendre(f,a,b,n,wi,ai)
 End Function GaussLegendreN
+
+Function Progressive_GaussLegendre(f,a,b,rtol,atol,n_start,n_stride) Result(q)
+    Use Kinds, Only: dp
+    Use Utilities, Only: Converged
+    Implicit None
+    Real(dp) :: q
+    Interface
+        Function f(x)
+            Use Kinds, Only: dp
+            Implicit None
+            Real(dp) :: f
+            Real(dp), Intent(In) :: x
+        End Function
+    End Interface
+    Real(dp), Intent(In) :: a,b
+    Real(dp), Intent(In) :: rtol,atol
+    Integer, Intent(In) :: n_start,n_stride
+    Real(dp) :: q_old
+    Integer :: n,dn
+    Integer :: i
+    
+    If (Present(n_start)) Then
+        n = n_start
+    Else
+        n = 1
+    End If
+    If (Present(n_stride)) Then
+        dn = n_stride
+    Else
+        dn = 1
+    End If
+    q_old = GaussLegendreN(n,f,a,b)
+    Do i = n+dn,150,dn !Gauss-Legendre weights and abscissa are available up to 150 points
+        q = GaussLegendreN(i,f,a,b)
+        If (Converged(q,q_old,rtol,atol)) RETURN !NORMAL EXIT
+        q_old = q
+    End Do
+    !If we get this far, we failed to converge on 150-point Gauss
+    Print*,'ERROR:  Quadratures: Progressive_GaussLegendre:  Failed to converge with ',i-dn,' Gauss-points.'
+    ERROR STOP
+End Function Progressive_GaussLegendre
 
 End Module Quadratures

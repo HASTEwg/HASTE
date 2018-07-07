@@ -9,7 +9,7 @@ Module US_Std_Atm_1976
     Public :: rho    
     Public :: rho_N    
     Public :: Zb
-#   if TEST_CODE
+#   if INTEGRAND_STOPS
         Public :: nN2_power_stops
         Public :: nO1_O2_power_stops
         Public :: nAr_He_power_stops
@@ -468,8 +468,14 @@ Function K95to115(Z) Result(K)
     Real(dp) :: x
     
     !K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))  !US Standard Atmosphere 1976 equation 7b
-    x = (Z - 95._dp)**2
-    K = K0 * Exp(-x / (400._dp - x))  !US Standard Atmosphere 1976 equation 7b
+    If (Z .LT. 115._dp) Then
+        x = (Z - 95._dp)**2
+        K = K0 * Exp(-x / (400._dp - x))  !US Standard Atmosphere 1976 equation 7b
+    Else If (Z .LT. 95._dp) Then
+        K = K0
+    Else
+        K = 0._dp
+    End If
 End Function K95to115
 
 Function nO1_O2_integrand1(Z,b) Result(f)  !for 86 to 95 km
@@ -1352,7 +1358,7 @@ Function nH_low(Z) Result(nH)
 End Function nH_low
 
 
-# if TEST_CODE
+# if INTEGRAND_STOPS
 !---------------------------------------------------------------------------------
 !  The following routines are used only for computing the 'stop' values for the 
 !  number density integrals:  Used to compute necessary constants which are then 

@@ -20,7 +20,7 @@ DEBUG_FLAGS="-g -Og -Wall -pedantic -fcheck=all -fbacktrace ${ALWAYS_FLAGS}"
 # RELEASE Compiler Flags (optimize for runtime speed)
 RELEASE_FLAGS="-Ofast ${ALWAYS_FLAGS}"
 # RASPBERRY PI RELEASE Compiler Flags (because this development environment is super-high performance!)
-RELEASE_FLAGS_PI="-Ofast -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mtune=cortex-a53 ${ALWAYS_FLAGS}"
+RELEASE_FLAGS_PI="-Ofast -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits -mtune=cortex-a53 ${ALWAYS_FLAGS}"
 
 # Set compiler flags based on command flag
 COMP_FLAGS="${DEBUG_FLAGS}"
