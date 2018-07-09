@@ -61,7 +61,7 @@ Function Romberg_Quad_new(f,a,b,aTol,rTol) Result(q)
     Real(dp) :: rat
     Integer, Parameter :: Rmax = 20  !maximum number of extrapolations in the table
     Real(dp), Parameter :: one_third = 1._dp / 3._dp
-    Real(dp), Parameter :: fours(2:Rmax) = (/ (4._dp**i , i = 2,Rmax) /)
+    Real(dp), Parameter :: fours(2:Rmax) = (/ (4._dp**k , k = 2,Rmax) /)
 
     Allocate(R0(0:Rmax))
     Allocate(Ri(0:Rmax))
