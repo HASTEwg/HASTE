@@ -13,12 +13,12 @@ Module Global
     Real(dp), Parameter :: nA = 6.022140857E23_dp  ![1/mol] Avagadro's number
     
 ! Mathematical Constants
-    Real(dp), Parameter :: pi = 3.1415926535897932384626433832795028841971693993751058209749445923_dp  !64 digits carried in case we need a higher precision value in the future
+    Real(dp), Parameter :: pi = 3.141592653589793238462643383279502884_dp  !36 digits carried in case needed for quadruple precision
     Real(dp), Parameter :: TwoPi = 2._dp * pi
     Real(dp), Parameter :: FourPi = 4._dp * pi
     Real(dp), Parameter :: HalfPi = 0.5_dp * pi
     Real(dp), Parameter :: inv_TwoPi = 0.5_dp / pi
-    Real(dp), PArameter :: inv_FourPi = 0.25_dp / Pi
+    Real(dp), Parameter :: inv_FourPi = 0.25_dp / Pi
     Real(dp), Parameter :: SqrtPi = Sqrt(pi)
     Real(dp), Parameter :: X_Hat(1:3) = (/ 1._dp , 0._dp , 0._dp /)
     Real(dp), Parameter :: Y_Hat(1:3) = (/ 0._dp , 1._dp , 0._dp /)
