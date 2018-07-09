@@ -25,6 +25,18 @@ Integer :: i,j,unit
 Real(dp) :: z
 Real(dp) :: temp,pres,dens
 Real(dp) :: NumDens(1:6)
+Integer, Parameter :: other_alts(1:12) = (/   5000, &
+                                          &  15000, &
+                                          &  25000, &
+                                          &  40000, &
+                                          &  49000, &
+                                          &  60000, &
+                                          &  80000, &
+                                          &  88000, &
+                                          & 100000, &
+                                          & 117000, &
+                                          & 250000, &
+                                          & 500000  /)
 
 Real(dp), Parameter :: dZmax = 1.E-3_dp !1 meter resolution
 
@@ -79,42 +91,48 @@ Real(dp), Parameter :: dZmax = 1.E-3_dp !1 meter resolution
     STOP
 # endif
 
+z = 600._dp
+Call rho_N(z,T(z),Find_Base_Layer(z),NumDens)
+Write(*,'(F9.3,6ES10.3)') z,NumDens
+STOP
+
 Write(*,*)
 Write(*,'(A)') 'Temperature, Pressure, & Density as a function of altitude'
 Write(*,'(A9,3A14)') ' Z [km] ','   T [K]   ','   P [pa]   ',' rho [g/m^3]'
 Write(*,'(A9,3A14)') '--------','-----------','------------','------------'
-temp = T(0._dp)
-pres = P(0._dp)
-dens = rho(0._dp)
-Write(*,'(F9.3,3ES14.6)') z,temp,pres,dens
+z = 0._dp
+temp = T(z)
+pres = P(z)
+dens = rho(z)
+Write(*,'(F9.3,3ES14.6,A)') z,temp,pres,dens,' <--Zb(0)'
 Open(NEWUNIT=unit,FILE='TPRho.tst',ACTION='WRITE',STATUS='REPLACE')
 Write(unit,'(F9.3,3ES24.16)') z,temp,pres,dens
 i = 1
 j = 1
-Do
+Do j = 1,1000*1000
     z = Real(j,dp) * dZmax
-    If (z .GT. MaxVal(Zb)) Exit
     temp = T(z)
     pres = P(z)
     dens = rho(z)
-    If ( Any( Int(z/dZmax).EQ.(/250000,500000/) ) ) Then  !make 250km and 500km lines persistent
+    If ( Any(j .EQ. other_alts) ) Then  !make these lines persistent
         Write(*,'(A,F9.3,3ES14.6)') ACHAR(13),z,temp,pres,dens
-    Else
+    Else  !otherwise overprint
         Write(*,'(A,F9.3,3ES14.6)',ADVANCE='NO') ACHAR(13),z,temp,pres,dens
     End If
-    Write(unit,'(F9.3,3ES24.16)') z,temp,pres,dens
-    If (Real(j+1,dp)*dZmax .GE. Zb(i)) Then !the NEXT z will pass the next base layer
-        If (Real(j+1,dp)*dZmax .NE. Zb(i)) Then !the NEXT z won't hit the next value
+    If (z .GE. Zb(i)) Then !this z passed a base layer
+        If (z .EQ. Zb(i)) Then !this z lands exaclty on the layer boundary, mark and prevent overprint
+            Write(*,'(A,I0,A)') ' <--Zb(',i,')'
+            i = i + 1
+        Else !Compute the base layer values
             temp = T(Zb(i))
             pres = P(Zb(i))
             dens = rho(Zb(i))
-            Write(*,'(A,F9.3,3ES14.6)') ACHAR(13),Zb(i),temp,pres,dens
+            Write(*,'(A,F9.3,3ES14.6,A,I0,A)') ACHAR(13),Zb(i),temp,pres,dens,' <--Zb(',i,')'
             Write(unit,'(F9.3,3ES24.16)') Zb(i),temp,pres,dens
+            i = i + 1
         End If
-        i = i + 1
-    Else
-        j = j + 1
     End If
+    Write(unit,'(F9.3,3ES24.16)') z,temp,pres,dens
 End Do
 Close(unit)
 Write(*,*)
@@ -123,34 +141,33 @@ Write(*,*)
 Write(*,'(A)') 'Number Density as a function of altitude'
 Write(*,'(A9,6A10)') ' Z [km] ','   N2    ','   O1    ','   O2    ','   Ar    ','   He    ','   H1    '
 Write(*,'(A9,6A10)') '--------','---------','---------','---------','---------','---------','---------'
-z = 86000._dp
+z = 86._dp
 NumDens = 0._dp
-Call rhoN(Z,T(z),Find_Base_Layer(z),NumDens(1:5))
-Write(*,'(F9.3,6ES10.3)') z,NumDens
+Call rho_N(Z,T(z),Find_Base_Layer(z),NumDens)
+Write(*,'(F9.3,6ES10.3,A)') z,NumDens,' <--Zb(7)'
 Open(NEWUNIT=unit,FILE='Ndens.tst',ACTION='WRITE',STATUS='REPLACE')
 Write(unit,'(F9.3,6ES24.16)') z,NumDens
 i = 8
-j = 86001
-Do
+Do j = 86001,1000*1000
     z = Real(j,dp) * dZmax
-    If (z .GT. MaxVal(Zb)) Exit
-    Call rhoN(Z,T(z),Find_Base_Layer(z),NumDens(1:5))
-    If ( Any( Int(z/dZmax).EQ.(/250000,500000/) ) ) Then  !make 250km and 500km lines persistent
+    Call rho_N(Z,T(z),Find_Base_Layer(z),NumDens)
+    If ( Any(j .EQ. other_alts) ) Then  !make these lines persistent
         Write(*,'(A,F9.3,6ES10.3)') ACHAR(13),z,NumDens
-    Else
+    Else  !otherwise overprint
         Write(*,'(A,F9.3,6ES10.3)',ADVANCE='NO') ACHAR(13),z,NumDens
     End If
-    Write(unit,'(F9.3,6ES24.16)') z,NumDens
-    If (Real(j+1,dp)*dZmax .GE. Zb(i)) Then !the NEXT z will pass the next base layer
-        If (Real(j+1,dp)*dZmax .NE. Zb(i)) Then !the NEXT z won't hit the next value
-            Call rhoN(Zb(i),T(Zb(i)),Find_Base_Layer(Zb(i)),NumDens(1:5))
-            Write(*,'(A,F9.3,6ES10.3)') ACHAR(13),Zb(i),NumDens
+    If (z .GE. Zb(i)) Then !this z passed a base layer
+        If (z .EQ. Zb(i)) Then !this z lands exaclty on the layer boundary, mark and prevent overprint
+            Write(*,'(A,I0,A)') ' <--Zb(',i,')'
+            i = i + 1
+        Else !Compute the base layer values
+            Call rho_N(Zb(i),T(Zb(i)),Find_Base_Layer(Zb(i)),NumDens)
+            Write(*,'(A,F9.3,6ES10.3,A,I0,A)') ACHAR(13),Zb(i),NumDens,' <--Zb(',i,')'
             Write(unit,'(F9.3,6ES24.16)') Zb(i),NumDens
+            i = i + 1
         End If
-        i = i + 1
-    Else
-        j = j + 1
     End If
+    Write(unit,'(F9.3,6ES24.16)') z,NumDens
 End Do
 Close(unit)
 Write(*,*)

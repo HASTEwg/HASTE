@@ -37,6 +37,71 @@ Module Quadratures
     
 Contains
 
+Function Romberg_Quad_new(f,a,b,aTol,rTol) Result(q)
+    Use Kinds, Only: dp
+    Use Utilities, Only: Converged
+    Implicit None
+    Real(dp):: q    !the result of the integration
+    Interface
+        Function f(x)    !the function to be integrated
+            Use Kinds,Only: dp
+            Implicit None
+            Real(dp) :: f
+            Real(dp), Intent(In) :: x
+        End Function f
+    End Interface
+    Real(dp), Intent(In) :: a,b    !limits of integration
+    Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
+    Real(dp), Pointer :: R0(:)  !Romberg table, previous row
+    Real(dp), Pointer :: Ri(:)  !Romberg table, current row
+    Real(dp), Pointer :: Rs(:)  !swap pointer for switching current/previous rows
+    Integer :: n,i,j
+    Real(dp) :: h,s
+    Real(dp) :: rat
+    Integer, Parameter :: Rmax = 20  !maximum number of extrapolations in the table
+    Real(dp), Parameter :: one_third = 1._dp / 3._dp
+    Real(dp), Parameter :: fours(2:Rmax) = (/ (4._dp**i , i = 2,Rmax) /)
+
+    Allocate(R0(0:Rmax))
+    Allocate(Ri(0:Rmax))
+    n = 1
+    h = b - a
+    s = 0.5_dp * (f(a) + f(b))
+    R0(0) = h * s
+    Do i = 1,Rmax  !up to Rmax rows in the table
+        !compute trapezoid estimate for next row of table
+        n = n * 2
+        h = (b - a) / Real(n,dp)
+        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
+            s = s + f(a + Real(j,dp)*h)
+        End Do
+        Ri(0) = h * s
+        !fill out Romberg table row
+        !First extrapolated value is by polynomial extrapolation
+        Ri(1) = Ri(0) + (Ri(0) - R0(0)) * one_third
+        If (i .GT. 1) Then
+            !2 through i-th values are by rational extrapolation
+            Do j = 2,i
+                rat = (R0(j-1) - R0(j-2)) / (Ri(j-1) - R0(j-2))
+                Ri(j) = Ri(j-1) + (Ri(j-1) - R0(j-1)) / (fours(j)*rat - 1._dp)
+            End Do
+        End If
+        !check for convergence
+        If (Converged(R0(i-1),Ri(i),rTol,aTol)) Then
+            q = Ri(i)  !Ri(i) is the position of the highest precision converged value
+            Deallocate(R0,Ri)
+            Return  !Normal exit
+        End If
+        !switch the current row to the previous row
+        Rs => R0  !saves location of R0
+        R0 => Ri  !points to new previous row
+        Ri => Rs  !points to new current row (which will be overwritten on next time through the loop)
+    End Do
+    !If we get this far, we did not converge
+    Print *,"ERROR:  Quadratures: Romberg_Quad_new:  Failed to converge in 20 extrapolations."
+    ERROR STOP
+End Function Romberg_Quad_new
+
 Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
     Use Kinds, Only: dp
     Use Utilities, Only: Converged
@@ -1166,7 +1231,7 @@ Function Progressive_GaussLegendre(f,a,b,rtol,atol,n_start,n_stride) Result(q)
     End Interface
     Real(dp), Intent(In) :: a,b
     Real(dp), Intent(In) :: rtol,atol
-    Integer, Intent(In) :: n_start,n_stride
+    Integer, Intent(In), Optional :: n_start,n_stride
     Real(dp) :: q_old
     Integer :: n,dn
     Integer :: i

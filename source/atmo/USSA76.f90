@@ -168,11 +168,12 @@ Module US_Std_Atm_1976
     Real(dp), Parameter :: inv_Na = 1._dp / Na
     Real(dp), Parameter :: N_star = R_star / Na
     Real(dp), Parameter :: K0 = 1.2E2_dp
-    Real(dp), Parameter :: Mi(1:5) = (/ 28.0134_dp, &  !N2
+    Real(dp), Parameter :: Mi(1:6) = (/ 28.0134_dp, &  !N2
                                       & 15.9994_dp, &  !O1
                                       & 31.9988_dp, &  !O2
                                       & 39.948_dp,  &  !Ar
-                                      &  4.0026_dp  /) !He  !US Standard Atmosphere 1976 table 3
+                                      &  4.0026_dp, &  !He
+                                      &  0.5_dp * 2.01594_dp  /) !H1  !US Standard Atmosphere 1976 table 3
     Real(dp), Parameter :: alphai(5:6) = (/ -0.40_dp, &  !He
                                           & -0.25_dp  /) !H  !US Standard Atmosphere 1976 table 6
     Real(dp), Parameter :: ai(2:6) = (/ 6.986E20_dp, &  !O1
@@ -564,21 +565,21 @@ Function nAr_He_powers(Z,b) Result(x)
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
     Logical :: Z_below_97
-    Real(dp), Parameter :: xb(1:2,8:10) = Reshape( (/  0._dp, &  !Ar, Z = 91km
-                                                    &  0._dp, &  !He, Z = 91km
-                                                    &  0._dp, &  !Ar, Z = 110km
-                                                    &  0._dp, &  !He, Z = 110km
-                                                    &  0._dp, &  !Ar, Z = 120km
-                                                    &  0._dp  /), &  !He, Z = 120km
+    Real(dp), Parameter :: xb(1:2,8:10) = Reshape( (/  0.902943388752_dp, &  !Ar, Z = 91km
+                                                    &  0.796321374781_dp, &  !He, Z = 91km
+                                                    &  4.611292962115_dp, &  !Ar, Z = 110km
+                                                    &  2.316170326929_dp, &  !He, Z = 110km
+                                                    &  6.241723061484_dp, &  !Ar, Z = 120km
+                                                    &  2.314236028135_dp  /), &  !He, Z = 120km
                                                     & (/2,3/) )
-    Real(dp), Parameter :: xb_95(1:2) =  (/ 0._dp, &  !Ar, Z = 95km
-                                          & 0._dp  /) !He, Z = 95km
-    Real(dp), Parameter :: xb_97(1:2) =  (/ 0._dp, &  !Ar, Z = 97km
-                                          & 0._dp  /) !He, Z = 97km
-    Real(dp), Parameter :: xb_100(1:2) = (/ 0._dp, &  !Ar, Z = 100km
-                                          & 0._dp  /) !He, Z = 100km
-    Real(dp), Parameter :: xb_115(1:2) = (/ 0._dp, &  !Ar, Z = 115km
-                                          & 0._dp  /) !He, Z = 115km
+    Real(dp), Parameter :: xb_95(1:2) =  (/ 1.646377632330_dp, &  !Ar, Z = 95km
+                                          & 1.337838548403_dp  /) !He, Z = 95km
+    Real(dp), Parameter :: xb_97(1:2) =  (/ 2.027478460758_dp, &  !Ar, Z = 97km
+                                          & 1.567057244770_dp  /) !He, Z = 97km
+    Real(dp), Parameter :: xb_100(1:2) = (/ 2.611934471721_dp, &  !Ar, Z = 100km
+                                          & 1.858021164734_dp  /) !He, Z = 100km
+    Real(dp), Parameter :: xb_115(1:2) = (/ 5.516391259890_dp, &  !Ar, Z = 115km
+                                          & 2.318014288266_dp  /) !He, Z = 115km
     Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE.,  &
                                                 & .FALSE., &
                                                 & .FALSE., &
@@ -709,7 +710,7 @@ Subroutine N_densities(Z,Tz,b,N)
     Real(dp), Intent(In) :: Z
     Real(dp), Intent(In) :: Tz
     Integer, Intent(In) :: b
-    Real(dp), Intent(Out) :: N(1:5)
+    Real(dp), Intent(Out) :: N(1:6)
     Real(dp) :: x(1:5)
     !UNDONE Extend N_density (and other functionality in this module) to compute N for H1
     
@@ -721,7 +722,7 @@ Subroutine N_densities(Z,Tz,b,N)
     x(4:5) = nAr_He_powers(Z,b)
     !compute number densities of each species
     N(1:5) = N7(1:5) * Tb(7) * Exp(-x) / Tz
-    !N(6) = nH(Z)
+    N(6) = nH(Z)
 End Subroutine N_densities
 
 Subroutine N_density(Z,Tz,b,N)
@@ -1036,7 +1037,7 @@ Function p6(Z)
     Real(dp), Intent(In) :: Z
     Real(dp), Parameter :: T500 = 999.2356017626150686_dp
     
-    p6 = (T(Z,11) / T500)**(1._dp + alphai(6)) * Exp(Romberg_Quad_p6(Z,500._dp))
+    p6 = (T(Z,11) / T500)**(1._dp + alphai(6)) * Exp(-Romberg_Quad_p6(Z,500._dp))
 End Function p6
 
 Function nH_integrand(Z) Result(f)
@@ -1282,7 +1283,7 @@ Function rho(Z,layer,layer_range)
     Real(dp), Intent(In) :: Z ![km]
     Integer, Intent(In), Optional :: layer
     Integer, Intent(In), Optional :: layer_range(1:3)
-    Real(dp) :: Tz,Pz,N(1:5)
+    Real(dp) :: Tz,Pz,N(1:6)
     Integer :: b
     Real(dp), Parameter :: kg2g = 1000._dp  !conversion for kg to g
     
@@ -1306,16 +1307,16 @@ Function rho(Z,layer,layer_range)
             rho = Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
         Else
             Call rho_N(Z,Tz,b,N)
-            rho = Sum(N * Mi(1:5)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
+            rho = Sum(N * Mi(1:6)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
         End If
     Else If (T_exponential(b)) Then
         Tz = T_inf - (T_inf - Tb(b)) * Exp(-lambda * (Z - Zb(b)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
         Call rho_N(Z,Tz,b,N)
-        rho = Sum(N * Mi(1:5)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
+        rho = Sum(N * Mi(1:6)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
     Else If (T_elliptical(b)) Then
         Tz = Tc + big_A * Sqrt(1._dp - ((Z - Zb(b)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
         Call rho_N(Z,Tz,b,N)
-        rho = Sum(N * Mi(1:5)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
+        rho = Sum(N * Mi(1:6)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
     Else !zero lapse rate
         Tz = Tb(b)
         If (P_rho_not_by_N(b)) Then
@@ -1323,7 +1324,7 @@ Function rho(Z,layer,layer_range)
             rho = Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
         Else
             Call rho_N(Z,Tz,b,N)
-            rho = Sum(N * Mi(1:5)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
+            rho = Sum(N * Mi(1:6)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
         End If
     End If
 End Function rho
