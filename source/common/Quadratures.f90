@@ -55,7 +55,8 @@ Function Romberg_Quad_new(f,a,b,aTol,rTol) Result(q)
     Real(dp), Pointer :: R0(:)  !Romberg table, previous row
     Real(dp), Pointer :: Ri(:)  !Romberg table, current row
     Real(dp), Pointer :: Rs(:)  !swap pointer for switching current/previous rows
-    Integer :: n,i,j
+    Integer :: n !number of intervals
+    Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
     Real(dp) :: h,s
     Real(dp) :: rat
     Integer, Parameter :: Rmax = 20  !maximum number of extrapolations in the table
@@ -81,9 +82,9 @@ Function Romberg_Quad_new(f,a,b,aTol,rTol) Result(q)
         Ri(1) = Ri(0) + (Ri(0) - R0(0)) * one_third
         If (i .GT. 1) Then
             !2 through i-th values are by rational extrapolation
-            Do j = 2,i
-                rat = (R0(j-1) - R0(j-2)) / (Ri(j-1) - R0(j-2))
-                Ri(j) = Ri(j-1) + (Ri(j-1) - R0(j-1)) / (fours(j)*rat - 1._dp)
+            Do k = 2,i
+                rat = (R0(k-1) - R0(k-2)) / (Ri(k-1) - R0(k-2))
+                Ri(k) = Ri(k-1) + (Ri(k-1) - R0(k-1)) / (fours(k)*rat - 1._dp)
             End Do
         End If
         !check for convergence
