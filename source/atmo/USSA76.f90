@@ -174,8 +174,8 @@ Module US_Std_Atm_1976
                                       & 39.948_dp,  &  !Ar
                                       &  4.0026_dp, &  !He
                                       &  0.5_dp * 2.01594_dp  /) !H1  !US Standard Atmosphere 1976 table 3
-    Real(dp), Parameter :: alphai(5:6) = (/ -0.40_dp, &  !He
-                                          & -0.25_dp  /) !H1  !US Standard Atmosphere 1976 table 6
+    Real(dp), Parameter :: alphaHe = -0.40_dp  !He  !US Standard Atmosphere 1976 table 6
+    Real(dp), Parameter :: alphaH1 = -0.25_dp  !H1  !US Standard Atmosphere 1976 table 6
     Real(dp), Parameter :: ai(2:6) = (/ 6.986E20_dp, &  !O1
                                       & 4.863E20_dp, &  !O2
                                       & 4.487E20_dp, &  !Ar
@@ -206,6 +206,7 @@ Module US_Std_Atm_1976
                                       & 1.351400E18_dp, &  !Ar
                                       & 7.5817E14_dp    /) !He  !US Standard Atmosphere 1976 table 9    
     Real(dp), Parameter :: nH500 = 8.E10_dp
+    Real(dp), Parameter :: T500 = 999.2356017626150686_dp
     Real(dp), Parameter :: phiH = 7.2E11_dp
     !Convergence criteria for Romberg Quadrature routines
 #   if TEST_CODE
@@ -456,7 +457,6 @@ Function K95to115(Z) Result(K)
     Real(dp), Intent(In) :: Z
     Real(dp) :: x
     
-    !K = K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))  !US Standard Atmosphere 1976 equation 7b
     If (Z .LT. 115._dp) Then
         x = (Z - 95._dp)**2
         K = K0 * Exp(-x / (400._dp - x))  !US Standard Atmosphere 1976 equation 7b
@@ -626,7 +626,7 @@ Function nAr_He_integrand1(Z,b) Result(f)  !for 86 to 95 km
     y = D / (R_star * Tz * (D + K0))
     f = g(Z) * y * (Mi(4:5) + M0*K0/D) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y(2) * alphai(5) * R_star * dT_dZ(Z,b+1)
+    f(2) = f(2) + y(2) * alphaHe * R_star * dT_dZ(Z,b+1)
 End Function nAr_He_integrand1
 
 Function nAr_He_integrand2(Z,b) Result(f)  !for 95 to 100 km
@@ -650,7 +650,7 @@ Function nAr_He_integrand2(Z,b) Result(f)  !for 95 to 100 km
     y = D / (R_star * Tz * (D + K))
     f = g(Z) * y * (Mi(4:5) + M0*K/D) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y(2) * alphai(5) * R_star * dT_dZ(Z,b+1)
+    f(2) = f(2) + y(2) * alphaHe * R_star * dT_dZ(Z,b+1)
 End Function nAr_He_integrand2
 
 Function nAr_He_integrand4(Z,b) Result(f)  !for 100 to 115 km
@@ -674,7 +674,7 @@ Function nAr_He_integrand4(Z,b) Result(f)  !for 100 to 115 km
     y = D / (R_star * Tz * (D + K))
     f = g(Z) * y * (Mi(4:5) + (Sum(Nb*Mi(1:3))/Sum(Nb))*K/D) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y(2) * alphai(5) * R_star * dT_dZ(Z,b+1)
+    f(2) = f(2) + y(2) * alphaHe * R_star * dT_dZ(Z,b+1)
 End Function nAr_He_integrand4
 
 Function nAr_He_integrand5(Z,b) Result(f)  !for 115 to 1000 km
@@ -688,7 +688,7 @@ Function nAr_He_integrand5(Z,b) Result(f)  !for 115 to 1000 km
     y = 1._dp / (R_star * T(Z,b+1))
     f = g(Z) * y * Mi(4:5) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y * alphai(5) * R_star * dT_dZ(Z,b+1)
+    f(2) = f(2) + y * alphaHe * R_star * dT_dZ(Z,b+1)
 End Function nAr_He_integrand5
 
 Subroutine N_densities(Z,Tz,b,N)
@@ -736,13 +736,12 @@ Function Romberg_Quad_nN2(a,b,p) Result(q)
     Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
     Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
     Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
-    Real(dp) :: Ts(0:Tmax)  !swap pointer for switching current/previous rows
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
     Integer :: n      !number of intervals
+    Integer :: fk     !multiplier for extrapolation steps
     Real(dp) :: h     !spacing between quadrature ordinates
     Real(dp) :: s     !sum of function values at quadrature ordinates
     Real(dp) :: aj    !the j-th ordinate
-    Real(dp), Parameter :: fs(1:Tmax) = (/ ( 1._dp/(4._dp**i-1._dp) , i = 1,Tmax ) /)
 
     !Initial trapezoid estimate: T0(0)
     n = 1
@@ -758,8 +757,10 @@ Function Romberg_Quad_nN2(a,b,p) Result(q)
         End Do
         Ti(0) = h * s
         !Fill i-th row with extrapolated estimates
+        fk = 1
         Do k = 1,i
-            Ti(k) = Ti(k-1) + (Ti(k-1) - T0(k-1)) * fs(k)
+            fk = fk * 4
+            Ti(k) = (Real(fk,dp) * Ti(k-1) - T0(k-1)) / Real(fk - 1,dp)
         End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
         If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier1 * Abs(Ti(i)) ) Then
@@ -767,88 +768,12 @@ Function Romberg_Quad_nN2(a,b,p) Result(q)
             Return  !Normal exit
         End If
         !switch the current row to the previous row
-        Ts = T0  !saves T0
         T0 = Ti  !i-th row becomes new previous row
-        Ti = Ts  !next row will overwrite the previous T0
     End Do
     !If we get this far, we did not converge
     Print *,"ERROR:  US_Std_Atm_1976: Romberg_Quad_nN2:  Failed to converge in 20 extrapolations."
     ERROR STOP
-    
-!    Real(dp) :: R(0:10,0:10)  !Romberg table
-!    Integer :: n,i,j
-!    Real(dp) :: h,s,as
-!
-!    n = 1
-!    h = b - a
-!    s = 0.5_dp * (g(a) / T(a,p+1) + g(b) / T(b,p+1))
-!    R(0,0) = h * s
-!    Do i = 1,10
-!        !compute trapezoid estimate for next row of table
-!        n = n * 2
-!        h = (b - a) / Real(n,dp)
-!        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-!            as = a + Real(j,dp)*h
-!            s = s + g(as) / T(as,p+1)
-!        End Do
-!        R(0,i) = h * s
-!        !fill out Romberg table row
-!        Do j = 1,i
-!            R(j,i) = Romb2(j) * (Romb1(j) * R(j-1,i) - R(j-1,i-1))
-!        End Do
-!        !check for convergence
-!        If ( Abs(R(i-1,i-1) - R(i,i)) .LE. rTol_tier1 * Abs(R(i,i)) ) Then
-!            q = R(i,i)  !R(i,i) is the position of the highest precision converged value
-!            Return  !Normal exit
-!        End If
-!    End Do
-!    !If we get this far, we did not converge
-!    Call Continue_Romberg_nN2(a,b,p,s,10,R(:,10),2,q)
 End Function Romberg_Quad_nN2
-!Recursive Subroutine Continue_Romberg_nN2(a,b,p,s,d,R0,level,q)  !adds 10 more rows to the previous Romberg_Quad table
-!    Use Kinds, Only: dp
-!    Implicit None
-!    Real(dp), Intent(In) :: a,b    !limits of integration
-!    Integer, Intent(In) :: p
-!    Real(dp), Intent(InOut) :: s  !previous sum of ordinates
-!    Integer, Intent(In) :: d  !length of final row in OLD Romberg Table
-!    Real(dp), Intent(In) :: R0(0:d)  !final row of OLD romberg table
-!    Integer, Intent(In) :: level
-!    Real(dp), Intent(Out) :: q    !the result of the integration, if convergence attained
-!    Real(dp) :: R(0:d+10,0:10)  !Romberg table extension
-!    Integer :: n,i,j
-!    Real(dp) :: h,as
-!    Integer :: fours
-!    
-!    R(0:d,0) = R0
-!    Do i = 1,10
-!        !compute trapezoid estimate for next row of table
-!        n = 2**(d+i)
-!        h = (b - a) / Real(n,dp)
-!        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-!            as = a + Real(j,dp)*h
-!            s = s + g(as) / T(as,p+1)
-!        End Do
-!        R(0,i) = h * s
-!        !fill out Romberg table row
-!        fours = 1
-!        Do j = 1,d+i
-!            fours = fours * 4
-!            R(j,i) = (Real(fours,dp) * R(j-1,i) - R(j-1,i-1)) / Real(fours - 1,dp)
-!        End Do
-!        !check for convergence
-!        If ( Abs(R(i-1,i-1) - R(i,i)) .LE. rTol_tier1 * Abs(R(i,i)) ) Then
-!            q = R(d+i,i)
-!            Return  !Normal exit
-!        End If
-!    End Do
-!    If (level .GT. 10) Then !max allowed recursion depth, interval has been split 100 times...
-!        Print *,"ERROR:  US_Std_Atm_1976: Continue_Romberg_nN2:  Failed to converge before reaching max recursion depth."
-!        ERROR STOP
-!    End If
-!    !If we get this far, we did not converge, recurse to add 10 more rows
-!    Call Continue_Romberg_nN2(a,b,p,s,d+10,R(:,10),level+1,q)
-!End Subroutine Continue_Romberg_nN2
 
 Function Romberg_Quad_nO1_O2(f,a,b,p) Result(q)
     Use Kinds, Only: dp
@@ -866,19 +791,18 @@ Function Romberg_Quad_nO1_O2(f,a,b,p) Result(q)
     Real(dp), Intent(In) :: a,b    !limits of integration
     Integer, Intent(In) :: p
     Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
-    Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
-    Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
-    Real(dp) :: Ts(0:Tmax)  !swap pointer for switching current/previous rows
+    Real(dp) :: T0(1:2,0:Tmax)  !Extrapolation table, previous row
+    Real(dp) :: Ti(1:2,0:Tmax)  !Extrapolation table, current row
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
     Integer :: n      !number of intervals
+    Integer :: fk     !multiplier for extrapolation steps
     Real(dp) :: h     !spacing between quadrature ordinates
-    Real(dp) :: s     !sum of function values at quadrature ordinates
-    Real(dp), Parameter :: fs(1:Tmax) = (/ ( 1._dp/(4._dp**i-1._dp) , i = 1,Tmax ) /)
+    Real(dp) :: s(1:2)     !sum of function values at quadrature ordinates
 
     !Initial trapezoid estimate: T0(0)
     n = 1
-    s = 0.5_dp * (f(a,p) f(b,p))
-    T0(0) = (b - a) * s
+    s = 0.5_dp * (f(a,p) + f(b,p))
+    T0(:,0) = (b - a) * s
     Do i = 1,Tmax !up to Tmax rows in the table
         !Trapezoid estimate i-th row of table: Ti(0)
         n = n * 2
@@ -886,107 +810,25 @@ Function Romberg_Quad_nO1_O2(f,a,b,p) Result(q)
         Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
             s = s + f(a + Real(j,dp)*h,p)
         End Do
-        Ti(0) = h * s
+        Ti(:,0) = h * s
         !Fill i-th row with extrapolated estimates
+        fk = 1
         Do k = 1,i
-            Ti(k) = Ti(k-1) + (Ti(k-1) - T0(k-1)) * fs(k)
+            fk = fk * 4
+            Ti(:,k) = (Real(fk,dp) * Ti(:,k-1) - T0(:,k-1)) / Real(fk - 1,dp)
         End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
-        If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier2 * Abs(Ti(i)) ) Then
-            q = Ti(i) !Ti(i) is the position of the highest precision converged value
+        If ( All(Abs(T0(:,i-1) - Ti(:,i)) .LE. rTol_tier2 * Abs(Ti(:,i))) ) Then
+            q = Ti(:,i) !Ti(i) is the position of the highest precision converged value
             Return  !Normal exit
         End If
         !switch the current row to the previous row
-        Ts = T0  !saves T0
         T0 = Ti  !i-th row becomes new previous row
-        Ti = Ts  !next row will overwrite the previous T0
     End Do
     !If we get this far, we did not converge
     Print *,"ERROR:  US_Std_Atm_1976: Romberg_Quad_nO1_O2:  Failed to converge in 20 extrapolations."
     ERROR STOP
-
-
-    ! Real(dp) :: R(1:2,0:10,0:10)  !Romberg table
-    ! Integer :: n,i,j
-    ! Real(dp) :: h,s(1:2)
-
-    ! n = 1
-    ! h = b - a
-    ! s = 0.5_dp * (f(a,p) + f(b,p))
-    ! R(:,0,0) = h * s
-    ! Do i = 1,10
-    !     !compute trapezoid estimate for next row of table
-    !     n = n * 2
-    !     h = (b - a) / Real(n,dp)
-    !     Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-    !         s = s + f(a + Real(j,dp)*h,p)
-    !     End Do
-    !     R(:,0,i) = h * s
-    !     !fill out Romberg table row
-    !     Do j = 1,i
-    !         R(:,j,i) = Romb2(j) * (Romb1(j) * R(:,j-1,i) - R(:,j-1,i-1))
-    !     End Do
-    !     !check for convergence
-    !     If ( All( Abs(R(:,i-1,i-1) - R(:,i,i)) .LE. rTol_tier2 * Abs(R(:,i,i)) ) ) Then
-    !         q = R(:,i,i)  !R(i,i) is the position of the highest precision converged value
-    !         Return  !Normal exit
-    !     End If
-    ! End Do
-    ! !If we get this far, we did not converge
-    ! Call Continue_Romberg_nO1_O2(f,a,b,p,s,10,R(:,:,10),2,q)
 End Function Romberg_Quad_nO1_O2
-!Recursive Subroutine Continue_Romberg_nO1_O2(f,a,b,p,s,d,R0,level,q)  !adds 10 more rows to the previous Romberg_Quad table
-!    Use Kinds, Only: dp
-!    Implicit None
-!    Interface
-!        Function f(x,k)    !the function to be integrated
-!            Use Kinds,Only: dp
-!            Implicit None
-!            Real(dp) :: f(1:2)
-!            Real(dp), Intent(In) :: x
-!            Integer, Intent(In) :: k
-!        End Function f
-!    End Interface
-!    Real(dp), Intent(In) :: a,b    !limits of integration
-!    Integer, Intent(In) :: p
-!    Real(dp), Intent(InOut) :: s(1:2)  !previous sum of ordinates
-!    Integer, Intent(In) :: d  !length of final row in OLD Romberg Table
-!    Real(dp), Intent(In) :: R0(1:2,0:d)  !final row of OLD romberg table
-!    Integer, Intent(In) :: level
-!    Real(dp), Intent(Out) :: q(1:2)    !the result of the integration, if convergence attained
-!    Real(dp) :: R(1:2,0:d+10,0:10)  !Romberg table extension
-!     Integer :: n,i,j
-!     Real(dp) :: h
-!     Integer :: fours
-    
-!     R(:,0:d,0) = R0
-!     Do i = 1,10
-!         !compute trapezoid estimate for next row of table
-!         n = 2**(d+i)
-!         h = (b - a) / Real(n,dp)
-!         Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-!             s = s + f(a + Real(j,dp)*h,p)
-!         End Do
-!         R(:,0,i) = h * s
-!         !fill out Romberg table row
-!         fours = 1
-!         Do j = 1,d+i
-!             fours = fours * 4
-!             R(:,j,i) = (Real(fours,dp) * R(:,j-1,i) - R(:,j-1,i-1)) / Real(fours - 1,dp)
-!         End Do
-!         !check for convergence
-!         If ( All( Abs(R(:,i-1,i-1) - R(:,i,i)) .LE. rTol_tier2 * Abs(R(:,i,i)) ) ) Then
-!             q = R(:,d+i,i)
-!             Return  !Normal exit
-!         End If
-!     End Do
-!     If (level .GT. 10) Then !max allowed recursion depth, interval has been split 100 times...
-!         Print *,"ERROR:  US_Std_Atm_1976: Continue_Romberg_nO1_O2:  Failed to converge before reaching max recursion depth."
-!         ERROR STOP
-!     End If
-!     !If we get this far, we did not converge, recurse to add 10 more rows
-!     Call Continue_Romberg_nO1_O2(f,a,b,p,s,d+10,R(:,:,10),level+1,q)
-! End Subroutine Continue_Romberg_nO1_O2
 
 Function Romberg_Quad_nAr_He(f,a,b,p) Result(q)
     Use Kinds, Only: dp
@@ -1004,19 +846,18 @@ Function Romberg_Quad_nAr_He(f,a,b,p) Result(q)
     Real(dp), Intent(In) :: a,b    !limits of integration
     Integer, Intent(In) :: p
     Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
-    Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
-    Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
-    Real(dp) :: Ts(0:Tmax)  !swap pointer for switching current/previous rows
+    Real(dp) :: T0(1:2,0:Tmax)  !Extrapolation table, previous row
+    Real(dp) :: Ti(1:2,0:Tmax)  !Extrapolation table, current row
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
     Integer :: n      !number of intervals
+    Integer :: fk     !multiplier for extrapolation steps
     Real(dp) :: h     !spacing between quadrature ordinates
-    Real(dp) :: s     !sum of function values at quadrature ordinates
-    Real(dp), Parameter :: fs(1:Tmax) = (/ ( 1._dp/(4._dp**i-1._dp) , i = 1,Tmax ) /)
+    Real(dp) :: s(1:2)     !sum of function values at quadrature ordinates
 
     !Initial trapezoid estimate: T0(0)
     n = 1
-    s = 0.5_dp * (f(a,p) f(b,p))
-    T0(0) = (b - a) * s
+    s = 0.5_dp * (f(a,p) + f(b,p))
+    T0(:,0) = (b - a) * s
     Do i = 1,Tmax !up to Tmax rows in the table
         !Trapezoid estimate i-th row of table: Ti(0)
         n = n * 2
@@ -1024,132 +865,51 @@ Function Romberg_Quad_nAr_He(f,a,b,p) Result(q)
         Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
             s = s + f(a + Real(j,dp)*h,p)
         End Do
-        Ti(0) = h * s
+        Ti(:,0) = h * s
         !Fill i-th row with extrapolated estimates
+        fk = 1
         Do k = 1,i
-            Ti(k) = Ti(k-1) + (Ti(k-1) - T0(k-1)) * fs(k)
+            fk = fk * 4
+            Ti(:,k) = (Real(fk,dp) * Ti(:,k-1) - T0(:,k-1)) / Real(fk - 1,dp)
         End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
-        If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier3 * Abs(Ti(i)) ) Then
-            q = Ti(i) !Ti(i) is the position of the highest precision converged value
+        If ( All(Abs(T0(:,i-1) - Ti(:,i)) .LE. rTol_tier3 * Abs(Ti(:,i))) ) Then
+            q = Ti(:,i) !Ti(i) is the position of the highest precision converged value
             Return  !Normal exit
         End If
         !switch the current row to the previous row
-        Ts = T0  !saves T0
         T0 = Ti  !i-th row becomes new previous row
-        Ti = Ts  !next row will overwrite the previous T0
     End Do
     !If we get this far, we did not converge
     Print *,"ERROR:  US_Std_Atm_1976: Romberg_Quad_nAr_He:  Failed to converge in 20 extrapolations."
     ERROR STOP
-
-
-    ! Real(dp) :: R(1:2,0:10,0:10)  !Romberg table
-    ! Integer :: n,i,j
-    ! Real(dp) :: h,s(1:2)
-
-    ! n = 1
-    ! h = b - a
-    ! s = 0.5_dp * (f(a,p) + f(b,p))
-    ! R(:,0,0) = h * s
-    ! Do i = 1,10
-    !     !compute trapezoid estimate for next row of table
-    !     n = n * 2
-    !     h = (b - a) / Real(n,dp)
-    !     Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-    !         s = s + f(a + Real(j,dp)*h,p)
-    !     End Do
-    !     R(:,0,i) = h * s
-    !     !fill out Romberg table row
-    !     Do j = 1,i
-    !         R(:,j,i) = Romb2(j) * (Romb1(j) * R(:,j-1,i) - R(:,j-1,i-1))
-    !     End Do
-    !     !check for convergence
-    !     If ( All( Abs(R(:,i-1,i-1) - R(:,i,i)) .LE. rTol_tier3 * Abs(R(:,i,i)) ) ) Then
-    !         q = R(:,i,i)  !R(i,i) is the position of the highest precision converged value
-    !         Return  !Normal exit
-    !     End If
-    ! End Do
-    ! !If we get this far, we did not converge
-    ! Call Continue_Romberg_nAr_He(f,a,b,p,s,10,R(:,:,10),2,q)
 End Function Romberg_Quad_nAr_He
-! Recursive Subroutine Continue_Romberg_nAr_He(f,a,b,p,s,d,R0,level,q)  !adds 10 more rows to the previous Romberg_Quad table
-!     Use Kinds, Only: dp
-!     Implicit None
-!     Interface
-!         Function f(x,k)    !the function to be integrated
-!             Use Kinds,Only: dp
-!             Implicit None
-!             Real(dp) :: f(1:2)
-!             Real(dp), Intent(In) :: x
-!             Integer, Intent(In) :: k
-!         End Function f
-!     End Interface
-!     Real(dp), Intent(In) :: a,b    !limits of integration
-!     Integer, Intent(In) :: p
-!     Real(dp), Intent(InOut) :: s(1:2)  !previous sum of ordinates
-!     Integer, Intent(In) :: d  !length of final row in OLD Romberg Table
-!     Real(dp), Intent(In) :: R0(1:2,0:d)  !final row of OLD romberg table
-!     Integer, Intent(In) :: level
-!     Real(dp), Intent(Out) :: q(1:2)    !the result of the integration, if convergence attained
-!     Real(dp) :: R(1:2,0:d+10,0:10)  !Romberg table extension
-!     Integer :: n,i,j
-!     Real(dp) :: h
-!     Integer :: fours
-    
-!     R(:,0:d,0) = R0
-!     Do i = 1,10
-!         !compute trapezoid estimate for next row of table
-!         n = 2**(d+i)
-!         h = (b - a) / Real(n,dp)
-!         Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-!             s = s + f(a + Real(j,dp)*h,p)
-!         End Do
-!         R(:,0,i) = h * s
-!         !fill out Romberg table row
-!         fours = 1
-!         Do j = 1,d+i
-!             fours = fours * 4
-!             R(:,j,i) = (Real(fours,dp) * R(:,j-1,i) - R(:,j-1,i-1)) / Real(fours - 1,dp)
-!         End Do
-!         !check for convergence
-!         If ( All( Abs(R(:,i-1,i-1) - R(:,i,i)) .LE. rTol_tier3 * Abs(R(:,i,i)) ) ) Then
-!             q = R(:,d+i,i)
-!             Return  !Normal exit
-!         End If
-!     End Do
-!     If (level .GT. 10) Then !max allowed recursion depth, interval has been split 100 times...
-!         Print *,"ERROR:  US_Std_Atm_1976: Continue_Romberg_Ar_He:  Failed to converge before reaching max recursion depth."
-!         ERROR STOP
-!     End If
-!     !If we get this far, we did not converge, recurse to add 10 more rows
-!     Call Continue_Romberg_nAr_He(f,a,b,p,s,d+10,R(:,:,10),level+1,q)
-! End Subroutine Continue_Romberg_nAr_He
 
-Function nH(Z)
+Function nH(Z) Result(N)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: nH
+    Real(dp) :: N
     Real(dp), Intent(In) :: Z
     
     If (Z .LT. 150._dp) Then
-        nH = 0._dp
-        RETURN
+        N = 0._dp
+    Else If (Z .LT. 500._dp) Then
+        N = (nH500 - phiH * Romberg_Quad_nH(500._dp,Z)) / p6(Z)  !US Standard Atmosphere 1976 equation 39
     Else If (Z .GT. 500._dp) Then
-        nH = nH500 / p6(Z)
-        RETURN
+        N = nH500 / p6(Z)  !US Standard Atmosphere 1976 equation 39
+    Else
+        N = nH500
     End If
-    nH = (nH500 + phiH * Romberg_Quad_nH(Z,500._dp)) / p6(Z)
 End Function nH
 
-Function p6(Z)
+Function p6(Z) Result(p)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: p6
+    Real(dp) :: p
     Real(dp), Intent(In) :: Z
-    Real(dp), Parameter :: T500 = 999.2356017626150686_dp
     
-    p6 = (T(Z,11) / T500)**(1._dp + alphai(6)) * Exp(-Romberg_Quad_p6(Z,500._dp))
+    !p = (T(Z,11) / T500)**(1._dp + alphaiH1) * Exp(Romberg_Quad_p6(500._dp,Z))
+    p = Sqrt(Sqrt((T(Z,11) / T500)**3)) * Exp(Romberg_Quad_p6(500._dp,Z))
 End Function p6
 
 Function nH_integrand(Z) Result(f)
@@ -1162,7 +922,7 @@ Function nH_integrand(Z) Result(f)
     
     Tz = T(Z,11)
     D = ai(6) * Sqrt(Tz / 273.15_dp) / & 
-      & (      N7(1) *   Tb(7) * Exp(-nN2_power(Z,10)) + & 
+      & (      N7(1)   * Tb(7) * Exp(-nN2_power(Z,10)) + & 
       &    Sum(N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,10))) + & 
       &    Sum(N7(4:5) * Tb(7) * Exp(-nAr_He_powers(Z,10)))     ) / Tz
     f = p6(Z) / D
@@ -1173,92 +933,57 @@ Function Romberg_Quad_nH(a,b) Result(q)
     Implicit None
     Real(dp):: q    !the result of the integration
     Real(dp), Intent(In) :: a,b    !limits of integration
-    Real(dp) :: R(0:10,0:10)  !Romberg table
-    Integer :: n,i,j
-    Real(dp) :: h,s
+    Integer, Parameter :: Tmax = 20
+    Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
+    Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
+    Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
+    Integer :: n      !number of intervals
+    Integer :: fk     !multiplier for extrapolation steps
+    Real(dp) :: h     !spacing between quadrature ordinates
+    Real(dp) :: s     !sum of function values at quadrature ordinates
 
+    !Initial trapezoid estimate: T0(0)
     n = 1
-    h = b - a
     s = 0.5_dp * (nH_integrand(a) + nH_integrand(b))
-    R(0,0) = h * s
-    Do i = 1,10
-        !compute trapezoid estimate for next row of table
+    T0(0) = (b - a) * s
+    Do i = 1,Tmax !up to Tmax rows in the table
+        !Trapezoid estimate i-th row of table: Ti(0)
         n = n * 2
         h = (b - a) / Real(n,dp)
-        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
+        Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
             s = s + nH_integrand(a + Real(j,dp)*h)
         End Do
-        R(0,i) = h * s
-        !fill out Romberg table row
-        Do j = 1,i
-            R(j,i) = Romb2(j) * (Romb1(j) * R(j-1,i) - R(j-1,i-1))
+        Ti(0) = h * s
+        !Fill i-th row with extrapolated estimates
+        fk = 1
+        Do k = 1,i
+            fk = fk * 4
+            Ti(k) = (Real(fk,dp) * Ti(k-1) - T0(k-1)) / Real(fk - 1,dp)
         End Do
-        !check for convergence
-        If ( Abs(R(i-1,i-1) - R(i,i)) .LE. rTol_tier4b * Abs(R(i,i)) ) Then
-            q = R(i,i)  !R(i,i) is the position of the highest precision converged value
+        !Check for convergence compared to the final extrapolated value in the previous table row
+        If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier4b * Abs(Ti(i)) ) Then
+            q = Ti(i) !Ti(i) is the position of the highest precision converged value
             Return  !Normal exit
         End If
+        !switch the current row to the previous row
+        T0 = Ti  !i-th row becomes new previous row
     End Do
     !If we get this far, we did not converge
-    Call Continue_Romberg_nH(a,b,s,10,R(:,10),2,q)
+    Print *,"ERROR:  US_Std_Atm_1976: Romberg_Quad_nH:  Failed to converge in 20 extrapolations."
+    ERROR STOP
 End Function Romberg_Quad_nH
-Recursive Subroutine Continue_Romberg_nH(a,b,s,d,R0,level,q)  !adds 10 more rows to the previous Romberg_Quad table
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Real(dp), Intent(InOut) :: s  !previous sum of ordinates
-    Integer, Intent(In) :: d  !length of final row in OLD Romberg Table
-    Real(dp), Intent(In) :: R0(0:d)  !final row of OLD romberg table
-    Integer, Intent(In) :: level
-    Real(dp), Intent(Out) :: q    !the result of the integration, if convergence attained
-    Real(dp) :: R(0:d+10,0:10)  !Romberg table extension
-    Integer :: n,i,j
-    Real(dp) :: h
-    Integer :: fours
-    
-    R(0:d,0) = R0
-    Do i = 1,10
-        !compute trapezoid estimate for next row of table
-        n = 2**(d+i)
-        h = (b - a) / Real(n,dp)
-        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-            s = s + nH_integrand(a + Real(j,dp)*h)
-        End Do
-        R(0,i) = h * s
-        !fill out Romberg table row
-        fours = 1
-        Do j = 1,d+i
-            fours = fours * 4
-            R(j,i) = (Real(fours,dp) * R(j-1,i) - R(j-1,i-1)) / Real(fours - 1,dp)
-        End Do
-        !check for convergence
-        If ( Abs(R(i-1,i-1) - R(i,i)) .LE. rTol_tier4b * Abs(R(i,i)) ) Then
-            q = R(d+i,i)
-            Return  !Normal exit
-        End If
-    End Do
-    If (level .GT. 10) Then !max allowed recursion depth, interval has been split 100 times...
-        Print *,"ERROR:  US_Std_Atm_1976: Continue_Romberg_nH:  Failed to converge before reaching max recursion depth."
-        ERROR STOP
-    End If
-    !If we get this far, we did not converge, recurse to add 10 more rows
-    Call Continue_Romberg_nH(a,b,s,d+10,R(:,10),level+1,q)
-End Subroutine Continue_Romberg_nH
 
-Function p6_integrand(Z) Result(f)
+Function p6_integrand(Z) Result(p)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: f
+    Real(dp) :: p
     Real(dp), Intent(In) :: Z
-    Real(dp) :: Tz
     Real(dp) :: Nb(1:5)
     
-    Tz = T(Z,11)
-    Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power(Z,10))
+    Nb(1) =   N7(1)   * Tb(7) * Exp(-nN2_power(Z,10))
     Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,10))
     Nb(4:5) = N7(4:5) * Tb(7) * Exp(-nAr_He_powers(Z,10))
-    Nb = Nb / Tz
-    f = (Sum(Nb*Mi(1:5))/Sum(Nb)) * g(Z) / (R_star * Tz)
+    p = (Sum(Nb*Mi(1:5))/Sum(Nb)) * g(Z) / (R_star * T(Z,11))  !US Standard Atmosphere 1976 equation 40
 End Function p6_integrand
 
 Function Romberg_Quad_p6(a,b) Result(q)
@@ -1266,77 +991,45 @@ Function Romberg_Quad_p6(a,b) Result(q)
     Implicit None
     Real(dp):: q    !the result of the integration
     Real(dp), Intent(In) :: a,b    !limits of integration
-    Real(dp) :: R(0:10,0:10)  !Romberg table
-    Integer :: n,i,j
-    Real(dp) :: h,s
+    Integer, Parameter :: Tmax = 20
+    Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
+    Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
+    Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
+    Integer :: n      !number of intervals
+    Integer :: fk     !multiplier for extrapolation steps
+    Real(dp) :: h     !spacing between quadrature ordinates
+    Real(dp) :: s     !sum of function values at quadrature ordinates
 
+    !Initial trapezoid estimate: T0(0)
     n = 1
-    h = b - a
     s = 0.5_dp * (p6_integrand(a) + p6_integrand(b))
-    R(0,0) = h * s
-    Do i = 1,10
-        !compute trapezoid estimate for next row of table
+    T0(0) = (b - a) * s
+    Do i = 1,Tmax !up to Tmax rows in the table
+        !Trapezoid estimate i-th row of table: Ti(0)
         n = n * 2
         h = (b - a) / Real(n,dp)
-        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
+        Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
             s = s + p6_integrand(a + Real(j,dp)*h)
         End Do
-        R(0,i) = h * s
-        !fill out Romberg table row
-        Do j = 1,i
-            R(j,i) = Romb2(j) * (Romb1(j) * R(j-1,i) - R(j-1,i-1))
+        Ti(0) = h * s
+        !Fill i-th row with extrapolated estimates
+        fk = 1
+        Do k = 1,i
+            fk = fk * 4
+            Ti(k) = (Real(fk,dp) * Ti(k-1) - T0(k-1)) / Real(fk - 1,dp)
         End Do
-        !check for convergence
-        If ( Abs(R(i-1,i-1) - R(i,i)) .LE. rTol_tier4a * Abs(R(i,i)) ) Then
-            q = R(i,i)  !R(i,i) is the position of the highest precision converged value
+        !Check for convergence compared to the final extrapolated value in the previous table row
+        If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier4a * Abs(Ti(i)) ) Then
+            q = Ti(i) !Ti(i) is the position of the highest precision converged value
             Return  !Normal exit
         End If
+        !switch the current row to the previous row
+        T0 = Ti  !i-th row becomes new previous row
     End Do
     !If we get this far, we did not converge
-    Call Continue_Romberg_p6(a,b,s,10,R(:,10),2,q)
+    Print *,"ERROR:  US_Std_Atm_1976: Romberg_Quad_p6:  Failed to converge in 20 extrapolations."
+    ERROR STOP
 End Function Romberg_Quad_p6
-Recursive Subroutine Continue_Romberg_p6(a,b,s,d,R0,level,q)  !adds 10 more rows to the previous Romberg_Quad table
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Real(dp), Intent(InOut) :: s  !previous sum of ordinates
-    Integer, Intent(In) :: d  !length of final row in OLD Romberg Table
-    Real(dp), Intent(In) :: R0(0:d)  !final row of OLD romberg table
-    Integer, Intent(In) :: level
-    Real(dp), Intent(Out) :: q    !the result of the integration, if convergence attained
-    Real(dp) :: R(0:d+10,0:10)  !Romberg table extension
-    Integer :: n,i,j
-    Real(dp) :: h
-    Integer :: fours
-    
-    R(0:d,0) = R0
-    Do i = 1,10
-        !compute trapezoid estimate for next row of table
-        n = 2**(d+i)
-        h = (b - a) / Real(n,dp)
-        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-            s = s + p6_integrand(a + Real(j,dp)*h)
-        End Do
-        R(0,i) = h * s
-        !fill out Romberg table row
-        fours = 1
-        Do j = 1,d+i
-            fours = fours * 4
-            R(j,i) = (Real(fours,dp) * R(j-1,i) - R(j-1,i-1)) / Real(fours - 1,dp)
-        End Do
-        !check for convergence
-        If ( Abs(R(i-1,i-1) - R(i,i)) .LE. rTol_tier4a * Abs(R(i,i)) ) Then
-            q = R(d+i,i)
-            Return  !Normal exit
-        End If
-    End Do
-    If (level .GT. 10) Then !max allowed recursion depth, interval has been split 100 times...
-        Print *,"ERROR:  US_Std_Atm_1976: Continue_Romberg_p6:  Failed to converge before reaching max recursion depth."
-        ERROR STOP
-    End If
-    !If we get this far, we did not converge, recurse to add 10 more rows
-    Call Continue_Romberg_p6(a,b,s,d+10,R(:,10),level+1,q)
-End Subroutine Continue_Romberg_p6
 
 Function P(Z,layer,layer_range)
     Use Kinds, Only: dp
@@ -1475,8 +1168,8 @@ End Function nH_low
 !---------------------------------------------------------------------------------
 !  The following routines are used only for computing the 'stop' values for the 
 !  number density integrals:  Used to compute necessary constants which are then 
-!  hard-coded in the source.  They are included in compilation by defining 'TEST' 
-!  as a conditional compiler directive for the preprocessor
+!  hard-coded in the source.  They are included in compilation by defining 
+!  'INTEGRAND_STOPS' as a conditional compiler directive for the preprocessor
 !---------------------------------------------------------------------------------
 Function nN2_power_stops() Result(xb)
     Use Kinds, Only: dp
