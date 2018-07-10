@@ -47,7 +47,7 @@ Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
     Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
     Integer :: n      !number of intervals
-    Integer :: fk     !multiplier for extrapolation steps
+    Real(dp) :: fk    !multiplier for extrapolation steps
     Real(dp) :: h     !spacing between quadrature ordinates
     Real(dp) :: s     !sum of function values at quadrature ordinates
 
@@ -64,10 +64,10 @@ Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
         End Do
         Ti(0) = h * s
         !Fill i-th row with extrapolated estimates
-        fk = 1
+        fk = 1._dp
         Do k = 1,i
-            fk = fk * 4
-            Ti(k) = (Real(fk,dp) * Ti(k-1) - T0(k-1)) / Real(fk - 1,dp)
+            fk = fk * 4._dp
+            Ti(k) = fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
         End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
         If (Converged(T0(i-1),Ti(i),rTol,aTol)) Then
@@ -102,7 +102,7 @@ Function Romberg_Midpoint_Quad(f,a,b,aTol,rTol) Result(q)
     Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
     Integer :: n      !number of intervals
-    Integer :: fk     !multiplier for extrapolation steps
+    Real(dp) :: fk    !multiplier for extrapolation steps
     Real(dp) :: h     !spacing between quadrature ordinates
     Real(dp) :: s     !sum of function values at quadrature ordinates
 
@@ -120,10 +120,10 @@ Function Romberg_Midpoint_Quad(f,a,b,aTol,rTol) Result(q)
         End Do
         Ti(0) = h * s
         !Fill i-th row with extrapolated estimates
-        fk = 1
+        fk = 1._dp
         Do k = 1,i
-            fk = fk * 4
-            Ti(k) = (Real(fk,dp) * Ti(k-1) - T0(k-1)) / Real(fk - 1,dp)
+            fk = fk * 4._dp
+            Ti(k) = fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
         End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
         If (Converged(T0(i-1),Ti(i),rTol,aTol)) Then
@@ -158,7 +158,7 @@ Function Romberg_Simpson_Quad(f,a,b,aTol,rTol) Result(q)
     Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
     Integer :: n      !number of intervals
-    Integer :: fk     !multiplier for extrapolation steps
+    Real(dp) :: fk    !multiplier for extrapolation steps
     Real(dp) :: h     !spacing between quadrature ordinates
     Real(dp) :: s1,s2,s3  !sum of function values at quadrature ordinates
 
@@ -179,10 +179,10 @@ Function Romberg_Simpson_Quad(f,a,b,aTol,rTol) Result(q)
         End Do
         Ti(0) = h * (s1 + 2._dp*s2 + 4._dp*s3) * one_third
         !Fill i-th row with extrapolated estimates
-        fk = 2
+        fk = 2._dp
         Do k = 1,i
-            fk = fk * 4
-            Ti(k) = (Real(fk,dp) * Ti(k-1) - T0(k-1)) / Real(fk - 1,dp)
+            fk = fk * 4._dp
+            Ti(k) = fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
         End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
         If (Converged(T0(i-1),Ti(i),rTol,aTol)) Then
