@@ -162,14 +162,14 @@ Function Romberg_Simpson_Quad(f,a,b,aTol,rTol) Result(q)
     Real(dp) :: h     !spacing between quadrature ordinates
     Real(dp) :: s1,s2,s3  !sum of function values at quadrature ordinates
 
-    !Initial trapezoid estimate: T0(0)
+    !Initial simpson estimate: T0(0)
     n = 2
     s1 = f(a) + f(b)
     s2 = 0._dp
     s3 = f(0.5_dp * (a + b))
     T0(0) = (b - a) * (s1 + 4._dp*s3) * one_sixth
     Do i = 1,Tmax !up to Tmax rows in the table
-        !Trapezoid estimate i-th row of table: Ti(0)
+        !Simpson estimate i-th row of table: Ti(0)
         n = n * 2
         s2 = s2 + s3
         h = (b - a) / Real(n,dp)
