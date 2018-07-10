@@ -22,17 +22,11 @@ Module Quadratures
     Real(dp), Parameter :: one_third = 1._dp / 3._dp
     Real(dp), Parameter :: one_sixth = 1._dp / 6._dp
     Real(dp), Parameter :: one_fifteenth = 1._dp / 15._dp
-    !Precomuted parameters for Romberg Quadrature routines
-    Real(dp), Parameter :: Romb1(1:10) = (/ (4._dp**k , k = 1,10) /)
-    Real(dp), Parameter :: Romb2(1:10) = 1._dp / (Romb1 - 1._dp)
     
 Contains
 
-Function Extrapolating_Quad(f,a,b,aTol,rTol) Result(q)
+Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
     !Integrates f(x) on (a,b) by extrapolation on successive composite trapezoid
-    !  Uses Romberg-style extrapolation with the improvements (rational 
-    !  extrapolation and slower progression of quadrature ordinates) suggested 
-    !  in Introduction to Numerical Analysis (1993, Stoer & Bulirsch) p140-144
     Use Kinds, Only: dp
     Use Utilities, Only: Converged
     Implicit None
@@ -47,165 +41,46 @@ Function Extrapolating_Quad(f,a,b,aTol,rTol) Result(q)
     End Interface
     Real(dp), Intent(In) :: a,b        !limits of integration
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
-    Real(dp), Pointer :: T0(:)  !Extrapolation table, previous row
-    Real(dp), Pointer :: Ti(:)  !Extrapolation table, current row
-    Real(dp), Pointer :: Ts(:)  !swap pointer for switching current/previous rows
+    Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
+    Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
+    Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
+    Real(dp) :: Ts(0:Tmax)  !swap for switching current/previous rows
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
+    Integer :: n      !number of intervals
     Real(dp) :: h     !spacing between quadrature ordinates
-    Real(dp), Target :: s1,s2  !sums of function values at quadrature ordinates
-    Real(dp), Pointer :: s     !points to current sum (s1 for odd rows, s2 for even rows)
-    Real(dp) :: c  !rational extrapolation coefficent
-    Integer, Parameter :: Tmax = 39  !maximum number of extrapolations in the table (39 gives 2**20 intervals)
-    Integer, Parameter :: ns(1:Tmax) = (/ ( 2**(i/2 - (-1)**i) * 3**Mod(i-1,2) , i = 1,Tmax ) /)
-    Real(dp), Parameter :: one_third = 1._dp / 3._dp
-    Real(dp), Parameter :: fs(2:Tmax) = Real(ns,dp)**2
+    Real(dp) :: s  !sum of function values at quadrature ordinates
+    Real(dp), Parameter :: fs(1:Tmax) = (/ ( 1._dp/(4._dp**i-1._dp) , i = 1,Tmax ) /)
 
-    Allocate(T0(0:Tmax))
-    Allocate(Ti(0:Tmax))
-    !Initial trapezoid estimate: R0(0)
-    s1 = 0.5_dp * (f(a) + f(b))
-    s2 = s1
-    s => s1 !first time through the loop is with ODD i
+    !Initial trapezoid estimate: T0(0)
+    n = 1
+    s = 0.5_dp * (f(a) + f(b))
     T0(0) = (b - a) * s
-    Do i = 1,Tmax !up to Rmax rows in the table
-        !Trapezoid estimate i-th row of table: Ri(0)
-        h = (b - a) / Real(ns(i),dp)
-        If (i .NE. 2) Then
-            Do j = 1,ns(i)-1,2  !Odd values of j are NEW points at which to evaluate f
-                s = s + f(a + Real(j,dp)*h)
-            End Do
-        Else !Special case for first set of intervals divisible by 3 (i=2)
-            s = s + f(a + h) + f(a + 2._dp*h)
-        End If
+    Do i = 1,Tmax !up to Tmax rows in the table
+        !Trapezoid estimate i-th row of table: Ti(0)
+        n = n * 2
+        h = (b - a) / Real(n,dp)
+        Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
+            s = s + f(a + Real(j,dp)*h)
+        End Do
         Ti(0) = h * s
         !Fill i-th row with extrapolated estimates
-        Ti(1) = Ti(0) + (Ti(0) - T0(0)) * one_third !First extrapolation is by polynomial extrap
-        If (i .GT. 1) Then !2 through i-th values are by rational extrap
-            Do k = 2,i
-                c = (T0(k-1) - T0(k-2)) / (Ti(k-1) - T0(k-2))
-                Ti(k) = Ti(k-1) + (Ti(k-1) - T0(k-1)) / (fs(k)*c - 1._dp)
-            End Do
-        End If
+        Do k = 1,i
+            Ti(k) = Ti(k-1) + (Ti(k-1) - T0(k-1)) * fs(k)
+        End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
         If (Converged(T0(i-1),Ti(i),rTol,aTol)) Then
             q = Ti(i) !Ti(i) is the position of the highest precision converged value
-            Deallocate(T0,Ti) !Explicit deallocation of variables only accessible by pointer
             Return  !Normal exit
         End If
         !switch the current row to the previous row
-        Ts => T0  !saves memory location of T0
-        T0 => Ti  !i-th row becomes new previous row
-        Ti => Ts  !next row will overwrite the previous T0
-        !switch between even-odd indexed ordinate sums
-        If (Mod(i,2) .EQ. 0) Then !next loop is ODD row
-            s => s1
-        Else !next loop is EVEN row
-            s => s2
-        End If
+        Ts = T0  !saves T0
+        T0 = Ti  !i-th row becomes new previous row
+        Ti = Ts  !next row will overwrite the previous T0
     End Do
     !If we get this far, we did not converge
-    Print *,"ERROR:  Quadratures: Extrapolating_Quad:  Failed to converge in 39 extrapolations."
+    Print *,"ERROR:  Quadratures: Romberg_Quad:  Failed to converge in 20 extrapolations."
     ERROR STOP
-End Function Extrapolating_Quad
-
-Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
-    Use Kinds, Only: dp
-    Use Utilities, Only: Converged
-    Implicit None
-    Real(dp):: q    !the result of the integration
-    Interface
-        Function f(x)    !the function to be integrated
-            Use Kinds,Only: dp
-            Implicit None
-            Real(dp) :: f
-            Real(dp), Intent(In) :: x
-        End Function f
-    End Interface
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
-    Real(dp) :: R(0:10,0:10)  !Romberg table
-    Integer :: n,i,j
-    Real(dp) :: h,s
-
-    n = 1
-    h = b - a
-    s = 0.5_dp * (f(a) + f(b))
-    R(0,0) = h * s
-    Do i = 1,10
-        !compute trapezoid estimate for next row of table
-        n = n * 2
-        h = (b - a) / Real(n,dp)
-        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-            s = s + f(a + Real(j,dp)*h)
-        End Do
-        R(0,i) = h * s
-        !fill out Romberg table row
-        Do j = 1,i
-            R(j,i) = Romb2(j) * (Romb1(j) * R(j-1,i) - R(j-1,i-1))
-        End Do
-        !check for convergence
-        If (Converged(R(i-1,i-1),R(i,i),rTol,aTol)) Then
-            q = R(i,i)  !R(i,i) is the position of the highest precision converged value
-            Return  !Normal exit
-        End If
-    End Do
-    !If we get this far, we did not converge
-    Call Continue_Romberg(f,a,b,rTol,aTol,s,10,R(:,10),2,q)
 End Function Romberg_Quad
-
-Recursive Subroutine Continue_Romberg(f,a,b,rTol,aTol,s,d,R0,level,q)  !adds 10 more rows to the previous Romberg_Quad table
-    Use Kinds, Only: dp
-    Use Utilities, Only: Converged
-    Implicit None
-    Interface
-        Function f(x)    !the function to be integrated
-            Use Kinds,Only: dp
-            Implicit None
-            Real(dp) :: f
-            Real(dp), Intent(In) :: x
-        End Function f
-    End Interface
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
-    Real(dp), Intent(InOut) :: s  !previous sum of ordinates
-    Integer, Intent(In) :: d  !length of final row in OLD Romberg Table
-    Real(dp), Intent(In) :: R0(0:d)  !final row of OLD romberg table
-    Integer, Intent(In) :: level
-    Real(dp), Intent(Out) :: q    !the result of the integration, if convergence attained
-    Real(dp) :: R(0:d+10,0:10)  !Romberg table extension
-    Integer :: n,i,j
-    Real(dp) :: h
-    Integer :: fours
-    
-    R(0:d,0) = R0
-    Do i = 1,10
-        !compute trapezoid estimate for next row of table
-        n = 2**(d+i)
-        h = (b - a) / Real(n,dp)
-        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-            s = s + f(a + Real(j,dp)*h)
-        End Do
-        R(0,i) = h * s
-        !fill out Romberg table row
-        fours = 1
-        Do j = 1,d+i
-            fours = fours * 4
-            R(j,i) = (Real(fours,dp) * R(j-1,i) - R(j-1,i-1)) / Real(fours - 1,dp)
-            !R(j,i) = (((4._dp)**j) * R(j-1,i) - R(j-1,i-1)) / (((4._dp)**j) - 1._dp)
-        End Do
-        !check for convergence
-        If (Converged(R(d+i-1,i-1),R(d+i,i),rTol,aTol)) Then
-            q = R(d+i,i)
-            Return  !Normal exit
-        End If
-    End Do
-    If (level .GT. 10) Then !max allowed recursion depth, interval has been split 100 times...
-        Print *,"ERROR:  Quadratures: Continue_Romberg:  Failed to converge before reaching max recursion depth."
-        ERROR STOP
-    End If
-    !If we get this far, we did not converge, recurse to add 10 more rows
-    Call Continue_Romberg(f,a,b,rTol,aTol,s,d+10,R(:,10),level+1,q)
-End Subroutine Continue_Romberg
 
 Function Romberg_Simpson_Quad(f,a,b,aTol,rTol) Result(q)
     Use Kinds, Only: dp
@@ -222,96 +97,50 @@ Function Romberg_Simpson_Quad(f,a,b,aTol,rTol) Result(q)
     End Interface
     Real(dp), Intent(In) :: a,b    !limits of integration
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
-    Real(dp) :: R(0:10,0:10)  !Romberg table
-    Integer :: n,i,j
-    Real(dp) :: h,s1,s2,s3
-    
-    n = 1
-    h = 0.5_dp * (b - a)
+    Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
+    Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
+    Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
+    Real(dp) :: Ts(0:Tmax)  !swap for switching current/previous rows
+    Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
+    Integer :: n      !number of intervals
+    Real(dp) :: h     !spacing between quadrature ordinates
+    Real(dp) :: s1,s2,s3  !sum of function values at quadrature ordinates
+    Real(dp), Parameter :: fs(1:Tmax) = (/ ( 1._dp/(4._dp**i-1._dp) , i = 1,Tmax ) /)
+
+    !Initial trapezoid estimate: T0(0)
+    n = 2
     s1 = f(a) + f(b)
     s2 = 0._dp
-    s3 = f(0.5_dp*(a+b))
-    R(0,0) = h * (s1 + 4._dp*s3) * one_third
-    Do i = 1,10
-        !compute simpson estimate for next row of table
+    s3 = f(0.5_dp * (a + b))
+    T0(0) = (b - a) * (s1 + 4._dp*s3) * one_sixth
+    Do i = 1,Tmax !up to Tmax rows in the table
+        !Trapezoid estimate i-th row of table: Ti(0)
         n = n * 2
         s2 = s2 + s3
-        h = (b - a) / Real(2*n,dp)
+        h = (b - a) / Real(n,dp)
         s3 = 0._dp
-        Do j = 1,2*n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
+        Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
             s3 = s3 + f(a + Real(j,dp)*h)
         End Do
-        R(0,i) = h * (s1 + 2._dp*s2 + 4._dp*s3) * one_third
-        !fill out Romberg table row
-        Do j = 1,i
-            !R(j,i) = (((4._dp)**j) * R(j-1,i) - R(j-1,i-1)) / (((4._dp)**j) - 1._dp)
-            R(j,i) = Romb2(j) * (Romb1(j) * R(j-1,i) - R(j-1,i-1))
+        Ti(0) = h * (s1 + 2._dp*s2 + 4._dp*s3) * one_third
+        !Fill i-th row with extrapolated estimates
+        Do k = 1,i
+            Ti(k) = Ti(k-1) + (Ti(k-1) - T0(k-1)) * fs(k)
         End Do
-        !check for convergence
-        If (Converged(R(i-1,i-1),R(i,i),rTol,aTol)) Then
-            q = R(i,i)  !R(i,i) is the position of the highest precision converged value
+        !Check for convergence compared to the final extrapolated value in the previous table row
+        If (Converged(T0(i-1),Ti(i),rTol,aTol)) Then
+            q = Ti(i) !Ti(i) is the position of the highest precision converged value
             Return  !Normal exit
         End If
+        !switch the current row to the previous row
+        Ts = T0  !saves T0
+        T0 = Ti  !i-th row becomes new previous row
+        Ti = Ts  !next row will overwrite the previous T0
     End Do
     !If we get this far, we did not converge
-    Call Continue_Romberg_Simpson(f,a,b,rTol,aTol,s1,s2,s3,10,R(:,10),2,q)
+    Print *,"ERROR:  Quadratures: Romberg_Simpson_Quad:  Failed to converge in 20 extrapolations."
+    ERROR STOP
 End Function Romberg_Simpson_Quad
-
-Recursive Subroutine Continue_Romberg_Simpson(f,a,b,rTol,aTol,s1,s2,s3,d,R0,level,q)  !adds 10 more rows to the previous Romberg_Quad table
-    Use Kinds, Only: dp
-    Use Utilities, Only: Converged
-    Implicit None
-    Interface
-        Function f(x)    !the function to be integrated
-            Use Kinds,Only: dp
-            Implicit None
-            Real(dp):: f
-            Real(dp), Intent(In):: x
-        End Function f
-    End Interface
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
-    Real(dp), Intent(InOut) :: s1,s2,s3  !previous sum of ordinates
-    Integer, Intent(In) :: d  !length of final row in OLD Romberg Table
-    Real(dp), Intent(In) :: R0(0:d)  !final row of OLD romberg table
-    Integer, Intent(In) :: level
-    Real(dp), Intent(Out) :: q    !the result of the integration, if convergence attained
-    Real(dp) :: R(0:d+10,0:10)  !Romberg table extension
-    Integer :: n,i,j
-    Real(dp) :: h
-    Integer :: fours
-    
-    R(0:d,0) = R0
-    Do i = 1,10
-        !compute simpson estimate for next row of table
-        n = 2**(d+i)
-        s2 = s2 + s3
-        h = (b - a) / Real(2*n,dp)
-        s3 = 0._dp
-        Do j = 1,2*n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
-            s3 = s3 + f(a + Real(j,dp)*h)
-        End Do
-        R(0,i) = h * (s1 + 2._dp*s2 + 4._dp*s3) * one_third
-        !fill out Romberg table row
-        fours = 1
-        Do j = 1,d+i
-            fours = fours * 4
-            R(j,i) = (Real(fours,dp) * R(j-1,i) - R(j-1,i-1)) / Real(fours - 1,dp)
-            !R(j,i) = (((4._dp)**j) * R(j-1,i) - R(j-1,i-1)) / (((4._dp)**j) - 1._dp)
-        End Do
-        !check for convergence
-        If (Converged(R(d+i-1,i-1),R(d+i,i),rTol,aTol)) Then
-            q = R(d+i,i)
-            Return  !Normal exit
-        End If
-    End Do
-    If (level .GT. 10) Then !max allowed recursion depth, interval has been split 100 times...
-        Print *,"ERROR:  Quadratures: Continue_Romberg_Simpson:  Failed to converge before reaching max recursion depth."
-        ERROR STOP
-    End If
-    !If we get this far, we did not converge, recurse to add 10 more rows
-    Call Continue_Romberg_Simpson(f,a,b,rTol,aTol,s1,s2,s3,d+10,R(:,10),level+1,q)
-End Subroutine Continue_Romberg_Simpson
 
 Function Adaptive_Quad(f,a,b,Quad,rTol,aTol) Result(q)
     Use Kinds, Only: dp
@@ -602,10 +431,10 @@ Function Composite_Trapezoid(f,a,b,aTol,rTol) Result(q)
     
     n = 1
     s = 0.5_dp * (f(a) + f(b))
-    qOld = (b-a) * s
-    Do i = 1,100
-        n = n*2
-        h = (b-a) / Real(n,dp)
+    qOld = (b - a) * s
+    Do i = 1,31
+        n = n * 2
+        h = (b - a) / Real(n,dp)
         Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
             s = s + f(a + Real(j,dp)*h)
         End Do
@@ -636,17 +465,17 @@ Function Composite_Simpson(f,a,b,aTol,rTol) Result(q)
     Integer :: i,j,n
     Real(dp) :: qOld,s1,s2,s3,h
     
-    n = 1
+    n = 2
     s1 = f(a) + f(b)
     s2 = 0._dp
-    s3 = f(0.5_dp*(a+b))
-    qOld = (b-a) * (s1 + 4._dp*s3) * one_sixth
-    Do i = 1,100
-        n = n*2
-        h = (b-a) / Real(2*n,dp)
+    s3 = f(0.5_dp * (a + b))
+    qOld = (b - a) * (s1 + 4._dp*s3) * one_sixth
+    Do i = 1,31
+        n = n * 2
+        h = (b - a) / Real(n,dp)
         s2 = s2 + s3
         s3 = 0._dp
-        Do j = 1,2*n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
+        Do j = 1,n-1,2  !only odd values of j, these are the NEW points at which to evaluate f
             s3 = s3 + f(a + Real(j,dp)*h)
         End Do
         q = h * (s1 + 2._dp*s2 + 4._dp*s3) * one_third
