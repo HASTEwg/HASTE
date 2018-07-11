@@ -91,10 +91,10 @@ Real(dp), Parameter :: dZmax = 1.E-3_dp !1 meter resolution
     STOP
 # endif
 
-z = 200._dp
+z = 400._dp
 Call rho_N(z,T(z),Find_Base_Layer(z),NumDens)
 Write(*,'(F9.3,6ES10.3)') z,NumDens
-z = 400._dp
+z = 500._dp
 Call rho_N(z,T(z),Find_Base_Layer(z),NumDens)
 Write(*,'(F9.3,6ES10.3)') z,NumDens
 z = 600._dp

@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# CLEAN OLD BUILD FILES
+./clean
+
+# SET COMPILER FLAGS
+. ./set_flags
+. ./echo_flags
+
+# COMMON MODULES
+SRC_PATH="../source/common/"
+FNAME="Kinds"; . ./compile_it
+FNAME="Global"; . ./compile_it
+FNAME="Utilities"; . ./compile_it
+FNAME="FileIO_Utilities"; . ./compile_it
+FNAME="Gauss_Legendre_w_a"; . ./compile_it
+FNAME="Quadratures"; . ./compile_it
+
+#TEST PROGRAM
+SRC_PATH="../testing/Quadratures/"
+BLD_PATH="../build/"
+FNAME="testQuadratures"
+echo "Compiling and linking testQuadratures..."
+gfortran $GFORT_FLAGS -o ${SRC_PATH}${FNAME}.out ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
+
+#RUN THE TEST PROGRAM
+echo "Running..."
+cd ${SRC_PATH}
+./${FNAME}.out

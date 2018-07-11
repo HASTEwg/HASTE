@@ -922,9 +922,9 @@ Function nH_integrand(Z) Result(f)
     
     Tz = T(Z,11)
     D = ai(6) * Sqrt(Tz / 273.15_dp) / & 
-      & (      N7(1)   * Tb(7) * Exp(-nN2_power(Z,10)) + & 
-      &    Sum(N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,10))) + & 
-      &    Sum(N7(4:5) * Tb(7) * Exp(-nAr_He_powers(Z,10)))     ) / Tz
+      & ((      N7(1)   * Tb(7) * Exp(-nN2_power(Z,10)) + & 
+      &     Sum(N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,10))) + & 
+      &     Sum(N7(4:5) * Tb(7) * Exp(-nAr_He_powers(Z,10)))     ) / Tz)
     f = p6(Z) / D
 End Function nH_integrand
 
@@ -1021,6 +1021,8 @@ Function Romberg_Quad_p6(a,b) Result(q)
         !Check for convergence compared to the final extrapolated value in the previous table row
         If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier4a * Abs(Ti(i)) ) Then
             q = Ti(i) !Ti(i) is the position of the highest precision converged value
+            Print*,a,b,q
+            Pause
             Return  !Normal exit
         End If
         !switch the current row to the previous row
