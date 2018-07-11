@@ -721,7 +721,7 @@ Subroutine N_density(Z,Tz,b,N)
     Real(dp), Intent(In) :: Tz
     Integer, Intent(In) :: b
     Real(dp), Intent(Out) :: N
-    Real(dp) :: Ns(1:5)
+    Real(dp) :: Ns(1:6)
     
     Call N_densities(Z,Tz,b,Ns)
     N = Sum(Ns)
@@ -760,7 +760,7 @@ Function Romberg_Quad_nN2(a,b,p) Result(q)
         fk = 1._dp
         Do k = 1,i
             fk = fk * 4._dp
-            Ti(k) = fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
+            Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
         End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
         If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier1 * Abs(Ti(i)) ) Then
@@ -815,7 +815,7 @@ Function Romberg_Quad_nO1_O2(f,a,b,p) Result(q)
         fk = 1._dp
         Do k = 1,i
             fk = fk * 4._dp
-            Ti(:,k) = fk * Ti(:,k-1) - T0(:,k-1)) / (fk - 1._dp)
+            Ti(:,k) = (fk * Ti(:,k-1) - T0(:,k-1)) / (fk - 1._dp)
         End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
         If ( All(Abs(T0(:,i-1) - Ti(:,i)) .LE. rTol_tier2 * Abs(Ti(:,i))) ) Then
@@ -870,7 +870,7 @@ Function Romberg_Quad_nAr_He(f,a,b,p) Result(q)
         fk = 1._dp
         Do k = 1,i
             fk = fk * 4._dp
-            Ti(:,k) = fk * Ti(:,k-1) - T0(:,k-1)) / (fk - 1._dp)
+            Ti(:,k) = (fk * Ti(:,k-1) - T0(:,k-1)) / (fk - 1._dp)
         End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
         If ( All(Abs(T0(:,i-1) - Ti(:,i)) .LE. rTol_tier3 * Abs(Ti(:,i))) ) Then
@@ -958,7 +958,7 @@ Function Romberg_Quad_nH(a,b) Result(q)
         fk = 1._dp
         Do k = 1,i
             fk = fk * 4._dp
-            Ti(k) = fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
+            Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
         End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
         If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier4b * Abs(Ti(i)) ) Then
@@ -1016,7 +1016,7 @@ Function Romberg_Quad_p6(a,b) Result(q)
         fk = 1._dp
         Do k = 1,i
             fk = fk * 4._dp
-            Ti(k) = fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
+            Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
         End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
         If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier4a * Abs(Ti(i)) ) Then

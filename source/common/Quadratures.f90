@@ -4,7 +4,6 @@ Module Quadratures
     Implicit None
     Private
     Public :: Romberg_Quad
-    Public :: Romberg_Midpoint_Quad
     Public :: Romberg_Simpson_Quad
     Public :: Composite_Quad
     Public :: Composite_Trapezoid
@@ -67,7 +66,7 @@ Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
         fk = 1._dp
         Do k = 1,i
             fk = fk * 4._dp
-            Ti(k) = fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
+            Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
         End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
         If (Converged(T0(i-1),Ti(i),rTol,aTol)) Then
@@ -81,62 +80,6 @@ Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
     Print *,"ERROR:  Quadratures: Romberg_Quad:  Failed to converge in 20 extrapolations."
     ERROR STOP
 End Function Romberg_Quad
-
-Function Romberg_Midpoint_Quad(f,a,b,aTol,rTol) Result(q)
-    Use Kinds, Only: dp
-    Use Utilities, Only: Converged
-    Implicit None
-    Real(dp):: q    !the result of the integration
-    Interface
-        Function f(x)    !the function to be integrated
-            Use Kinds,Only: dp
-            Implicit None
-            Real(dp) :: f
-            Real(dp), Intent(In) :: x
-        End Function f
-    End Interface
-    Real(dp), Intent(In) :: a,b        !limits of integration
-    Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
-    Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
-    Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
-    Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
-    Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
-    Integer :: n      !number of intervals
-    Real(dp) :: fk    !multiplier for extrapolation steps
-    Real(dp) :: h     !spacing between quadrature ordinates
-    Real(dp) :: s     !sum of function values at quadrature ordinates
-
-    !Initial trapezoid estimate: T0(0)
-    n = 1
-    h = b - a
-    s = f(a + 0.5_dp*h)
-    T0(0) = h * s
-    Do i = 1,Tmax !up to Tmax rows in the table
-        !Trapezoid estimate i-th row of table: Ti(0)
-        n = n * 2
-        h = (b - a) / Real(n,dp)
-        Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
-            s = s + f(a + Real(j,dp)*0.5_dp*h)
-        End Do
-        Ti(0) = h * s
-        !Fill i-th row with extrapolated estimates
-        fk = 1._dp
-        Do k = 1,i
-            fk = fk * 4._dp
-            Ti(k) = fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
-        End Do
-        !Check for convergence compared to the final extrapolated value in the previous table row
-        If (Converged(T0(i-1),Ti(i),rTol,aTol)) Then
-            q = Ti(i) !Ti(i) is the position of the highest precision converged value
-            Return  !Normal exit
-        End If
-        !switch the current row to the previous row
-        T0 = Ti  !i-th row becomes new previous row
-    End Do
-    !If we get this far, we did not converge
-    Print *,"ERROR:  Quadratures: Romberg_Midpoint_Quad:  Failed to converge in 20 extrapolations."
-    ERROR STOP
-End Function Romberg_Midpoint_Quad
 
 Function Romberg_Simpson_Quad(f,a,b,aTol,rTol) Result(q)
     Use Kinds, Only: dp
@@ -179,10 +122,10 @@ Function Romberg_Simpson_Quad(f,a,b,aTol,rTol) Result(q)
         End Do
         Ti(0) = h * (s1 + 2._dp*s2 + 4._dp*s3) * one_third
         !Fill i-th row with extrapolated estimates
-        fk = 2._dp
+        fk = 1._dp
         Do k = 1,i
             fk = fk * 4._dp
-            Ti(k) = fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
+            Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
         End Do
         !Check for convergence compared to the final extrapolated value in the previous table row
         If (Converged(T0(i-1),Ti(i),rTol,aTol)) Then
