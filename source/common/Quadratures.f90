@@ -42,42 +42,48 @@ Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
     Real(dp), Intent(In) :: a,b        !limits of integration
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
     Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
-    Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
-    Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
+    Real(dp) :: T(0:Tmax)  !Extrapolation table previous row
+    Real(dp) :: Tk0,Tk  !Extrapolation table current row values
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
     Integer :: n      !number of intervals
+    Real(dp) :: h0,h  !spacing between quadrature ordinates
     Real(dp) :: fk    !multiplier for extrapolation steps
-    Real(dp) :: h     !spacing between quadrature ordinates
     Real(dp) :: s     !sum of function values at quadrature ordinates
 
-    !Initial trapezoid estimate: T0(0)
+    !Initial trapezoid estimate
     n = 1
     s = 0.5_dp * (f(a) + f(b))
-    T0(0) = (b - a) * s
+    h0 = b - a
+    T(0) = h0 * s
     Do i = 1,Tmax !up to Tmax rows in the table
-        !Trapezoid estimate i-th row of table: Ti(0)
+        !Trapezoid estimate for the 0-th column of the i-th row of table
         n = n * 2
-        h = (b - a) / Real(n,dp)
+        h = h0 / Real(n,dp)
         Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
             s = s + f(a + Real(j,dp)*h)
         End Do
-        Ti(0) = h * s
-        !Fill i-th row with extrapolated estimates
+        Tk0 = h * s
+        !Fill i-th row, columns k = 1:i, with extrapolated estimates
         fk = 1._dp
         Do k = 1,i
             fk = fk * 4._dp
-            Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
+            Tk = (fk * Tk0 - T(k-1)) / (fk - 1._dp)
+            T(k-1) = Tk0  !store Tk0 for next i
+            Tk0 = Tk  !store Tk for next k
         End Do
-        !Check for convergence compared to the final extrapolated value in the previous table row
-        If (Converged(T0(i-1),Ti(i),rTol,aTol)) Then
-            q = Ti(i) !Ti(i) is the position of the highest precision converged value
+        !Check for convergence
+        If (Converged(T(i-1),Tk,rTol,aTol)) Then
+            q = Tk
             Return  !Normal exit
+        Else !store Tk0 for next i
+            T(i) = Tk
         End If
-        !switch the current row to the previous row
-        T0 = Ti  !i-th row becomes new previous row
     End Do
     !If we get this far, we did not converge
-    Print *,"ERROR:  Quadratures: Romberg_Quad:  Failed to converge in 20 extrapolations."
+    Write(*,'(A,I0,A)')      'ERROR:  Quadratures: Romberg_Quad:  Failed to converge in ',Tmax,' extrapolations.'
+    Write(*,'(A,F0.16)')     '          Final estimated value: ',Tk
+    Write(*,'(2(A,ES10.3))') '          Final Extrapolation Error: ',Abs(Tk-T(i-1)),' (abs), ',Abs(Tk-T(i-1))/Tk,' (rel)'
+    Write(*,'(2(A,ES10.3))') '          Convergence Criteria:      ',atol,          ' (abs), ',rtol,             ' (rel)'
     ERROR STOP
 End Function Romberg_Quad
 
