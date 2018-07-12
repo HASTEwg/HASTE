@@ -68,14 +68,19 @@ Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
         Do k = 1,i
             fk = fk * 4._dp
             Tk = (fk * Tk0 - T(k-1)) / (fk - 1._dp)
-            T(k-1) = Tk0  !store Tk0 for next i
-            Tk0 = Tk  !store Tk for next k
+            If (k .EQ. i) Then
+                Exit !skip storage steps if working final column
+            Else
+                T(k-1) = Tk0  !store Tk0 for next i
+                Tk0 = Tk  !store Tk for next k
+            End If
         End Do
         !Check for convergence
         If (Converged(T(i-1),Tk,rTol,aTol)) Then
             q = Tk
             Return  !Normal exit
-        Else !store Tk0 for next i
+        Else !store Tk0 and Tk for next i
+            T(i-1) = Tk0
             T(i) = Tk
         End If
     End Do
@@ -128,7 +133,7 @@ Function Romberg_Simpson_Quad(f,a,b,aTol,rTol) Result(q)
         End Do
         Ti(0) = h * (s1 + 2._dp*s2 + 4._dp*s3) * one_third
         !Fill i-th row with extrapolated estimates
-        fk = 1._dp
+        fk = 4._dp
         Do k = 1,i
             fk = fk * 4._dp
             Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)

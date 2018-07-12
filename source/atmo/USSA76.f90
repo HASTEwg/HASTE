@@ -209,7 +209,7 @@ Module US_Std_Atm_1976
     Real(dp), Parameter :: T500 = 999.2356017626150686_dp
     Real(dp), Parameter :: phiH = 7.2E11_dp
     !Convergence criteria for Romberg Quadrature routines
-#   if TEST_CODE
+#   if INTEGRAND_STOPS
         Real(dp), Parameter :: rTol_tier1 = 1.E-14_dp  !N2
         Real(dp), Parameter :: rTol_tier2 = 1.E-13_dp  !O1 and O2
         Real(dp), Parameter :: rTol_tier3 = 1.E-12_dp  !Ar and He
@@ -698,7 +698,7 @@ Subroutine N_densities(Z,Tz,b,N)
     Real(dp), Intent(In) :: Z
     Real(dp), Intent(In) :: Tz
     Integer, Intent(In) :: b
-    Real(dp), Intent(Out) :: N(1:6)
+    Real(dp), Intent(Out) :: N(1:5)!(1:6)
     Real(dp) :: x(1:5)
     !UNDONE Extend N_density (and other functionality in this module) to compute N for H1
     
@@ -710,7 +710,7 @@ Subroutine N_densities(Z,Tz,b,N)
     x(4:5) = nAr_He_powers(Z,b)
     !compute number densities of each species
     N(1:5) = N7(1:5) * Tb(7) * Exp(-x) / Tz
-    N(6) = nH(Z)
+    !N(6) = nH(Z)
 End Subroutine N_densities
 
 Subroutine N_density(Z,Tz,b,N)
@@ -721,7 +721,7 @@ Subroutine N_density(Z,Tz,b,N)
     Real(dp), Intent(In) :: Tz
     Integer, Intent(In) :: b
     Real(dp), Intent(Out) :: N
-    Real(dp) :: Ns(1:6)
+    Real(dp) :: Ns(1:5)!(1:6)
     
     Call N_densities(Z,Tz,b,Ns)
     N = Sum(Ns)
@@ -734,44 +734,55 @@ Function Romberg_Quad_nN2(a,b,p) Result(q)
     Real(dp), Intent(In) :: a,b    !limits of integration
     Integer, Intent(In) :: p
     Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
-    Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
-    Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
+    Real(dp) :: Ti(0:Tmax)  !Extrapolation table previous row
+    Real(dp) :: Tk0,Tk  !Extrapolation table current row values
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
     Integer :: n      !number of intervals
+    Real(dp) :: h0,h  !spacing between quadrature ordinates
     Real(dp) :: fk    !multiplier for extrapolation steps
-    Real(dp) :: h     !spacing between quadrature ordinates
     Real(dp) :: s     !sum of function values at quadrature ordinates
     Real(dp) :: aj    !the j-th ordinate
 
     !Initial trapezoid estimate: T0(0)
     n = 1
     s = 0.5_dp * (g(a) / T(a,p+1) + g(b) / T(b,p+1))
-    T0(0) = (b - a) * s
+    h0 = b - a
+    Ti(0) = h0 * s
     Do i = 1,Tmax !up to Tmax rows in the table
         !Trapezoid estimate i-th row of table: Ti(0)
         n = n * 2
-        h = (b - a) / Real(n,dp)
+        h = h0 / Real(n,dp)
         Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
             aj = a + Real(j,dp)*h
             s = s + g(aj) / T(aj,p+1)
         End Do
-        Ti(0) = h * s
-        !Fill i-th row with extrapolated estimates
+        Tk0 = h * s
+        !Fill i-th row, columns k = 1:i, with extrapolated estimates
         fk = 1._dp
         Do k = 1,i
             fk = fk * 4._dp
-            Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
+            Tk = (fk * Tk0 - Ti(k-1)) / (fk - 1._dp)
+            If (k .EQ. i) Then
+                Exit !skip storage steps if working final column
+            Else
+                Ti(k-1) = Tk0  !store Tk0 for next i
+                Tk0 = Tk  !store Tk for next k
+            End If
         End Do
-        !Check for convergence compared to the final extrapolated value in the previous table row
-        If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier1 * Abs(Ti(i)) ) Then
-            q = Ti(i) !Ti(i) is the position of the highest precision converged value
+        !Check for convergence
+        If ( Abs(Ti(i-1) - Tk) .LE. rTol_tier1 * Abs(Tk) ) Then
+            q = Tk
             Return  !Normal exit
+        Else !store Tk0 and Tk for next i
+            Ti(i-1) = Tk0
+            Ti(i) = Tk
         End If
-        !switch the current row to the previous row
-        T0 = Ti  !i-th row becomes new previous row
     End Do
     !If we get this far, we did not converge
-    Print *,"ERROR:  US_Std_Atm_1976: Romberg_Quad_nN2:  Failed to converge in 20 extrapolations."
+    Write(*,'(A,I0,A)')      'ERROR:  US_Std_Atm_1976: Romberg_Quad_nN2:  Failed to converge in ',Tmax,' extrapolations.'
+    Write(*,'(A,F0.16)')     '          Final estimated value: ',Tk
+    Write(*,'(2(A,ES10.3))') '          Final Extrapolation Error: ',Abs(Tk-Ti(i-1)),' (abs), ',Abs(Tk-Ti(i-1))/Tk,' (rel)'
+    Write(*,'(2(A,ES10.3))') '          Convergence Criteria:      ',0._dp,          ' (abs), ',rTol_tier1,        ' (rel)'
     ERROR STOP
 End Function Romberg_Quad_nN2
 
@@ -791,42 +802,55 @@ Function Romberg_Quad_nO1_O2(f,a,b,p) Result(q)
     Real(dp), Intent(In) :: a,b    !limits of integration
     Integer, Intent(In) :: p
     Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
-    Real(dp) :: T0(1:2,0:Tmax)  !Extrapolation table, previous row
-    Real(dp) :: Ti(1:2,0:Tmax)  !Extrapolation table, current row
+    Real(dp) :: Ti(1:2,0:Tmax)  !Extrapolation table previous row
+    Real(dp) :: Tk0(1:2),Tk(1:2)  !Extrapolation table current row values
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
     Integer :: n      !number of intervals
+    Real(dp) :: h0,h  !spacing between quadrature ordinates
     Real(dp) :: fk    !multiplier for extrapolation steps
-    Real(dp) :: h     !spacing between quadrature ordinates
     Real(dp) :: s(1:2)     !sum of function values at quadrature ordinates
 
     !Initial trapezoid estimate: T0(0)
     n = 1
     s = 0.5_dp * (f(a,p) + f(b,p))
-    T0(:,0) = (b - a) * s
+    h0 = b - a
+    Ti(:,0) = h0 * s
     Do i = 1,Tmax !up to Tmax rows in the table
         !Trapezoid estimate i-th row of table: Ti(0)
         n = n * 2
-        h = (b - a) / Real(n,dp)
+        h = h0 / Real(n,dp)
         Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
             s = s + f(a + Real(j,dp)*h,p)
         End Do
-        Ti(:,0) = h * s
-        !Fill i-th row with extrapolated estimates
+        Tk0 = h * s
+        !Fill i-th row, columns k = 1:i, with extrapolated estimates
         fk = 1._dp
         Do k = 1,i
             fk = fk * 4._dp
-            Ti(:,k) = (fk * Ti(:,k-1) - T0(:,k-1)) / (fk - 1._dp)
+            Tk = (fk * Tk0 - Ti(:,k-1)) / (fk - 1._dp)
+            If (k .EQ. i) Then
+                Exit !skip storage steps if working final column
+            Else
+                Ti(:,k-1) = Tk0  !store Tk0 for next i
+                Tk0 = Tk  !store Tk for next k
+            End If
         End Do
-        !Check for convergence compared to the final extrapolated value in the previous table row
-        If ( All(Abs(T0(:,i-1) - Ti(:,i)) .LE. rTol_tier2 * Abs(Ti(:,i))) ) Then
-            q = Ti(:,i) !Ti(i) is the position of the highest precision converged value
+        !Check for convergence
+        If ( Any(Abs(Ti(:,i-1) - Tk) .LE. rTol_tier2 * Abs(Tk)) ) Then
+            q = Tk
             Return  !Normal exit
+        Else !store Tk0 and Tk for next i
+            Ti(:,i-1) = Tk0
+            Ti(:,i) = Tk
         End If
-        !switch the current row to the previous row
-        T0 = Ti  !i-th row becomes new previous row
     End Do
     !If we get this far, we did not converge
-    Print *,"ERROR:  US_Std_Atm_1976: Romberg_Quad_nO1_O2:  Failed to converge in 20 extrapolations."
+    Write(*,'(A,I0,A)')      'ERROR:  US_Std_Atm_1976: Romberg_Quad_nO1_O2:  Failed to converge in ',Tmax,' extrapolations.'
+    Write(*,'(A,F0.16)')     '          Final estimated value: ',Tk(1)
+    Write(*,'(A,F0.16)')     '                                 ',Tk(2)
+    Write(*,'(2(A,ES10.3))') '          Final Extrapolation Error: ',Abs(Tk(1)-Ti(1,i-1)),' (abs), ',Abs(Tk(1)-Ti(1,i-1))/Tk(1),' (rel)'
+    Write(*,'(2(A,ES10.3))') '                                     ',Abs(Tk(2)-Ti(2,i-1)),' (abs), ',Abs(Tk(2)-Ti(2,i-1))/Tk(2),' (rel)'
+    Write(*,'(2(A,ES10.3))') '          Convergence Criteria:      ',0._dp,               ' (abs), ',rTol_tier2,                ' (rel)'
     ERROR STOP
 End Function Romberg_Quad_nO1_O2
 
@@ -846,42 +870,55 @@ Function Romberg_Quad_nAr_He(f,a,b,p) Result(q)
     Real(dp), Intent(In) :: a,b    !limits of integration
     Integer, Intent(In) :: p
     Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
-    Real(dp) :: T0(1:2,0:Tmax)  !Extrapolation table, previous row
-    Real(dp) :: Ti(1:2,0:Tmax)  !Extrapolation table, current row
+    Real(dp) :: Ti(1:2,0:Tmax)  !Extrapolation table previous row
+    Real(dp) :: Tk0(1:2),Tk(1:2)  !Extrapolation table current row values
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
     Integer :: n      !number of intervals
+    Real(dp) :: h0,h  !spacing between quadrature ordinates
     Real(dp) :: fk    !multiplier for extrapolation steps
-    Real(dp) :: h     !spacing between quadrature ordinates
     Real(dp) :: s(1:2)     !sum of function values at quadrature ordinates
 
     !Initial trapezoid estimate: T0(0)
     n = 1
     s = 0.5_dp * (f(a,p) + f(b,p))
-    T0(:,0) = (b - a) * s
+    h0 = b - a
+    Ti(:,0) = h0 * s
     Do i = 1,Tmax !up to Tmax rows in the table
         !Trapezoid estimate i-th row of table: Ti(0)
         n = n * 2
-        h = (b - a) / Real(n,dp)
+        h = h0 / Real(n,dp)
         Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
             s = s + f(a + Real(j,dp)*h,p)
         End Do
-        Ti(:,0) = h * s
-        !Fill i-th row with extrapolated estimates
+        Tk0 = h * s
+        !Fill i-th row, columns k = 1:i, with extrapolated estimates
         fk = 1._dp
         Do k = 1,i
             fk = fk * 4._dp
-            Ti(:,k) = (fk * Ti(:,k-1) - T0(:,k-1)) / (fk - 1._dp)
+            Tk = (fk * Tk0 - Ti(:,k-1)) / (fk - 1._dp)
+            If (k .EQ. i) Then
+                Exit !skip storage steps if working final column
+            Else
+                Ti(:,k-1) = Tk0  !store Tk0 for next i
+                Tk0 = Tk  !store Tk for next k
+            End If
         End Do
-        !Check for convergence compared to the final extrapolated value in the previous table row
-        If ( All(Abs(T0(:,i-1) - Ti(:,i)) .LE. rTol_tier3 * Abs(Ti(:,i))) ) Then
-            q = Ti(:,i) !Ti(i) is the position of the highest precision converged value
+        !Check for convergence
+        If ( Any(Abs(Ti(:,i-1) - Tk) .LE. rTol_tier3 * Abs(Tk)) ) Then
+            q = Tk
             Return  !Normal exit
+        Else !store Tk0 and Tk for next i
+            Ti(:,i-1) = Tk0
+            Ti(:,i) = Tk
         End If
-        !switch the current row to the previous row
-        T0 = Ti  !i-th row becomes new previous row
     End Do
     !If we get this far, we did not converge
-    Print *,"ERROR:  US_Std_Atm_1976: Romberg_Quad_nAr_He:  Failed to converge in 20 extrapolations."
+    Write(*,'(A,I0,A)')      'ERROR:  US_Std_Atm_1976: Romberg_Quad_nAr_He:  Failed to converge in ',Tmax,' extrapolations.'
+    Write(*,'(A,F0.16)')     '          Final estimated value: ',Tk(1)
+    Write(*,'(A,F0.16)')     '                                 ',Tk(2)
+    Write(*,'(2(A,ES10.3))') '          Final Extrapolation Error: ',Abs(Tk(1)-Ti(1,i-1)),' (abs), ',Abs(Tk(1)-Ti(1,i-1))/Tk(1),' (rel)'
+    Write(*,'(2(A,ES10.3))') '                                     ',Abs(Tk(2)-Ti(2,i-1)),' (abs), ',Abs(Tk(2)-Ti(2,i-1))/Tk(2),' (rel)'
+    Write(*,'(2(A,ES10.3))') '          Convergence Criteria:      ',0._dp,               ' (abs), ',rTol_tier3,                ' (rel)'
     ERROR STOP
 End Function Romberg_Quad_nAr_He
 
@@ -1021,8 +1058,6 @@ Function Romberg_Quad_p6(a,b) Result(q)
         !Check for convergence compared to the final extrapolated value in the previous table row
         If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier4a * Abs(Ti(i)) ) Then
             q = Ti(i) !Ti(i) is the position of the highest precision converged value
-            Print*,a,b,q
-            Pause
             Return  !Normal exit
         End If
         !switch the current row to the previous row
@@ -1090,7 +1125,7 @@ Function rho(Z,layer,layer_range)
     Real(dp), Intent(In) :: Z ![km]
     Integer, Intent(In), Optional :: layer
     Integer, Intent(In), Optional :: layer_range(1:3)
-    Real(dp) :: Tz,Pz,N(1:6)
+    Real(dp) :: Tz,Pz,N(1:5)!(1:6)
     Integer :: b
     Real(dp), Parameter :: kg2g = 1000._dp  !conversion for kg to g
     
@@ -1114,16 +1149,16 @@ Function rho(Z,layer,layer_range)
             rho = Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
         Else
             Call rho_N(Z,Tz,b,N)
-            rho = Sum(N * Mi(1:6)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
+            rho = Sum(N * Mi(1:5)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
         End If
     Else If (T_exponential(b)) Then
         Tz = T_inf - (T_inf - Tb(b)) * Exp(-lambda * (Z - Zb(b)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
         Call rho_N(Z,Tz,b,N)
-        rho = Sum(N * Mi(1:6)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
+        rho = Sum(N * Mi(1:5)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
     Else If (T_elliptical(b)) Then
         Tz = Tc + big_A * Sqrt(1._dp - ((Z - Zb(b)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
         Call rho_N(Z,Tz,b,N)
-        rho = Sum(N * Mi(1:6)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
+        rho = Sum(N * Mi(1:5)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
     Else !zero lapse rate
         Tz = Tb(b)
         If (P_rho_not_by_N(b)) Then
@@ -1131,7 +1166,7 @@ Function rho(Z,layer,layer_range)
             rho = Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
         Else
             Call rho_N(Z,Tz,b,N)
-            rho = Sum(N * Mi(1:6)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
+            rho = Sum(N * Mi(1:5)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
         End If
     End If
 End Function rho

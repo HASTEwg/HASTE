@@ -8,7 +8,7 @@ Use US_Std_Atm_1976, Only: T
 Use US_Std_Atm_1976, Only: P
 Use US_Std_Atm_1976, Only: rho
 Use US_Std_Atm_1976, Only: rho_N
-# if TEST_CODE
+# if INTEGRAND_STOPS
     Use US_Std_Atm_1976, Only: nN2_power_stops
     Use US_Std_Atm_1976, Only: nO1_O2_power_stops
     Use US_Std_Atm_1976, Only: nAr_He_power_stops
@@ -17,7 +17,7 @@ Use US_Std_Atm_1976, Only: rho_N
 Implicit None
 
 Integer :: i,j,unit
-# if TEST_CODE
+# if INTEGRAND_STOPS
     Real(dp) :: ZxN2(1:5,1:2)
     Real(dp) :: ZxO1O2(1:8,1:3)
     Real(dp) :: ZxArHe(1:8,1:3)
@@ -40,7 +40,7 @@ Integer, Parameter :: other_alts(1:12) = (/   5000, &
 
 Real(dp), Parameter :: dZmax = 1.E-3_dp !1 meter resolution
 
-# if TEST_CODE
+# if INTEGRAND_STOPS
     Open(NEWUNIT=unit,FILE='IntegrandStops.tst',ACTION='WRITE',STATUS='REPLACE')
     Write(*   ,*)
     Write(unit,*)
@@ -90,17 +90,6 @@ Real(dp), Parameter :: dZmax = 1.E-3_dp !1 meter resolution
     Close(unit)
     STOP
 # endif
-
-z = 400._dp
-Call rho_N(z,T(z),Find_Base_Layer(z),NumDens)
-Write(*,'(F9.3,6ES10.3)') z,NumDens
-z = 500._dp
-Call rho_N(z,T(z),Find_Base_Layer(z),NumDens)
-Write(*,'(F9.3,6ES10.3)') z,NumDens
-z = 600._dp
-Call rho_N(z,T(z),Find_Base_Layer(z),NumDens)
-Write(*,'(F9.3,6ES10.3)') z,NumDens
-STOP
 
 Write(*,*)
 Write(*,'(A)') 'Temperature, Pressure, & Density as a function of altitude'
