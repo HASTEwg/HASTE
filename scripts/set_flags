@@ -24,7 +24,7 @@ RELEASE_FLAGS_PI="-Ofast -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -
 
 # Set compiler flags based on command flag
 COMP_FLAGS="${DEBUG_FLAGS}"
-while getopts 'sdrqp:c' flag; do
+while getopts 'sdrqwp:c' flag; do
   case "${flag}" in
     s) COMP_FLAGS="${SYNTAX_FLAGS}"
        ;;
@@ -33,6 +33,8 @@ while getopts 'sdrqp:c' flag; do
     r) COMP_FLAGS="${RELEASE_FLAGS}"
        ;;
     q) COMP_FLAGS="${RELEASE_FLAGS_PI}"
+       ;;
+    w) PREP_FLAGS="-cpp -DGFORT"
        ;;
     p) PREP_FLAGS="${PREP_FLAGS} ${OPTARG}"
        ;;
