@@ -733,7 +733,7 @@ Function Romberg_Quad_nN2(a,b,p) Result(q)
     Real(dp):: q    !the result of the integration
     Real(dp), Intent(In) :: a,b    !limits of integration
     Integer, Intent(In) :: p
-    Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
+    Integer, Parameter :: Tmax = 30  !maximum number of extrapolations in the table
     Real(dp) :: Ti(0:Tmax)  !Extrapolation table previous row
     Real(dp) :: Tk0,Tk  !Extrapolation table current row values
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
@@ -801,7 +801,7 @@ Function Romberg_Quad_nO1_O2(f,a,b,p) Result(q)
     End Interface
     Real(dp), Intent(In) :: a,b    !limits of integration
     Integer, Intent(In) :: p
-    Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
+    Integer, Parameter :: Tmax = 30  !maximum number of extrapolations in the table
     Real(dp) :: Ti(1:2,0:Tmax)  !Extrapolation table previous row
     Real(dp) :: Tk0(1:2),Tk(1:2)  !Extrapolation table current row values
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
@@ -869,7 +869,7 @@ Function Romberg_Quad_nAr_He(f,a,b,p) Result(q)
     End Interface
     Real(dp), Intent(In) :: a,b    !limits of integration
     Integer, Intent(In) :: p
-    Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
+    Integer, Parameter :: Tmax = 30  !maximum number of extrapolations in the table
     Real(dp) :: Ti(1:2,0:Tmax)  !Extrapolation table previous row
     Real(dp) :: Tk0(1:2),Tk(1:2)  !Extrapolation table current row values
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
