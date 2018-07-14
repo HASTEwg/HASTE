@@ -23,9 +23,40 @@ Module Quadratures
     Real(dp), Parameter :: one_sixth = 1._dp / 6._dp
     Real(dp), Parameter :: one_fifteenth = 1._dp / 15._dp
     
+    Interface Romberg_Quad
+        Module Procedure Romb_Quad
+        Module Procedure Romb_Quad_ranges
+    End Interface
+
 Contains
 
-Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
+Function Romb_Quad_ranges(f,ab,aTol,rTol) Result(q)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: q
+    Interface
+        Function f(x)    !the function to be integrated
+            Use Kinds,Only: dp
+            Implicit None
+            Real(dp) :: f
+            Real(dp), Intent(In) :: x
+        End Function f
+    End Interface
+    Real(dp), Intent(In) :: ab(:)        !limits of integration
+    Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
+    Real(dp) :: h,hi
+    Integer :: n,i
+
+    q = 0._dp
+    n = Size(ab)
+    h = ab(n) - ab(1)
+    Do i = 1,n-1
+        hi = ab(i+1) - ab(i)
+        q = q + Romb_Quad(f,ab(i),ab(i+1),(hi/h)*aTol,rTol)
+    End Do
+End Function Romb_Quad_ranges
+
+Function Romb_Quad(f,a,b,aTol,rTol) Result(q)
     !Integrates f(x) on (a,b) by extrapolation on successive composite trapezoid
     Use Kinds, Only: dp
     Use Utilities, Only: Converged
@@ -121,7 +152,7 @@ Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
     Write(*,'(2(A,ES10.3))') '          Final Extrapolation Error: ',Abs(Tk-T(i-1)),' (abs), ',Abs(Tk-T(i-1))/Tk,' (rel)'
     Write(*,'(2(A,ES10.3))') '          Convergence Criteria:      ',atol,          ' (abs), ',rtol,             ' (rel)'
     ERROR STOP
-End Function Romberg_Quad
+End Function Romb_Quad
 
 Function Romberg_Simpson_Quad(f,a,b,aTol,rTol) Result(q)
     Use Kinds, Only: dp
