@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# CLEAN OLD BUILD FILES
+./clean
+
+# SET COMPILER FLAGS
+. ./set_flags
+. ./echo_flags
+
+# COMMON MODULES
+SRC_PATH="../source/common/"
+FNAME="Kinds"; . ./compile_it
+
+#TEST PROGRAM
+SRC_PATH="../testing/Kinds/"
+BLD_PATH="../build/"
+FNAME="testKinds"
+echo "Compiling and linking testKinds..."
+gfortran $GFORT_FLAGS -o ${SRC_PATH}${FNAME}.out ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
+
+#RUN THE TEST PROGRAM
+echo "Running..."
+cd ${SRC_PATH}
+./${FNAME}.out

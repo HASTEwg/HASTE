@@ -41,7 +41,7 @@ Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
     End Interface
     Real(dp), Intent(In) :: a,b        !limits of integration
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
-    Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
+    Integer, Parameter :: Tmax = 30  !maximum number of extrapolations in the table
     Real(dp) :: T(0:Tmax)  !Extrapolation table previous row
     Real(dp) :: Tk0,Tk  !Extrapolation table current row values
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
@@ -49,12 +49,24 @@ Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
     Real(dp) :: h0,h  !spacing between quadrature ordinates
     Real(dp) :: fk    !multiplier for extrapolation steps
     Real(dp) :: s     !sum of function values at quadrature ordinates
+#   if ROMB_TABLES
+        Integer :: unit
+#   endif
+
 
     !Initial trapezoid estimate
     n = 1
     s = 0.5_dp * (f(a) + f(b))
     h0 = b - a
     T(0) = h0 * s
+#   if ROMB_TABLES
+        Open(NEWUNIT=unit,FILE='Romb_Tables.tst',ACTION='WRITE',STATUS='UNKNOWN',POSITION='APPEND')
+        Do k = 0,Tmax
+            Write(unit,'(I24)',ADVANCE='NO') k
+        End Do
+        Write(unit,'(ES24.15)') T(0)
+        Close(unit)
+#   endif
     Do i = 1,Tmax !up to Tmax rows in the table
         !Trapezoid estimate for the 0-th column of the i-th row of table
         n = n * 2
@@ -65,7 +77,7 @@ Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
         Tk0 = h * s
         !Fill i-th row, columns k = 1:i, with extrapolated estimates
         fk = 1._dp
-        Do k = 1,i
+        Do k = 1,i  !up to i columns this row
             fk = fk * 4._dp
             Tk = (fk * Tk0 - T(k-1)) / (fk - 1._dp)
             If (k .EQ. i) Then
@@ -76,12 +88,31 @@ Function Romberg_Quad(f,a,b,aTol,rTol) Result(q)
             End If
         End Do
         !Check for convergence
-        If (Converged(T(i-1),Tk,rTol,aTol)) Then
+        If (Converged(T(i-1),Tk,rTol,aTol) .OR. Converged(Tk0,Tk,rTol,aTol)) Then
             q = Tk
+#           if ROMB_TABLES
+                T(i-1) = Tk0
+                T(i) = Tk
+                Open(NEWUNIT=unit,FILE='Romb_Tables.tst',ACTION='WRITE',STATUS='UNKNOWN',POSITION='APPEND')
+                Do k = 0,i
+                    Write(unit,'(ES24.15)',ADVANCE='NO') T(k)
+                End Do
+                Write(unit,'(A)') '*'
+                Write(unit,*)
+                Close(unit)
+#           endif
             Return  !Normal exit
         Else !store Tk0 and Tk for next i
             T(i-1) = Tk0
             T(i) = Tk
+#           if ROMB_TABLES
+                Open(NEWUNIT=unit,FILE='Romb_Tables.tst',ACTION='WRITE',STATUS='UNKNOWN',POSITION='APPEND')
+                Do k = 0,i
+                    Write(unit,'(ES24.15)',ADVANCE='NO') T(k)
+                End Do
+                Write(unit,*)
+                Close(unit)
+#           endif
         End If
     End Do
     !If we get this far, we did not converge
@@ -107,7 +138,7 @@ Function Romberg_Simpson_Quad(f,a,b,aTol,rTol) Result(q)
     End Interface
     Real(dp), Intent(In) :: a,b    !limits of integration
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
-    Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
+    Integer, Parameter :: Tmax = 30  !maximum number of extrapolations in the table
     Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
     Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
@@ -134,7 +165,7 @@ Function Romberg_Simpson_Quad(f,a,b,aTol,rTol) Result(q)
         Ti(0) = h * (s1 + 2._dp*s2 + 4._dp*s3) * one_third
         !Fill i-th row with extrapolated estimates
         fk = 4._dp
-        Do k = 1,i
+        Do k = 1,i  !up to i columns this row
             fk = fk * 4._dp
             Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
         End Do

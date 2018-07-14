@@ -34,7 +34,7 @@ Pure Function Prec_dp(x,y) Result(p)
     If (x .NE. y) Then
         p = Max(0._dp,-Log10(2._dp * Abs((x-y)/x)))
     Else
-        p = 15.954589770191003346_dp
+        p = -Log10(2._dp*Spacing(1._dp))
     End If
 End Function Prec_dp
 
@@ -48,7 +48,7 @@ Pure Function Prec_sp(x,y) Result(p)
     If (x .NE. y) Then
         p = Max(0._sp,-Log10(2._sp * Abs((x-y)/x)))
     Else
-        p = 7.2247198959355486851_sp
+        p = -Log10(2._sp*Spacing(1._sp))
     End If
 End Function Prec_sp
 
