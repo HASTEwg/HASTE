@@ -72,7 +72,7 @@ Function Romb_Quad(f,a,b,aTol,rTol) Result(q)
     End Interface
     Real(dp), Intent(In) :: a,b        !limits of integration
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
-    Integer, Parameter :: Tmax = 30  !maximum number of extrapolations in the table
+    Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
     Real(dp) :: T(0:Tmax)  !Extrapolation table previous row
     Real(dp) :: Tk0,Tk  !Extrapolation table current row values
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
@@ -119,7 +119,8 @@ Function Romb_Quad(f,a,b,aTol,rTol) Result(q)
             End If
         End Do
         !Check for convergence
-        If (Converged(T(i-1),Tk,rTol,aTol) .OR. Converged(Tk0,Tk,rTol,aTol)) Then
+        If (Converged(T(i-1),Tk,rTol,aTol)) Then
+        !If (Converged(T(i-1),Tk,rTol,aTol) .OR. Converged(Tk0,Tk,rTol,aTol)) Then
             q = Tk
 #           if ROMB_TABLES
                 T(i-1) = Tk0
@@ -134,6 +135,7 @@ Function Romb_Quad(f,a,b,aTol,rTol) Result(q)
 #           endif
             Return  !Normal exit
         Else !store Tk0 and Tk for next i
+            If (i.EQ.Tmax) Exit
             T(i-1) = Tk0
             T(i) = Tk
 #           if ROMB_TABLES
@@ -147,11 +149,17 @@ Function Romb_Quad(f,a,b,aTol,rTol) Result(q)
         End If
     End Do
     !If we get this far, we did not converge
-    Write(*,'(A,I0,A)')      'ERROR:  Quadratures: Romberg_Quad:  Failed to converge in ',Tmax,' extrapolations.'
-    Write(*,'(A,F0.16)')     '          Final estimated value: ',Tk
-    Write(*,'(2(A,ES10.3))') '          Final Extrapolation Error: ',Abs(Tk-T(i-1)),' (abs), ',Abs(Tk-T(i-1))/Tk,' (rel)'
-    Write(*,'(2(A,ES10.3))') '          Convergence Criteria:      ',atol,          ' (abs), ',rtol,             ' (rel)'
-    ERROR STOP
+    Write(*,*)
+    Write(*,'(A,I0,A)')        'WARNING:  Quadratures: Romberg_Quad:  Failed to converge in ',Tmax,' extrapolations.'
+    Write(*,'(A,F0.16)')       '          Final estimated value: ',Tk
+    Write(*,'(A,2(ES10.3,A))') '          Final Extrapolation Error: ',Abs(Tk-T(Tmax-1)),' (abs), ',Abs(Tk-T(Tmax-1))/Tk,' (rel)'
+    Write(*,'(A,2(ES10.3,A))') '          Convergence Criteria:      ',atol,          ' (abs), ',rtol,             ' (rel)'
+    q = Tk
+    ! Write(*,'(A,I0,A)')      'ERROR:  Quadratures: Romberg_Quad:  Failed to converge in ',Tmax,' extrapolations.'
+    ! Write(*,'(A,F0.16)')     '          Final estimated value: ',Tk
+    ! Write(*,'(2(A,ES10.3))') '          Final Extrapolation Error: ',Abs(Tk-T(i-1)),' (abs), ',Abs(Tk-T(i-1))/Tk,' (rel)'
+    ! Write(*,'(2(A,ES10.3))') '          Convergence Criteria:      ',atol,          ' (abs), ',rtol,             ' (rel)'
+    ! ERROR STOP
 End Function Romb_Quad
 
 Function Romberg_Simpson_Quad(f,a,b,aTol,rTol) Result(q)
