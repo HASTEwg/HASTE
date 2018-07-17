@@ -9,6 +9,8 @@ Module Utilities
     Private :: Qroot_large  !support routine for LARGER_QUADRATIC_ROOT
     Private :: Converged_defaultTolerances  !Public via CONVERGED
     Private :: Converged_userTolerances     !Public via CONVERGED
+    Private :: Bisect_Search            !Public via BISECTION_SEARCH
+    Private :: Hunt_then_Bisect_Search  !Public via BISECTION_SEARCH
     Private :: Prec_dp  !Public via PREC
     Private :: Prec_sp  !Public via PREC
     
@@ -16,6 +18,11 @@ Module Utilities
         Module Procedure Converged_defaultTolerances
         Module Procedure Converged_userTolerances
     End Interface Converged
+    
+    Interface Bisection_Search
+        Module Procedure Bisect_Search
+        Module Procedure Hunt_then_Bisect_Search
+    End Interface Bisection_Search
     
     Interface Prec
         Module Procedure Prec_dp
@@ -225,40 +232,76 @@ Elemental Function Cube_Root(x) Result(c)
     c = Sign(Abs(x)**one_third,x)
 End Function Cube_Root
 
-Pure Function Bisection_Search(x, xList, n) Result (j)
-    ! Finds index j, such that x is between xList(j) and xList(j-1)
-    ! The list must be sorted in acsending order
-    ! j = 1 or j = n+1 indicates that x is not in the range xList(1) to xList(n)
+Pure Function Bisect_Search(x, xx, n) Result (j)
+    ! Finds index j, such that x is in the interval ( xx(j-1),xx(j) ]
+    ! The list xx must be sorted in acsending order
+    ! j=1 or j=n+1 indicates that x is not in the range [ xx(1),xx(n) ]
     Use Kinds, Only: dp
     Implicit None
     Integer :: j
     Real(dp), Intent(In) :: x
     Integer, Intent(In) :: n
     Real(dp), Intent(In) :: xList(1:n)
-    Integer :: jLow,jHigh,jMid
+    Integer :: jl,jh,jm
     
     !First, check for endpoints
-    If (x .EQ. xList(1)) Then
+    If (x .EQ. xx(1)) Then
         j = 2
         Return
-    Else If (x .EQ. xList(n)) Then
+    Else If (x .EQ. xx(n)) Then
         j = n
         Return
     End If
     !Otherwise, search the list
-    jLow = 0
-    jHigh = n + 1
+    jl = 0
+    jh = n + 1
     Do
-        If (jHigh - jLow .LE. 1) Exit
-        jMid = (jHigh + jLow) / 2  !integer arithmetic
-        If (x .GT. xList(jMid)) Then
-            jLow = jMid
+        If (jh - jl .LE. 1) Exit
+        jm = (jh + jl) / 2  !integer arithmetic
+        If (x .LT. xx(jm)) Then
+            jh = jm
         Else
-            jHigh = jMid
+            jl = jm
         End If
     End Do
-    j = jHigh
-End Function Bisection_Search
+    j = jh
+End Function Bisect_Search
+
+Pure Function Hunt_then_Bisect_Search(x, xx, n , up) Result (j)
+    ! Finds index j, such that x is in the interval ( xx(j-1),xx(j) ]
+    ! The list xx must be sorted in acsending order
+    ! j=1 or j=n+1 indicates that x is not in the range [ xx(1),xx(n) ]
+    Use Kinds, Only: dp
+    Implicit None
+    Integer :: j
+    Real(dp), Intent(In) :: x
+    Integer, Intent(In) :: n
+    Real(dp), Intent(In) :: xList(1:n)
+    Logical, Intent(In) :: up
+    Integer :: jl,jh,jm
+    
+    If (up) Then
+        d = 1
+        j = 1
+        Do
+            d = d * 2
+            jh = j + d
+            If (x .LT. xx(jh)) Exit
+            jl = jh
+        End Do
+        j = (jl-1) + Bisection_Search(x,xx(jl:jh),jh-jl+1)
+    Else
+        d = -1
+        j = n
+        Do
+            d = d * 2
+            jh = j + d
+            If (x .GT. xx(jh)) Exit
+            jl = jh
+        End Do
+        j = (jl-1) + Bisection_Search(x,xx(jl:jh),jh-jl+1)
+    End If
+End Function Hunt_then_Bisect_Search
 
 Pure Function Converged_defaultTolerances(x1,x2) Result(bingo) 
     Use Kinds, Only: dp
