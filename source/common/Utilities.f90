@@ -251,7 +251,7 @@ Pure Function Bisection_Search(x, xList, n) Result (j)
     Do
         If (jHigh - jLow .LE. 1) Exit
         jMid = (jHigh + jLow) / 2  !integer arithmetic
-        If (x .GE. xList(jMid)) Then
+        If (x .GT. xList(jMid)) Then
             jLow = jMid
         Else
             jHigh = jMid
