@@ -1,0 +1,46 @@
+Program testBisectionSearch
+
+Use Kinds, Only: dp
+Use Utilities, Only: Bisection_Search
+Use Sorting, Only: Quick_Sort
+
+Implicit None
+
+Real(dp), Parameter :: seed(1) = 7777777
+Integer, Parameter :: n = 20
+Real(dp) :: r_list(1:n)
+Real(dp) :: r_test(1:n)
+Integer :: i,j
+
+Call RANDOM_SEED(seed)
+Call RANDOM_NUMBER(r_list)
+Call Quick_Sort(r_list)
+Call RANDOM_NUMBER(r_test)
+
+found = 0
+missed = 0
+Do i = 1,n
+    !search for distributed values in the list
+    r = r_test(i)
+    j = Bisection_Search(r,r_list,n)
+    !check the returned location
+    If (r.GE.r_list(j-1) .AND. r.LT.r_list(j)) Then
+        found = found + 1
+    Else
+        missed = missed + 1
+    End If
+    !search for boundary values in the list
+    r = r_list(i)
+    j = Bisection_Search(r,r_list,n)
+    !check the returned location
+    If (r.GE.r_list(j-1) .AND. r.LT.r_list(j)) Then
+        found = found + 1
+    Else
+        missed = missed + 1
+    End If
+End Do
+Write(*,*)
+Write(*,'(A,I0,A,I0)') 'Found ',found,' of ',2*n
+Write(*,*)
+
+End Program testBisectionSearch
