@@ -295,9 +295,9 @@ Pure Function Hunt_then_Bisect_Search(x, xx, n , up) Result (j)
         j = n
         Do
             d = d * 2
-            jh = j + d
-            If (x .GT. xx(jh)) Exit
-            jl = jh
+            jl = j + d
+            If (x .GT. xx(jl)) Exit
+            jh = jl
         End Do
         j = (jl-1) + Bisection_Search(x,xx(jl:jh),jh-jl+1)
     End If
