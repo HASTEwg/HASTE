@@ -241,6 +241,7 @@ Function Find_Base_Layer(Z,iZb) Result(b)
     Else
         b = Bisection_Search(Z,Zb(1:10),10) - 1  !subtract 1 to get index for layer below Z
     End If
+    If (Z .EQ. Zb(b)) b = b - 1  !exactly at a layer base needs to reference the previous base for indexing purposes
 End Function Find_Base_Layer
 
 Function T(Z,layer,layer_range)
@@ -337,7 +338,7 @@ Function T_M0_correction(Z) Result(c)
                                             & 0.999741_dp, &
                                             & 0.999694_dp, &
                                             & 0.999641_dp, &
-                                            & 0.9995788_dp /)
+                                            & 0.999579_dp /)
     
     i = Ceiling(2._dp * (Z - 80._dp))
     c = Linear_Interp(Z,Zm_corr(i-1),Zm_corr(i),M0_corr(i-1),M0_corr(i))
