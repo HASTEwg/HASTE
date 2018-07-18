@@ -55,8 +55,13 @@ Module PRNGs
 !   Revised Fortran translation by Whitman Dailey.  Jun 02, 2018.
 !   Air Force Institute of Technology, Department of Engineering Physics
 !-------------------------------------------------------------------------------
-    Use Kinds, Only: il
-    Use Kinds, Only: id
+!   Fortran Translation of MT2203
+!
+!   Fortran translation by Whitman Dailey.  Jun 02, 2018.
+!   Air Force Institute of Technology, Department of Engineering Physics
+!-------------------------------------------------------------------------------
+    Use Kinds, Only: il !Long integer (4-bytes)
+    Use Kinds, Only: id !Double integer
     Implicit None
     Private
     Public :: MT19937_Type
@@ -95,6 +100,27 @@ Module PRNGs
         Procedure, Pass :: save => save_rng_mt19937x64
         Procedure, Pass :: load => load_rng_mt19937x64
     End Type MT19937x64_type
+
+    !Parameters and type for MT2203 PRNGs
+    Integer, Parameter :: n2203 = 69
+    Integer, Parameter :: m2203 = 34
+    Integer, Parameter :: nj = 1024 !number of independent MT2203s available
+    Integer, Parameter :: a2203(1:nj) = 0
+    Integer, Parameter :: b2203(1:nj) = 0
+    Integer, Parameter :: c2203(1:nj) = 0
+    !the MT2203 state
+    Type :: MT2203_Type
+        Integer(il) :: mag01(0:1),bj,cj !index specific tempering parameters
+        Integer(il) :: mt(1:n2203)
+        Integer :: mti = HUGE(n2203) !mti>n+1 means mt[n] is not initialized
+        Logical :: seeded = .FALSE.
+    Contains
+        Procedure, Pass :: seed => seed_rng_mt2203
+        Procedure, Pass :: i => rng_mt2203_i
+        Procedure, Pass :: r => rng_mt2203_r
+        Procedure, Pass :: save => save_rng_mt2203
+        Procedure, Pass :: load => load_rng_mt2203
+    End Type MT2203_type
 
 Contains
 
@@ -294,5 +320,110 @@ Subroutine load_RNG_mt19937x64(RNG,fname)
     RNG%mti = Int(state(n64+1),il)
     RNG%seeded = .TRUE.
 End Subroutine load_RNG_mt19937x64
+
+Subroutine seed_rng_mt2203(RNG,j,seed)
+    Use Kinds, Only: dp
+    Use Kinds, Only: il
+    Implicit None
+    Class(MT2203_Type), Intent(InOut) :: RNG
+    Integer(il), Intent(In) :: j
+    Integer(il), Intent(In) :: seed
+    Integer :: i
+    
+    RNG%mt(1) = IAND(seed,-1_il)
+    RNG%mag01 = (/ 0_il , a2203(j) /)
+    RNG%bj = b2203(j)
+    RNG%cj = c2203(j)
+    Do i = 2,n2203
+        RNG%mt(i) = IAND(69069_il * RNG%mt(i-1),-1_il)
+    End Do
+    RNG%mti = n2203 + 1
+    RNG%seeded = .TRUE.
+End Subroutine seed_rng_mt2203
+
+Function rng_mt2203_i(RNG) Result(y)
+    Use Kinds, Only: il
+    Implicit None
+    Integer(il) :: y
+    Class(MT2203_Type), Intent(InOut) :: RNG
+    Integer :: i
+    Integer(il), Parameter :: lmask = 31_il !least significant r bits
+    Integer(il), Parameter :: umask = -32_il !most significant w-r bits
+
+    If (RNG%mti .GT. n2203) Then  !generate N words at one time
+        If (RNG%seeded) Then  !needs new words
+            Do  i = 1,n2203-m2203
+                y = IOR(IAND(RNG%mt(i),umask), IAND(RNG%mt(i+1),lmask))
+                RNG%mt(i) = IEOR(IEOR(RNG%mt(i+m2203), ISHFT(y,-1_il)),RNG%mag01(IAND(y,1_il)))
+            End Do
+            Do  i = n2203-m2203+1,n2203-1
+                y = IOR(IAND(RNG%mt(i),umask), IAND(RNG%mt(i+1),lmask))
+                RNG%mt(i) = IEOR(IEOR(RNG%mt(i+(m2203-n2203)), ISHFT(y,-1_il)),RNG%mag01(IAND(y,1_il)))
+            End Do
+            y = IOR(IAND(RNG%mt(n2203),umask), IAND(RNG%mt(1),lmask))
+            RNG%mt(n2203) = IEOR(IEOR(RNG%mt(m2203), ISHFT(y,-1_il)),RNG%mag01(IAND(y,1_il)))
+            RNG%mti = 1
+        Else  !needs seeding
+            Call RNG%seed(default_seed)
+        End If
+    End If
+    y = RNG%mt(RNG%mti)
+    RNG%mti = RNG%mti + 1
+    y = IEOR(y, ISHFT(y,-12_il))
+    y = IEOR(y, IAND(ISHFT(y,7_il),RNG%bj))
+    y = IEOR(y, IAND(ISHFT(y,15_il),RNG%cj))
+    y = IEOR(y, ISHFT(y,-18_il))
+End Function rng_mt2203_i
+
+Function rng_mt2203_r(RNG) Result(x)
+    Use Kinds, Only: dp
+    Use Kinds, Only: il
+    Implicit None
+    Real(dp) :: x
+    Class(MT2203_Type), Intent(InOut) :: RNG
+    Integer(il) :: y
+    Real(dp), Parameter :: two32 = 2._dp**32
+    Real(dp), Parameter :: invtwo32m1 = 1._dp / (two32 - 1._dp)
+    
+    y = RNG%i()
+    If (y .LT. 0_il) Then
+        x = (Real(y,dp) + two32) * invtwo32m1
+    Else
+        x = Real(y,dp) * invtwo32m1
+    End If
+End Function rng_mt2203_r
+
+Subroutine save_RNG_mt2203(RNG,fname)
+    Use Kinds, Only: il
+    Use FileIO_Utilities, Only: Var_to_file
+    Implicit None
+    Class(MT2203_Type), Intent(In) :: RNG
+    Character(*), Intent(In) :: fname
+    Integer(il) :: state(1:n2203+1+3)
+    
+    state(1:n2203) = RNG%mt
+    state(n2203+1) = RNG%mti
+    state(n2203+1+1) = RNG%mag01(1)
+    state(n2203+1+2) = RNG%bj
+    state(n2203+1+3) = RNG%cj
+    Call Var_to_File(state,fname)
+End Subroutine save_RNG_mt19937
+
+Subroutine load_RNG_mt2203(RNG,fname)
+    Use Kinds, Only: il
+    Use FileIO_Utilities, Only: Var_from_file
+    Implicit None
+    Class(MT2203_Type), Intent(InOut) :: RNG
+    Character(*), Intent(In) :: fname
+    Integer(il) :: state(1:n2203+1)
+    
+    Call Var_from_File(state,fname)
+    RNG%mt = state(1:n2203)
+    RNG%mti = state(n2203+1)
+    RNG%mag01 = (/ 0_il , state(n2203+1+1) /)
+    RNG%bj = state(n2203+1+2)
+    RNG%cj = state(n2203+1+3)
+    RNG%seeded = .TRUE.
+End Subroutine load_RNG_mt2203
 
 End Module PRNGs
