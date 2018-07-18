@@ -195,13 +195,13 @@ Function rng_mt19937_r(RNG) Result(x)
     Class(MT19937_Type), Intent(InOut) :: RNG
     Integer(il) :: y
     Real(dp), Parameter :: two32 = 2._dp**32
-    Real(dp), Parameter :: invtwo32m1 = 1._dp / (two32 - 1._dp)
+    Real(dp), Parameter :: invtwo32 = 1._dp / two32
     
     y = RNG%i()
     If (y .LT. 0_il) Then
-        x = (Real(y,dp) + two32) * invtwo32m1
+        x = (Real(y,dp) + two32) * invtwo32
     Else
-        x = Real(y,dp) * invtwo32m1
+        x = Real(y,dp) * invtwo32
     End If
 End Function rng_mt19937_r
 
@@ -288,7 +288,7 @@ Function rng_mt19937x64_r(RNG) Result(x)
     Implicit None
     Real(dp) :: x
     Class(MT19937x64_Type), Intent(InOut) :: RNG
-    Real(dp), Parameter :: invtwo53 = 1._dp / (2._dp**53)
+    Real(dp), Parameter :: invtwo53 = 1._dp / 2._dp**53
     
     x = Real(ISHFT(RNG%i(), -11_id),dp) * invtwo53
 End Function rng_mt19937x64_r
