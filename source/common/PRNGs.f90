@@ -43,6 +43,9 @@ Module PRNGs
 !   Fortran translation rewritten as an f90 module by Richard Woloshyn,
 !   (rwww@triumf.ca). June 30, 1999
 !
+!   FORTRAN 77 translation with updates to MT seeding by Tsuyoshi TADA.
+!   December 19, 2005
+!
 !   Revised Fortran translation by Whitman Dailey.  Jun 02, 2018.
 !   Air Force Institute of Technology, Department of Engineering Physics
 !-------------------------------------------------------------------------------
@@ -67,6 +70,8 @@ Module PRNGs
     Public :: MT19937_Type
     Public :: MT19937x64_Type
 
+    Integer(il), Parameter :: TOPBIT = ISHFT(1073741824_il,1_il)
+    Integer(il), Parameter :: ALLBIT = IOR(2147483647_il,TOPBIT4)
     !Parameters and type for MT19937 PRNG
     Integer(il), Parameter :: default_seed = 4357_il
     Integer, Parameter :: n = 624
@@ -78,6 +83,7 @@ Module PRNGs
         Logical :: seeded = .FALSE.
     Contains
         Procedure, Pass :: seed => seed_rng_mt19937
+        Procedure, Pass :: seeds => seed_ar_rng_mt19937
         Procedure, Pass :: i => rng_mt19937_i
         Procedure, Pass :: r => rng_mt19937_r
         Procedure, Pass :: save => save_rng_mt19937
@@ -104,18 +110,21 @@ Module PRNGs
     !Parameters and type for MT2203 PRNGs
     Integer, Parameter :: n2203 = 69
     Integer, Parameter :: m2203 = 34
-    Integer, Parameter :: nj = 1024 !number of independent MT2203s available
-    Integer, Parameter :: a2203(1:nj) = 0
-    Integer, Parameter :: b2203(1:nj) = 0
-    Integer, Parameter :: c2203(1:nj) = 0
+    Integer, Parameter :: nj2203 = 1024 !number of independent MT2203s available
+    Integer, Parameter :: abc2203(1:3,1:nj2203) = Reshape( (/          a1 ,          b1 ,          c1 , & 
+                                                            &          a2 ,          b2 ,          c2 , & 
+                                                            ...
+                                                            &          aj ,          bj ,          cj   /), & 
+                                                            & SHAPE = (/3,nj2203/) , ORDER = (/2,1/) )
     !the MT2203 state
     Type :: MT2203_Type
-        Integer(il) :: mag01(0:1),bj,cj !index specific tempering parameters
+        Integer(il) :: aj,bj,cj !index specific tempering parameters
         Integer(il) :: mt(1:n2203)
         Integer :: mti = HUGE(n2203) !mti>n+1 means mt[n] is not initialized
         Logical :: seeded = .FALSE.
     Contains
         Procedure, Pass :: seed => seed_rng_mt2203
+        Procedure, Pass :: seeds => seed_ar_rng_mt2203
         Procedure, Pass :: i => rng_mt2203_i
         Procedure, Pass :: r => rng_mt2203_r
         Procedure, Pass :: save => save_rng_mt2203
@@ -124,21 +133,58 @@ Module PRNGs
 
 Contains
 
-Subroutine seed_rng_mt19937(RNG,seed)
-    Use Kinds, Only: dp
+Subroutine seed_rng_mt19937(RNG,seed,burn)
     Use Kinds, Only: il
     Implicit None
     Class(MT19937_Type), Intent(InOut) :: RNG
     Integer(il), Intent(In) :: seed
+    Integer(il), Intent(In), Optional :: burn
     Integer :: i
+    Integer(il) :: burns
     
     RNG%mt(1) = IAND(seed,-1_il)
     Do i = 2,n
-        RNG%mt(i) = IAND(1812433253 * IEOR(RNG%mt(i-1),ISHFT(RNG%mt(i-1),-30_il)) + i,-1_il)
+        RNG%mt(i) = IAND(1812433253 * IEOR(RNG%mt(i-1),ISHFT(RNG%mt(i-1),-30_il)) + i,ALLBIT)
     End Do
     RNG%mti = n + 1
     RNG%seeded = .TRUE.
+    If (Present(burn)) Then
+        Do i = 1,burn
+            burns = RNG%i()
+        End Do
+    End If
 End Subroutine seed_rng_mt19937
+
+Subroutine seed_ar_rng_mt19937(RNG,seeds)
+    Use Kinds, Only: il
+    Implicit None
+    Class(MT19937_Type), Intent(InOut) :: RNG
+    Integer(il), Intent(In) :: seeds(:)
+    Integer :: i,j,k
+      
+    Call RNG%seed(19650218_il)
+    i = 1
+    j = 0
+    Do k = 1,max(n,Size(seeds))
+        RNG%mt(i+1)=IAND(IEOR(RNG%mt(i+1),IEOR(RNG%mt(i),ISHFT(RNG%mt(i),-30_il))*1664525_il)+seeds(j+1)+Int(j,il),ALLBIT)
+        i = i + 1
+        j = j + 1
+        If (i .GT. n) Then
+            RNG%mt(1) = RNG%mt(n)
+            i = 1
+        End If
+        If (j .GE. Size(seeds)) j = 0
+    End Do
+    Do k = 1,n
+        RNG%mt(i+1)=IAND(IEOR(RNG%mt(i+1),IEOR(RNG%mt(i),ISHFT(RNG%mt(i),-30_il))*1566083941_il)-Int(i,il),ALLBIT)
+        i = i + 1
+        If (i .GT. n) Then
+            RNG%mt(1) = RNG%mt(n)
+            i = 1
+        End If
+    End Do
+    RNG%mt(1) = TOPBIT
+End Subroutine seed_ar_rng_mt19937
 
 Function rng_mt19937_i(RNG) Result(y)
     Use Kinds, Only: il
@@ -146,25 +192,24 @@ Function rng_mt19937_i(RNG) Result(y)
     Integer(il) :: y
     Class(MT19937_Type), Intent(InOut) :: RNG
     Integer :: i
-    !Integer(il) :: umasku
-    Integer(il), Parameter :: mag01(0:1) = (/ 0_il , -1727483681_il /)!constant vector a
-    Integer(il), Parameter :: lmask = 2147483647_il !least significant r bits
-    Integer(il), Parameter :: umask = -2147483647_il-1_il !most significant w-r bits
-    Integer(il), Parameter :: tmaskb = -1658038656_il !tempering parameters
-    Integer(il), Parameter :: tmaskc = -272236544_il !tempering parameters
+    Integer(il), Parameter :: ta = -1727483681_il !constant vector a
+    Integer(il), Parameter :: mag01(0:1) = (/ 0_il , ta /) !constant vector a
+    Integer(il), Parameter :: lm = 2147483647_il !least significant r bits
+    Integer(il), Parameter :: um = ISHFT(1073741824,1) !-2147483647_il-1_il !most significant w-r bits
+    Integer(il), Parameter :: tb = -1658038656_il !tempering parameters
+    Integer(il), Parameter :: tc = -272236544_il !tempering parameters
 
     If (RNG%mti .GT. n) Then  !generate N words at one time
         If (RNG%seeded) Then  !needs new words
-            !umasku = umask - 1_il  !INTENTIONAL integer overflow
             Do  i = 1,n-m
-                y = IOR(IAND(RNG%mt(i),umask), IAND(RNG%mt(i+1),lmask))
+                y = IOR(IAND(RNG%mt(i),um), IAND(RNG%mt(i+1),lm))
                 RNG%mt(i) = IEOR(IEOR(RNG%mt(i+m), ISHFT(y,-1_il)),mag01(IAND(y,1_il)))
             End Do
             Do  i = n-m+1,n-1
-                y = IOR(IAND(RNG%mt(i),umask), IAND(RNG%mt(i+1),lmask))
+                y = IOR(IAND(RNG%mt(i),um), IAND(RNG%mt(i+1),lm))
                 RNG%mt(i) = IEOR(IEOR(RNG%mt(i+(m-n)), ISHFT(y,-1_il)),mag01(IAND(y,1_il)))
             End Do
-            y = IOR(IAND(RNG%mt(n),umask), IAND(RNG%mt(1),lmask))
+            y = IOR(IAND(RNG%mt(n),um), IAND(RNG%mt(1),lm))
             RNG%mt(n) = IEOR(IEOR(RNG%mt(m), ISHFT(y,-1_il)),mag01(IAND(y,1_il)))
             RNG%mti = 1
         Else  !needs seeding
@@ -174,8 +219,8 @@ Function rng_mt19937_i(RNG) Result(y)
     y = RNG%mt(RNG%mti)
     RNG%mti = RNG%mti + 1
     y = IEOR(y, ISHFT(y,-11_il))
-    y = IEOR(y, IAND(ISHFT(y,7_il),tmaskb))
-    y = IEOR(y, IAND(ISHFT(y,15_il),tmaskc))
+    y = IEOR(y, IAND(ISHFT(y,7_il),tb))
+    y = IEOR(y, IAND(ISHFT(y,15_il),tc))
     y = IEOR(y, ISHFT(y,-18_il))
 End Function rng_mt19937_i
 
@@ -196,6 +241,24 @@ Function rng_mt19937_r(RNG) Result(x)
         x = Real(y,dp) * invtwo32
     End If
 End Function rng_mt19937_r
+
+Function rng_mt19937_r53(RNG) Result(x)
+    Use Kinds, Only: dp
+    Use Kinds, Only: il
+    Implicit None
+    Real(dp) :: x
+    Class(MT19937_Type), Intent(InOut) :: RNG
+    Real(dp) :: a,b
+    Real(dp), Parameter :: two32 = 2._dp**32
+    Real(dp), Parameter :: two26 = 2._dp**26
+    Real(dp), Parameter :: invtwo53 = 1._dp / (2._dp**53)
+    
+    a = ISHFT(RNG%i(),-5_il)
+    b = ISHFT(RNG%i(),-6_il)
+    If (a .LT. 0._dp) a = a + two32
+    If (b .LT. 0._dp) b = b + two32
+    x = (a * two26 + b) * invtwo53
+End Function rng_mt19937_r53
 
 Subroutine save_RNG_mt19937(RNG,fname)
     Use Kinds, Only: il
@@ -224,20 +287,58 @@ Subroutine load_RNG_mt19937(RNG,fname)
     RNG%seeded = .TRUE.
 End Subroutine load_RNG_mt19937
 
-Subroutine seed_rng_mt19937x64(RNG,seed)
+Subroutine seed_rng_mt19937x64(RNG,seed,burn)
     Use Kinds, Only: id
     Implicit None
     Class(MT19937x64_Type), Intent(InOut) :: RNG
     Integer(id), Intent(In) :: seed
+    Integer(id), Intent(In), Optional :: burn
     Integer :: i
+    Integer(id) :: burns
 
     RNG%mt(1) = seed
-    Do i = 1,n64-1
-        RNG%mt(i+1) = 6364136223846793005_id * IEOR(RNG%mt(i), ISHFT(RNG%mt(i), -62_id)) + Int(i,id)
+    Do i = 2,n64
+        RNG%mt(i) = 6364136223846793005_id * IEOR(RNG%mt(i-1), ISHFT(RNG%mt(i-1), -62_id)) + Int(i,id)
     End Do
     RNG%mti = n64 + 1
     RNG%seeded = .TRUE.
+    If (Present(burn)) Then
+        Do i = 1,burn
+            burns = RNG%i()
+        End Do
+    End If
 End Subroutine seed_rng_mt19937x64
+
+Subroutine seed_ar_rng_mt19937x64(RNG,seeds)
+    Use Kinds, Only: id
+    Implicit None
+    Class(MT19937x64_Type), Intent(InOut) :: RNG
+    Integer(id), Intent(In) :: seeds(:)
+    Integer :: i,j,k
+
+    Call RNG%seed(19650218_id)
+    i = 1
+    j = 0
+    Do k = 1,Max(n64,Size(seeds))
+        RNG%mt(i+1) = IEOR(RNG%mt(i+1),3935559000370003845_id*IEOR(RNG%mt(i),ISHFT(RNG%mt(i),-62_id))) + seeds(j+1) + Int(j,id)
+        i = i + 1
+        j = j + 1
+        If (i .GT. n64) Then
+            RNG%mt(1) = RNG%mt(n64)
+            i = 1
+        End If
+        If (j .GE. Size(seeds)) j = 0
+    End Do
+    Do k = 1,n64
+      RNG%mt(i+1) = IEOR(RNG%mt(i+1),2862933555777941757_id*IEOR(RNG%mt(i),ISHFT(RNG%mt(i),-62_id))) - Int(i,id)
+      i = i + 1
+      If (i .GT. n64) Then
+          RNG%mt(1) = RNG%mt(n64)
+          i = 1
+      End If
+    End Do
+    RNG%mt(1) = ISHFT(1_id, 63_id)  ! MSB is 1; assuring non-zero initial array
+End Subroutine seed_ar_rng_mt19937x64
 
 Function rng_mt19937x64_i(RNG) Result(y)
     Use Kinds, Only: id
@@ -313,25 +414,66 @@ Subroutine load_RNG_mt19937x64(RNG,fname)
     RNG%seeded = .TRUE.
 End Subroutine load_RNG_mt19937x64
 
-Subroutine seed_rng_mt2203(RNG,j,seed)
-    Use Kinds, Only: dp
+Subroutine seed_rng_mt2203(RNG,j,seed,burn)
     Use Kinds, Only: il
     Implicit None
     Class(MT2203_Type), Intent(InOut) :: RNG
     Integer(il), Intent(In) :: j
     Integer(il), Intent(In) :: seed
+    Integer(il), Intent(In), Optional :: burn
     Integer :: i
+    Integer(il) :: burns
     
+    If (j .GT. nj2203) Then
+        Write(*,'(A)') 'ERROR:  PRNGs: seed_rng_mt2203:  MT2203 index out of range.'
+        ERROR STOP
+    End If
     RNG%mt(1) = IAND(seed,-1_il)
-    RNG%mag01 = (/ 0_il , a2203(j) /)
-    RNG%bj = b2203(j)
-    RNG%cj = c2203(j)
+    RNG%aj = abc2203(1,j)
+    RNG%bj = abc2203(2,j)
+    RNG%cj = abc2203(3,j)
     Do i = 2,n2203
-        RNG%mt(i) = IAND(69069_il * RNG%mt(i-1),-1_il)
+        RNG%mt(i) = IAND(1812433253 * IEOR(RNG%mt(i-1),ISHFT(RNG%mt(i-1),-30_il)) + Int(i,il),-1_il)
     End Do
     RNG%mti = n2203 + 1
     RNG%seeded = .TRUE.
+    If (Present(burn)) Then
+        Do i = 1,burn
+            burns = RNG%i()
+        End Do
+    End If
 End Subroutine seed_rng_mt2203
+
+Subroutine seed_ar_rng_mt2203(RNG,seeds)
+    Use Kinds, Only: il
+    Implicit None
+    Class(MT19937_Type), Intent(InOut) :: RNG
+    Integer(il), Intent(In) :: seeds(:)
+    Integer :: i,j,k
+      
+    Call RNG%seed(19650218_il)
+    i = 1
+    j = 0
+    Do k = 1,max(n2203,Size(seeds))
+        RNG%mt(i+1)=IAND(IEOR(RNG%mt(i+1),IEOR(RNG%mt(i),ISHFT(RNG%mt(i),-30_il))*1664525_il)+seeds(j+1)+j,ALLBIT)
+        i = i + 1
+        j = j + 1
+        If (i .GT. n2203) Then
+            RNG%mt(1) = RNG%mt(n)
+            i = 1
+        End If
+        If (j .GE. Size(seeds)) j = 0
+    End Do
+    Do k = 1,n2203
+        RNG%mt(i+1)=IAND(IEOR(RNG%mt(i+1),IEOR(RNG%mt(i),ISHFT(RNG%mt(i),-30_il))*1566083941_il)-Int(i,il),ALLBIT)
+        i = i + 1
+        If (i .GT. n2203) Then
+            RNG%mt(1) = RNG%mt(n2203)
+            i = 1
+        End If
+    End Do
+    RNG%mt(1) = TOPBIT
+End Subroutine seed_ar_rng_mt2203
 
 Function rng_mt2203_i(RNG) Result(y)
     Use Kinds, Only: il
@@ -342,18 +484,19 @@ Function rng_mt2203_i(RNG) Result(y)
     Integer(il), Parameter :: lmask = 31_il !least significant r bits
     Integer(il), Parameter :: umask = -32_il !most significant w-r bits
 
+    mag01 = (/ 0_il , RNG%aj /)
     If (RNG%mti .GT. n2203) Then  !generate N words at one time
         If (RNG%seeded) Then  !needs new words
             Do  i = 1,n2203-m2203
                 y = IOR(IAND(RNG%mt(i),umask), IAND(RNG%mt(i+1),lmask))
-                RNG%mt(i) = IEOR(IEOR(RNG%mt(i+m2203), ISHFT(y,-1_il)),RNG%mag01(IAND(y,1_il)))
+                RNG%mt(i) = IEOR(IEOR(RNG%mt(i+m2203), ISHFT(y,-1_il)),mag01(IAND(y,1_il)))
             End Do
             Do  i = n2203-m2203+1,n2203-1
                 y = IOR(IAND(RNG%mt(i),umask), IAND(RNG%mt(i+1),lmask))
-                RNG%mt(i) = IEOR(IEOR(RNG%mt(i+(m2203-n2203)), ISHFT(y,-1_il)),RNG%mag01(IAND(y,1_il)))
+                RNG%mt(i) = IEOR(IEOR(RNG%mt(i+(m2203-n2203)), ISHFT(y,-1_il)),mag01(IAND(y,1_il)))
             End Do
             y = IOR(IAND(RNG%mt(n2203),umask), IAND(RNG%mt(1),lmask))
-            RNG%mt(n2203) = IEOR(IEOR(RNG%mt(m2203), ISHFT(y,-1_il)),RNG%mag01(IAND(y,1_il)))
+            RNG%mt(n2203) = IEOR(IEOR(RNG%mt(m2203), ISHFT(y,-1_il)),mag01(IAND(y,1_il)))
             RNG%mti = 1
         Else  !needs seeding
             Call RNG%seed(default_seed)
@@ -395,7 +538,7 @@ Subroutine save_RNG_mt2203(RNG,fname)
     
     state(1:n2203) = RNG%mt
     state(n2203+1) = RNG%mti
-    state(n2203+1+1) = RNG%mag01(1)
+    state(n2203+1+1) = RNG%aj
     state(n2203+1+2) = RNG%bj
     state(n2203+1+3) = RNG%cj
     Call Var_to_File(state,fname)
@@ -407,12 +550,12 @@ Subroutine load_RNG_mt2203(RNG,fname)
     Implicit None
     Class(MT2203_Type), Intent(InOut) :: RNG
     Character(*), Intent(In) :: fname
-    Integer(il) :: state(1:n2203+1)
+    Integer(il) :: state(1:n2203+1+3)
     
     Call Var_from_File(state,fname)
     RNG%mt = state(1:n2203)
     RNG%mti = state(n2203+1)
-    RNG%mag01 = (/ 0_il , state(n2203+1+1) /)
+    RNG%aj = state(n2203+1+1)
     RNG%bj = state(n2203+1+2)
     RNG%cj = state(n2203+1+3)
     RNG%seeded = .TRUE.
