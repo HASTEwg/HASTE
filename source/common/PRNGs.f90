@@ -131,18 +131,10 @@ Subroutine seed_rng_mt19937(RNG,seed)
     Class(MT19937_Type), Intent(InOut) :: RNG
     Integer(il), Intent(In) :: seed
     Integer :: i
-    !Real(dp) :: temp
-    !Integer(il) :: itemp, itemp2
-    !Real(dp), Parameter :: two31 = 2._dp**31
     
     RNG%mt(1) = IAND(seed,-1_il)
     Do i = 2,n
-        RNG%mt(i) = IAND(69069_il * RNG%mt(i-1),-1_il)
-        ! temp = 69069._dp * Real(RNG%mt(i-1),dp)
-        ! itemp = Int(Mod(temp,two31))
-        ! itemp2 = Int(temp / two31)
-        ! If (Mod(itemp2,2) .NE. 0) itemp = Int( Real(itemp,dp) + Sign(two31,Real(-itemp,dp)) )
-        ! RNG%mt(i) = itemp
+        RNG%mt(i) = IAND(1812433253 * IEOR(RNG%mt(i-1),ISHFT(RNG%mt(i-1),-30_il)) + i,-1_il)
     End Do
     RNG%mti = n + 1
     RNG%seeded = .TRUE.
@@ -154,25 +146,25 @@ Function rng_mt19937_i(RNG) Result(y)
     Integer(il) :: y
     Class(MT19937_Type), Intent(InOut) :: RNG
     Integer :: i
-    Integer(il) :: umasku
+    !Integer(il) :: umasku
     Integer(il), Parameter :: mag01(0:1) = (/ 0_il , -1727483681_il /)!constant vector a
     Integer(il), Parameter :: lmask = 2147483647_il !least significant r bits
-    Integer(il), Parameter :: umask = -2147483647_il!-1_il !most significant w-r bits
+    Integer(il), Parameter :: umask = -2147483647_il-1_il !most significant w-r bits
     Integer(il), Parameter :: tmaskb = -1658038656_il !tempering parameters
     Integer(il), Parameter :: tmaskc = -272236544_il !tempering parameters
 
     If (RNG%mti .GT. n) Then  !generate N words at one time
         If (RNG%seeded) Then  !needs new words
-            umasku = umask - 1_il  !INTENTIONAL integer overflow
+            !umasku = umask - 1_il  !INTENTIONAL integer overflow
             Do  i = 1,n-m
-                y = IOR(IAND(RNG%mt(i),umasku), IAND(RNG%mt(i+1),lmask))
+                y = IOR(IAND(RNG%mt(i),umask), IAND(RNG%mt(i+1),lmask))
                 RNG%mt(i) = IEOR(IEOR(RNG%mt(i+m), ISHFT(y,-1_il)),mag01(IAND(y,1_il)))
             End Do
             Do  i = n-m+1,n-1
-                y = IOR(IAND(RNG%mt(i),umasku), IAND(RNG%mt(i+1),lmask))
+                y = IOR(IAND(RNG%mt(i),umask), IAND(RNG%mt(i+1),lmask))
                 RNG%mt(i) = IEOR(IEOR(RNG%mt(i+(m-n)), ISHFT(y,-1_il)),mag01(IAND(y,1_il)))
             End Do
-            y = IOR(IAND(RNG%mt(n),umasku), IAND(RNG%mt(1),lmask))
+            y = IOR(IAND(RNG%mt(n),umask), IAND(RNG%mt(1),lmask))
             RNG%mt(n) = IEOR(IEOR(RNG%mt(m), ISHFT(y,-1_il)),mag01(IAND(y,1_il)))
             RNG%mti = 1
         Else  !needs seeding
