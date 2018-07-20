@@ -110,12 +110,6 @@ Module PRNGs
     !Parameters and type for MT2203 PRNGs
     Integer, Parameter :: n2203 = 69
     Integer, Parameter :: m2203 = 34
-    Integer, Parameter :: nj2203 = 1024 !number of independent MT2203s available
-    Integer, Parameter :: abc2203(1:3,1:nj2203) = Reshape( (/          a1 ,          b1 ,          c1 , & 
-                                                            &          a2 ,          b2 ,          c2 , & 
-                                                            ...
-                                                            &          aj ,          bj ,          cj   /), & 
-                                                            & SHAPE = (/3,nj2203/) , ORDER = (/2,1/) )
     !the MT2203 state
     Type :: MT2203_Type
         Integer(il) :: aj,bj,cj !index specific tempering parameters
@@ -416,6 +410,8 @@ End Subroutine load_RNG_mt19937x64
 
 Subroutine seed_rng_mt2203(RNG,j,seed,burn)
     Use Kinds, Only: il
+    Use MT2203params, Only: nj2203
+    Use MT2203params, Only: abc2203
     Implicit None
     Class(MT2203_Type), Intent(InOut) :: RNG
     Integer(il), Intent(In) :: j
@@ -425,7 +421,8 @@ Subroutine seed_rng_mt2203(RNG,j,seed,burn)
     Integer(il) :: burns
     
     If (j .GT. nj2203) Then
-        Write(*,'(A)') 'ERROR:  PRNGs: seed_rng_mt2203:  MT2203 index out of range.'
+        Write(*,'(A)')         'ERROR:  PRNGs: seed_rng_mt2203:  MT2203 parameter index out of range.'
+        Write(*,'(A,I0,A,I0)') '        Specified index:  ',j,'  Available range:  1-',nj2203
         ERROR STOP
     End If
     RNG%mt(1) = IAND(seed,-1_il)
@@ -444,14 +441,15 @@ Subroutine seed_rng_mt2203(RNG,j,seed,burn)
     End If
 End Subroutine seed_rng_mt2203
 
-Subroutine seed_ar_rng_mt2203(RNG,seeds)
+Subroutine seed_ar_rng_mt2203(RNG,jj,seeds)
     Use Kinds, Only: il
     Implicit None
     Class(MT19937_Type), Intent(InOut) :: RNG
+    Integer, Intent(In) :: jj
     Integer(il), Intent(In) :: seeds(:)
     Integer :: i,j,k
       
-    Call RNG%seed(19650218_il)
+    Call RNG%seed(jj,19650218_il)
     i = 1
     j = 0
     Do k = 1,max(n2203,Size(seeds))

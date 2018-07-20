@@ -13,6 +13,7 @@ FNAME="Kinds"; . ./compile_it
 FNAME="Utilities"; . ./compile_it
 FNAME="FileIO_Utilities"; . ./compile_it
 FNAME="Sorting"; . ./compile_it
+FNAME="MT2203params"; . ./compile_it
 FNAME="PRNGs"; . ./compile_it
 FNAME="Random_Numbers"; . ./compile_it
 FNAME="Statistics"; . ./compile_it

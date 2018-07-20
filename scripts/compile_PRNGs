@@ -11,4 +11,5 @@
 SRC_PATH="../source/common/"
 FNAME="Kinds"; . ./compile_it
 FNAME="FileIO_Utilities"; . ./compile_it
+FNAME="MT2203params"; . ./compile_it
 FNAME="PRNGs"; . ./compile_it
