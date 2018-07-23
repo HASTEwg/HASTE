@@ -71,7 +71,7 @@ Module PRNGs
     Public :: MT19937x64_Type
 
     Integer(il), Parameter :: TOPBIT = ISHFT(1073741824_il,1_il)
-    Integer(il), Parameter :: ALLBIT = IOR(2147483647_il,TOPBIT4)
+    Integer(il), Parameter :: ALLBIT = IOR(2147483647_il,TOPBIT)
     !Parameters and type for MT19937 PRNG
     Integer(il), Parameter :: default_seed = 4357_il
     Integer, Parameter :: n = 624
@@ -134,7 +134,7 @@ Subroutine seed_rng_mt19937(RNG,seed,burn)
     Integer(il), Intent(In) :: seed
     Integer(il), Intent(In), Optional :: burn
     Integer :: i
-    Integer(il) :: burns
+    Integer(il) :: k,burns
     
     RNG%mt(1) = IAND(seed,-1_il)
     Do i = 2,n
@@ -143,7 +143,7 @@ Subroutine seed_rng_mt19937(RNG,seed,burn)
     RNG%mti = n + 1
     RNG%seeded = .TRUE.
     If (Present(burn)) Then
-        Do i = 1,burn
+        Do k = 1,burn
             burns = RNG%i()
         End Do
     End If
@@ -288,7 +288,7 @@ Subroutine seed_rng_mt19937x64(RNG,seed,burn)
     Integer(id), Intent(In) :: seed
     Integer(id), Intent(In), Optional :: burn
     Integer :: i
-    Integer(id) :: burns
+    Integer(id) :: k,burns
 
     RNG%mt(1) = seed
     Do i = 2,n64
@@ -297,7 +297,7 @@ Subroutine seed_rng_mt19937x64(RNG,seed,burn)
     RNG%mti = n64 + 1
     RNG%seeded = .TRUE.
     If (Present(burn)) Then
-        Do i = 1,burn
+        Do k = 1,burn
             burns = RNG%i()
         End Do
     End If
@@ -408,34 +408,34 @@ Subroutine load_RNG_mt19937x64(RNG,fname)
     RNG%seeded = .TRUE.
 End Subroutine load_RNG_mt19937x64
 
-Subroutine seed_rng_mt2203(RNG,j,seed,burn)
+Subroutine seed_rng_mt2203(RNG,jj,seed,burn)
     Use Kinds, Only: il
     Use MT2203params, Only: nj2203
     Use MT2203params, Only: abc2203
     Implicit None
     Class(MT2203_Type), Intent(InOut) :: RNG
-    Integer(il), Intent(In) :: j
+    Integer(il), Intent(In) :: jj
     Integer(il), Intent(In) :: seed
     Integer(il), Intent(In), Optional :: burn
     Integer :: i
-    Integer(il) :: burns
+    Integer(il) :: k,burns
     
-    If (j .GT. nj2203) Then
+    If (jj.LT.1 .OR. jj.GT.nj2203) Then
         Write(*,'(A)')         'ERROR:  PRNGs: seed_rng_mt2203:  MT2203 parameter index out of range.'
-        Write(*,'(A,I0,A,I0)') '        Specified index:  ',j,'  Available range:  1-',nj2203
+        Write(*,'(A,I0,A,I0)') '        Specified index:  ',jj,'  Available range:  1-',nj2203
         ERROR STOP
     End If
     RNG%mt(1) = IAND(seed,-1_il)
-    RNG%aj = abc2203(1,j)
-    RNG%bj = abc2203(2,j)
-    RNG%cj = abc2203(3,j)
+    RNG%aj = abc2203(1,jj)
+    RNG%bj = abc2203(2,jj)
+    RNG%cj = abc2203(3,jj)
     Do i = 2,n2203
         RNG%mt(i) = IAND(1812433253 * IEOR(RNG%mt(i-1),ISHFT(RNG%mt(i-1),-30_il)) + Int(i,il),-1_il)
     End Do
     RNG%mti = n2203 + 1
     RNG%seeded = .TRUE.
     If (Present(burn)) Then
-        Do i = 1,burn
+        Do k = 1,burn
             burns = RNG%i()
         End Do
     End If
@@ -444,7 +444,7 @@ End Subroutine seed_rng_mt2203
 Subroutine seed_ar_rng_mt2203(RNG,jj,seeds)
     Use Kinds, Only: il
     Implicit None
-    Class(MT19937_Type), Intent(InOut) :: RNG
+    Class(MT2203_Type), Intent(InOut) :: RNG
     Integer, Intent(In) :: jj
     Integer(il), Intent(In) :: seeds(:)
     Integer :: i,j,k
@@ -457,7 +457,7 @@ Subroutine seed_ar_rng_mt2203(RNG,jj,seeds)
         i = i + 1
         j = j + 1
         If (i .GT. n2203) Then
-            RNG%mt(1) = RNG%mt(n)
+            RNG%mt(1) = RNG%mt(n2203)
             i = 1
         End If
         If (j .GE. Size(seeds)) j = 0
@@ -479,6 +479,7 @@ Function rng_mt2203_i(RNG) Result(y)
     Integer(il) :: y
     Class(MT2203_Type), Intent(InOut) :: RNG
     Integer :: i
+    Integer(il) :: mag01(0:1)
     Integer(il), Parameter :: lmask = 31_il !least significant r bits
     Integer(il), Parameter :: umask = -32_il !most significant w-r bits
 
@@ -497,7 +498,8 @@ Function rng_mt2203_i(RNG) Result(y)
             RNG%mt(n2203) = IEOR(IEOR(RNG%mt(m2203), ISHFT(y,-1_il)),mag01(IAND(y,1_il)))
             RNG%mti = 1
         Else  !needs seeding
-            Call RNG%seed(default_seed)
+            !HACK In the unseeded case, default behavior uses MT2203 index #1
+            Call RNG%seed(1,default_seed)
         End If
     End If
     y = RNG%mt(RNG%mti)
@@ -540,7 +542,7 @@ Subroutine save_RNG_mt2203(RNG,fname)
     state(n2203+1+2) = RNG%bj
     state(n2203+1+3) = RNG%cj
     Call Var_to_File(state,fname)
-End Subroutine save_RNG_mt19937
+End Subroutine save_RNG_mt2203
 
 Subroutine load_RNG_mt2203(RNG,fname)
     Use Kinds, Only: il
