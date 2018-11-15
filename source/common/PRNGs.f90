@@ -69,6 +69,7 @@ Module PRNGs
     Private
     Public :: MT19937_Type
     Public :: MT19937x64_Type
+    Public :: MT2203_Type
 
     Integer(il), Parameter :: TOPBIT = ISHFT(1073741824_il,1_il)
     Integer(il), Parameter :: ALLBIT = IOR(2147483647_il,TOPBIT)
@@ -408,27 +409,45 @@ Subroutine load_RNG_mt19937x64(RNG,fname)
     RNG%seeded = .TRUE.
 End Subroutine load_RNG_mt19937x64
 
-Subroutine seed_rng_mt2203(RNG,jj,seed,burn)
+Subroutine seed_rng_mt2203(RNG,jj,seed,burn,resourcedir)
     Use Kinds, Only: il
-    Use MT2203params, Only: nj2203
-    Use MT2203params, Only: abc2203
+    Use FileIO_Utilities, Only: max_path_len
+    Use FileIO_Utilities, Only: slash
+    Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Class(MT2203_Type), Intent(InOut) :: RNG
-    Integer(il), Intent(In) :: jj
-    Integer(il), Intent(In) :: seed
-    Integer(il), Intent(In), Optional :: burn
+    Integer(il), Intent(In) :: jj  !Index of the MT2203 stream for this PRNG
+    Integer(il), Intent(In) :: seed  !Seed for PRNG
+    Integer(il), Intent(In), Optional :: burn  !OPTIONAL: Number of random numbers to 'burn' after seeding
+    Character(*), Intent(In), Optional :: resourcedir  !OPTIONAL: A directory, other than the default resources directory, in which to find the MT2203 parameters file
     Integer :: i
     Integer(il) :: k,burns
-    
+    Integer(il) :: unit,stat
+    Integer(il) :: nj2203  !number of parameter sets for MT2203 in the parameter file
+    Character(:), Allocatable :: fname
+
+    Allocate(Character(max_path_len) :: fname)
+    If (Present(resourcedir)) Then
+        fname = Trim(resourcedir)//'mt'//slash//'mt2203params.txt'
+    Else
+        fname = 'Resources'//slash//'mt'//slash//'mt2203params.txt'
+    End If
+    Open(NEWUNIT = unit , FILE = fname , STATUS = 'OLD' , ACTION = 'READ' , FORM = 'FORMATTED' , IOSTAT = stat)
+    If (stat .NE. 0) Call Output_Message('ERROR:  PRNGs: seed_rng_mt2203:  Open MT prameter file failed',kill=.TRUE.)
+    !Check available number of MT2203 parameter sets
+    Read(unit,'(I11)') nj2203
     If (jj.LT.1 .OR. jj.GT.nj2203) Then
         Write(*,'(A)')         'ERROR:  PRNGs: seed_rng_mt2203:  MT2203 parameter index out of range.'
         Write(*,'(A,I0,A,I0)') '        Specified index:  ',jj,'  Available range:  1-',nj2203
         ERROR STOP
     End If
+    !Load MT2203 parameters from resource file
+    Do i = 1,jj
+        Read(unit,'(I11,2I12)') RNG%aj , RNG%bj , RNG%cj
+    End Do
+    Close(unit)
+    !Seed the generator
     RNG%mt(1) = IAND(seed,-1_il)
-    RNG%aj = abc2203(1,jj)
-    RNG%bj = abc2203(2,jj)
-    RNG%cj = abc2203(3,jj)
     Do i = 2,n2203
         RNG%mt(i) = IAND(1812433253 * IEOR(RNG%mt(i-1),ISHFT(RNG%mt(i-1),-30_il)) + Int(i,il),-1_il)
     End Do
@@ -441,15 +460,20 @@ Subroutine seed_rng_mt2203(RNG,jj,seed,burn)
     End If
 End Subroutine seed_rng_mt2203
 
-Subroutine seed_ar_rng_mt2203(RNG,jj,seeds)
+Subroutine seed_ar_rng_mt2203(RNG,jj,seeds,resourcedir)
     Use Kinds, Only: il
     Implicit None
     Class(MT2203_Type), Intent(InOut) :: RNG
     Integer, Intent(In) :: jj
     Integer(il), Intent(In) :: seeds(:)
+    Character(*), Intent(In), Optional :: resourcedir  !OPTIONAL: A directory, other than the default resources directory, in which to find the MT2203 parameters file
     Integer :: i,j,k
       
-    Call RNG%seed(jj,19650218_il)
+    If (Present(resourcedir)) Then
+        Call RNG%seed(jj,19650218_il,RESOURCEDIR=resourcedir)
+    Else
+        Call RNG%seed(jj,19650218_il)
+    End If
     i = 1
     j = 0
     Do k = 1,max(n2203,Size(seeds))
