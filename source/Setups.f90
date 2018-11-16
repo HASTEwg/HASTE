@@ -291,6 +291,7 @@ Subroutine Setup_Info_to_disk(n_histories,abs_n_histories,prompt_for_exit,screen
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
     Use FileIO_Utilities, Only: Working_Directory
+    Use FileIO_Utilities, Only: Check_Directory
     Use FileIO_Utilities, Only: Var_to_File
     Implicit None
     Integer(id), Intent(In) :: n_histories
@@ -302,7 +303,7 @@ Subroutine Setup_Info_to_disk(n_histories,abs_n_histories,prompt_for_exit,screen
     Character(max_path_len) :: dir
     Character(:), Allocatable :: file_name,file_dir
 
-    Call Working_Directory(GETdir=dir,slash)
+    Call Working_Directory(GETdir = dir,s = slash)
     Allocate(Character(max_path_len) :: file_dir)
     file_dir = Trim(dir)//'temp'//slash
     !Check if temp results directory exists
@@ -376,7 +377,7 @@ Subroutine Setup_Info_from_disk(n_histories,abs_n_histories,prompt_for_exit,scre
     Type(Paths_Files_Type), Intent(InOut) :: paths_files
     Character(max_path_len) :: dir
     Character(:), Allocatable :: file_name,file_dir
-    Character($MAXPATH) :: C_tmp
+    Character(max_path_len) :: C_tmp
     
     Call Working_Directory(GETdir=dir,s=slash)
     Allocate(Character(max_path_len) :: file_dir)
@@ -584,7 +585,7 @@ Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,path
     Write(unit,'(A,I11)') '  RNG Array Length:    ',RNG%q_size
     Write(unit,'(A,I11)') '  RNG Array Used:      ',RNG%q_index - 1
     Write(unit,'(A,I11)') '  RNG Array Refreshes: ',RNG%q_refreshed
-    Write(unit,'(A,I18)') '  RNG Array Refreshes: ',RNG%q_refreshed * Int(RNG%q_size,id) + Int(RNG%q_index - 1,id)
+    Write(unit,'(A,I18)') '  Total R used:        ',RNG%q_refreshed * Int(RNG%q_size,id) + Int(RNG%q_index - 1,id)
     Write(unit,'(A,I0,A,I0,A,F6.2,A)') '  Number of Histories:  ',Sum(n_h_hit),' contributing, ',Sum(n_h_run),' total run, (',100._dp*Real(Sum(n_h_hit),dp)/Real(Sum(n_h_run),dp),'% efficency)'
     Write(unit,'(A)') '  Histories per image/thread:'
     Write(unit,'(A11,2A17)') 'Image','Contributing','Total Run'
