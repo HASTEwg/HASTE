@@ -913,7 +913,7 @@ Function L_to_S_from_top_of_segment(atm,b,L,Lmax,Smax,r1,z1,zeta1) Result(S)
         End If
         !Check for convergence
         If (Converged(S,S_old,rTol = 1.E-9_dp,aTol = 1.E-9_dp)) Return  !NORMAL EXIT for convergence on S
-        If (Converged(L,L_this_S,rTol = 1.E-9_dp,aTol = 1.E-12_dp)) Return  !NORMAL EXIT for guessing correct L
+        If (Converged(L,L_this_S,rTol = 1.E-12_dp,aTol = 1.E-12_dp)) Return  !NORMAL EXIT for guessing correct L
     End Do
     !If we get this far, Newton with False Position helpler did not converge
     ! Use bisection instead
