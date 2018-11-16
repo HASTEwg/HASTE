@@ -36,7 +36,7 @@ Subroutine Image_Result_to_Disk(run_time,wait_time,n_hit,n_run,t,d,n_kills,next_
     Character(max_path_len) :: dir
     Character(:), Allocatable :: file_name,file_dir
     
-    Call Working_Directory(GETdir=dir,slash)
+    Call Working_Directory(GETdir = dir,s = slash)
     Allocate(Character(max_path_len) :: file_dir)
     file_dir = Trim(dir)//'temp'//slash
     Write(i_char,'(I3.3)') this_image()
@@ -142,7 +142,7 @@ Subroutine Image_Results_from_Disk(nt,nE,nm,no,t_runs,t_waits,n_hist_run,n_hist_
     Character(max_path_len) :: dir
     Character(:), Allocatable :: file_name,file_dir
     
-    Call Working_Directory(GETdir=dir,slash)
+    Call Working_Directory(GETdir = dir,s = slash)
     Allocate(Character(max_path_len) :: file_dir)
     file_dir = Trim(dir)//'temp'//slash
     !initialize time variables

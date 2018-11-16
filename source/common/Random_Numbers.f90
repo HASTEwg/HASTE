@@ -127,7 +127,7 @@ Subroutine Initialize_RNG(RNG,seed,thread,size)  !Initializes a RNG and returns 
         If (Not(rng_stat.EQ.VSL_ERROR_OK .OR. rng_stat.EQ.VSL_STATUS_OK)) Call Output_Message('ERROR:  Random_Numbers: Initialize_RNG:  MKL RNG stream initial fill q failed, STAT = ',rng_stat,kill=.TRUE.)
 #   else
         If (Present(thread)) Then  !parallel execution, uses local set of MT2203
-            Call RNG%stream%seed(thread,RNG%seed)
+            Call RNG%stream%seed(thread+1,RNG%seed)  !add 1 to thread since MT2203 PRNGs are numbered beginning with 1...
         Else  !serial execution, uses local MT19937
             Call RNG%stream%seed(RNG%seed)
         End If
