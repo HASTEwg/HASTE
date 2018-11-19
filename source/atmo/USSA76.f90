@@ -241,6 +241,7 @@ Function Find_Base_Layer(Z,iZb) Result(b)
     Else
         b = Bisection_Search(Z,Zb(1:10),10) - 1  !subtract 1 to get index for layer below Z
     End If
+    If (b.GT.0 .AND. Z.EQ.Zb(b)) b = b - 1  !for indexing to be strictly correct, the boundaries are considered to be part of the layer below
 End Function Find_Base_Layer
 
 Function T(Z,layer,layer_range)
@@ -1112,7 +1113,12 @@ Function P(Z,layer,layer_range)
         If (P_rho_not_by_N(b)) Then
             P = Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
         Else
-            Call rho_N(Z,Tz,b,N)
+            If (b.EQ.6) Then
+                !HACK Patches indexing behavior at b=6<->7 interface
+                Call rho_N(Z,Tz,b+1,N)
+            Else
+                Call rho_N(Z,Tz,b,N)
+            End If
             P = N * Tb(b) * N_star  !US Standard Atmosphere 1976 equation 33c
         End If
     End If
