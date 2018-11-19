@@ -11,156 +11,137 @@ Use Utilities, Only: Prec
 Implicit None
 
 Real(dp), SAVE :: z0,r0,zeta0,inv_rho0
-Integer :: b,i,n,j
+Integer :: b,i,j
 Integer, Parameter :: n_zeta = 10
 Integer, Parameter :: n_max = 20
 Real(dp) :: dZ,Smax
-Real(dp) :: Ls(0:10,1:n_max,0:n_zeta)
-Real(dp) :: Lz(0:10,1:n_max,1:n_zeta)
-Real(dp) :: L0(0:10,0:n_zeta)
-Real(dp) :: b6zs(0:13)
-Real(dp) :: b6L0(0:12,0:n_zeta)
-Real(dp) :: b6Ls(0:12,1:n_max,0:n_zeta)
-Real(dp) :: b6Lz(0:12,1:n_max,1:n_zeta)
+Real(dp) :: Ls
+Real(dp) :: Lz
+Real(dp) :: L0
+Real(dp), Parameter :: reltol = 1.E-14_dp
+Real(dp), Parameter :: abstol = 0._dp
 Integer :: unit
-Real(dp), Parameter :: reltol = 1.E-15_dp
 
 inv_rho0 = 1._dp / rho(0._dp)
-Write(*,*)
-!Compute "exact" values
-!Layers 1 thru 6
-Do b = 0,5!Size(Zb)-2
-    z0 = Zb(b)
-    r0 = R_earth + z0
-    Do i = 0,n_zeta
-        zeta0 = Real(i,dp)*(1._dp / Real(n_zeta,dp))
-        Write(*,'(A,A,I0,A,F0.3,A)',ADVANCE="NO") ACHAR(13),'Computing exact EPL... layer ',b+1,', zeta ',zeta0,'...'
-        dZ = Zb(b+1) - z0
-        Smax = dZ * (2._dp * r0 + dZ) / ( zeta0 * r0 + Sqrt( (zeta0 * r0)**2 + dZ * (2._dp * r0 + dZ) ) )
-        L0(b,i) = Romberg_Quad(EPL_Integrand_dS,0._dp,Smax,atol=0._dp,rtol=reltol)
-    End Do
-End Do
-!Layer 7
-b = 6
-b6zs = (/ Zb(b),      &
-        & 80._dp,  &
-        & 80.5_dp, &
-        & 81._dp,  &
-        & 81.5_dp, &
-        & 82._dp,  &
-        & 82.5_dp, &
-        & 83._dp,  &
-        & 83.5_dp, &
-        & 84._dp,  &
-        & 84.5_dp, &
-        & 85._dp,  &
-        & 85.5_dp, &
-        & 86._dp   /)
-Do j = 0,12
-    z0 = b6zs(j)
-    r0 = R_earth + z0
-    Do i = 0,n_zeta
-        zeta0 = Real(i,dp)*(1._dp / Real(n_zeta,dp))
-        Write(*,'(A,A,I0,A,I0,A,F0.3,A)',ADVANCE="NO") ACHAR(13),'Computing exact EPL... layer ',b+1,'-',j+1,', zeta ',zeta0,'...'
-        dZ = b6zs(j+1) - z0
-        Smax = dZ * (2._dp * r0 + dZ) / ( zeta0 * r0 + Sqrt( (zeta0 * r0)**2 + dZ * (2._dp * r0 + dZ) ) )
-        b6L0(j,i) = Romberg_Quad(EPL_Integrand_dS,0._dp,Smax,atol=0._dp,rtol=reltol)
-    End Do
-End Do
-Write(*,'(A,A)') ACHAR(13),'Computing exact EPL... Done!                               '
-!compute Gauss Approximations with various numbers of points
-Do b = 0,5!Size(Zb)-2
-    z0 = Zb(b)
-    r0 = R_earth + z0
-    Do i = 0,n_zeta
-        zeta0 = Real(i,dp)*(1._dp / Real(n_zeta,dp))
-        dZ = Zb(b+1) - z0
-        Smax = dZ * (2._dp * r0 + dZ) / ( zeta0 * r0 + Sqrt( (zeta0 * r0)**2 + dZ * (2._dp * r0 + dZ) ) )
-        Do n = 1,n_max
-            Write(*,'(A,A,I0,A,F0.3,A,I0,A)',ADVANCE="NO") ACHAR(13),'Computing approx EPL... layer ',b+1,', zeta ',zeta0,' with ',n,' Gauss-Legendre points...'
-            Ls(b,n,i) = GaussLegendreN(n,EPL_Integrand_dS,0._dp,Smax)
-            If (i.GT.0) Lz(b,n,i) = GaussLegendreN(n,EPL_Integrand_dZ,0._dp,dZ)
-        End Do
-    End Do
-End Do
-!Layer 7
-b = 6
-Do j = 0,12
-    z0 = b6zs(j)
-    r0 = R_earth + z0
-    Do i = 0,n_zeta
-        zeta0 = Real(i,dp)*(1._dp / Real(n_zeta,dp))
-        dZ = b6zs(j+1) - z0
-        Smax = dZ * (2._dp * r0 + dZ) / ( zeta0 * r0 + Sqrt( (zeta0 * r0)**2 + dZ * (2._dp * r0 + dZ) ) )
-        Do n = 1,n_max
-            Write(*,'(A,A,I0,A,I0,A,F0.3,A,I0,A)',ADVANCE="NO") ACHAR(13),'Computing approx EPL... layer ',b+1,'-',j+1,', zeta ',zeta0,' with ',n,' Gauss-Legendre points...'
-            b6Ls(j,n,i) = GaussLegendreN(n,EPL_Integrand_dS,0._dp,Smax)
-            If (i.GT.0) b6Lz(j,n,i) = GaussLegendreN(n,EPL_Integrand_dZ,0._dp,dZ)
-        End Do
-    End Do
-End Do
-Write(*,*)
-
-!Compute precisions and output
 Open(NEWUNIT=unit,FILE='EPLquadPrecs.tst',ACTION='WRITE',STATUS='REPLACE')
-Do b = 0,5!Size(Zb)-2
-    Write(unit,'(A,I0,A,F7.3)') 'Layer #',b+1,': z0 = ',Zb(b)
-    Write(unit,'(A8)',ADVANCE='NO') 'zeta0    '
-    Do n = 1,n_max
-        Write(unit,'(A3,I2,A3)',ADVANCE='NO') ' n=',n,''
-    End Do
-    Write(unit,*)
-    Do n = 1,n_max+1
-        Write(unit,'(A8)',ADVANCE='NO') '------  '
-    End Do
-    Write(unit,*)
-    Do i = 0,n_zeta
-        zeta0 = Real(i,dp)*(1._dp / Real(n_zeta,dp))
-        Write(unit,'(F6.3,A2)',ADVANCE='NO') zeta0,''
-        Do n = 1,n_max
-            Write(unit,'(A2,F4.1,A2)',ADVANCE='NO') 's-',Prec(Ls(b,n,i),L0(b,i)),''
+Do b = 0,5
+    Write(*,*)
+    z0 = Zb(b)
+    Write(*,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,',  z = ',z0,' to ',Zb(b+1),' km'
+    Write(*,'(A)') '---------------------------------------------'
+    Write(unit,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,',  z = ',z0,' to ',Zb(b+1),' km'
+    Write(unit,'(A)') '---------------------------------------------'
+    r0 = R_earth + z0
+    dZ = Zb(b+1) - z0
+    !Shallow zetas
+    Write(*,'(A)') 'zeta0 (shallow)'
+    Write(*,'(A)') '-----'
+    Write(unit,'(A)') 'zeta0 (shallow)'
+    Write(unit,'(A)') '-----'
+    Do i = 0,n_zeta-1
+        !Compute exact EPL
+        zeta0 = Real(i,dp) * 0.01_dp
+        Smax = dZ * (2._dp * r0 + dZ) / ( zeta0 * r0 + Sqrt( (zeta0 * r0)**2 + dZ * (2._dp * r0 + dZ) ) )
+        L0 = Romberg_Quad(EPL_Integrand_dS,0._dp,Smax,atol=abstol,rtol=reltol)
+        Write(*,'(F4.2,A,ES23.15)') zeta0,'   exact: ',L0
+        Write(unit,'(F4.2,A,ES23.15)') zeta0,'   exact: ',L0
+        !Compute approximate EPL, stopping when desired precision is achieved
+        Do j = 3,n_max
+            Ls = GaussLegendreN(j,EPL_Integrand_dS,0._dp,Smax)
+            Write(*,'(A,ES19.11,A,I2)',ADVANCE='NO') ACHAR(13)//'      dS-p12: ',Ls,'     : ',j
+            If (Floor(Prec(Ls,L0)) .GE. 12) Then
+                Write(*,'(A)') ' gauss-pts for prec > 12'
+                Write(unit,'(A,ES19.11,A,I2,A)') '      dS-p12: ',Ls,'     : ',j,' gauss-pts for prec > 12'
+                Exit
+            End If
+            If (j .EQ. n_max) Then
+                Write(*,'(A)') ' gauss-pts DOES NOT yield prec > 12'
+                Write(unit,'(A,ES19.11,A,I2,A)') '      dS-p12: ',Ls,'     : ',j,' gauss-pts DOES NOT yield prec > 12'
+            End If
         End Do
-        Write(unit,*)
-        If (i.GT.0) Then
-            Write(unit,'(A8)',ADVANCE='NO') ''
-            Do n = 1,n_max
-                Write(unit,'(A2,F4.1,A2)',ADVANCE='NO') 'z-',Prec(Lz(b,n,i),L0(b,i)),''
-            End Do
-            Write(unit,*)
-        End If
+        Do j = 3,n_max
+            Ls = GaussLegendreN(j,EPL_Integrand_dS,0._dp,Smax)
+            Write(*,'(A,ES13.5,A,I2)',ADVANCE='NO') ACHAR(13)//'      dS-p06: ',Ls,'           : ',j
+            If (Floor(Prec(Ls,L0)) .GE. 6) Then
+                Write(*,'(A)') ' gauss-pts for prec > 6'
+                Write(unit,'(A,ES13.5,A,I2,A)') '      dS-p06: ',Ls,'           : ',j,' gauss-pts for prec > 6'
+                Exit
+            End If
+            If (j .EQ. n_max) Then
+                Write(*,'(A)') ' gauss-pts DOES NOT yield prec > 6'
+                Write(unit,'(A,ES13.5,A,I2,A)') '      dS-p06: ',Ls,'           : ',j,' gauss-pts DOES NOT yield prec > 6'
+            End If
+        End Do
     End Do
-    Write(unit,*)
-End Do
-!Layer 7
-b = 6
-Do j = 0,12
-    Write(unit,'(A,I0,A,I0,A,F7.3)') 'Layer #',b+1,'-',j+1,': z0 = ',b6Zs(j)
-    Write(unit,'(A8)',ADVANCE='NO') 'zeta0    '
-    Do n = 1,n_max
-        Write(unit,'(A3,I2,A3)',ADVANCE='NO') ' n=',n,''
-    End Do
-    Write(unit,*)
-    Do n = 1,n_max+1
-        Write(unit,'(A8)',ADVANCE='NO') '------  '
-    End Do
-    Write(unit,*)
+    Write(*,*)
+    Write(Unit,*)
+    !Steep zetas
+    Write(*,'(A)') 'zeta0 (steep)'
+    Write(*,'(A)') '-----'
+    Write(unit,'(A)') 'zeta0 (steep)'
+    Write(unit,'(A)') '-----'
     Do i = 1,n_zeta
-        zeta0 = Real(i,dp)*(1._dp / Real(n_zeta,dp))
-        Write(unit,'(F6.3,A2)',ADVANCE='NO') zeta0,''
-        Do n = 1,n_max
-            Write(unit,'(A2,F4.1,A2)',ADVANCE='NO') 's-',Prec(b6Ls(j,n,i),b6L0(j,i)),''
+        zeta0 = Real(i,dp) * 0.1_dp
+        Smax = dZ * (2._dp * r0 + dZ) / ( zeta0 * r0 + Sqrt( (zeta0 * r0)**2 + dZ * (2._dp * r0 + dZ) ) )
+        L0 = Romberg_Quad(EPL_Integrand_dS,0._dp,Smax,atol=abstol,rtol=reltol)
+        Write(*,'(F4.2,A,ES23.15)') zeta0,'   exact: ',L0
+        Write(unit,'(F4.2,A,ES23.15)') zeta0,'   exact: ',L0
+        !Compute approximate EPL, stopping when desired precision is achieved
+        Do j = 3,n_max
+            Ls = GaussLegendreN(j,EPL_Integrand_dS,0._dp,Smax)
+            Write(*,'(A,ES19.11,A,I2)',ADVANCE='NO') ACHAR(13)//'      dS-p12: ',Ls,'     : ',j
+            If (Floor(Prec(Ls,L0)) .GE. 12) Then
+                Write(*,'(A)') ' gauss-pts for prec > 12'
+                Write(unit,'(A,ES19.11,A,I2,A)') '      dS-p12: ',Ls,'     : ',j,' gauss-pts for prec > 12'
+                Exit
+            End If
+            If (j .EQ. n_max) Then
+                Write(*,'(A)') ' gauss-pts DOES NOT yield prec > 12'
+                Write(unit,'(A,ES19.11,A,I2,A)') '      dS-p12: ',Ls,'     : ',j,' gauss-pts DOES NOT yield prec > 12'
+            End If
         End Do
-        Write(unit,*)
-        If (i.GT.0) Then
-            Write(unit,'(A8)',ADVANCE='NO') ''
-            Do n = 1,n_max
-                Write(unit,'(A2,F4.1,A2)',ADVANCE='NO') 'z-',Prec(b6Lz(j,n,i),b6L0(j,i)),''
-            End Do
-            Write(unit,*)
-        End If
+        Do j = 3,n_max
+            Lz = GaussLegendreN(j,EPL_Integrand_dZ,0._dp,dZ)
+            Write(*,'(A,ES19.11,A,I2)',ADVANCE='NO') ACHAR(13)//'      dZ-p12: ',Lz,'     : ',j
+            If (Floor(Prec(Lz,L0)) .GE. 12) Then
+                Write(*,'(A)') ' gauss-pts for prec > 12'
+                Write(unit,'(A,ES19.11,A,I2,A)') '      dS-p12: ',Lz,'     : ',j,' gauss-pts for prec > 12'
+                Exit
+            End If
+            If (j .EQ. n_max) Then
+                Write(*,'(A)') ' gauss-pts DOES NOT yield prec > 12'
+                Write(unit,'(A,ES19.11,A,I2,A)') '      dS-p12: ',Lz,'     : ',j,' gauss-pts DOES NOT yield prec > 12'
+            End If
+        End Do
+        Do j = 3,n_max
+            Ls = GaussLegendreN(j,EPL_Integrand_dS,0._dp,Smax)
+            Write(*,'(A,ES13.5,A,I2)',ADVANCE='NO') ACHAR(13)//'      dS-p06: ',Ls,'           : ',j
+            If (Floor(Prec(Ls,L0)) .GE. 6) Then
+                Write(*,'(A)') ' gauss-pts for prec > 6'
+                Write(unit,'(A,ES13.5,A,I2,A)') '      dS-p06: ',Ls,'           : ',j,' gauss-pts for prec > 6'
+                Exit
+            End If
+            If (j .EQ. n_max) Then
+                Write(*,'(A)') ' gauss-pts DOES NOT yield prec > 6'
+                Write(unit,'(A,ES13.5,A,I2,A)') '      dS-p06: ',Ls,'           : ',j,' gauss-pts DOES NOT yield prec > 6'
+            End If
+        End Do
+        Do j = 3,n_max
+            Lz = GaussLegendreN(j,EPL_Integrand_dZ,0._dp,dZ)
+            Write(*,'(A,ES13.5,A,I2)',ADVANCE='NO') ACHAR(13)//'      dZ-p06: ',Lz,'           : ',j
+            If (Floor(Prec(Lz,L0)) .GE. 12) Then
+                Write(*,'(A)') ' gauss-pts for prec > 6'
+                Write(unit,'(A,ES13.5,A,I2,A)') '      dS-p06: ',Lz,'           : ',j,' gauss-pts for prec > 6'
+                Exit
+            End If
+            If (j .EQ. n_max) Then
+                Write(*,'(A)') ' gauss-pts DOES NOT yield prec > 6'
+                Write(unit,'(A,ES13.5,A,I2,A)') '      dS-p06: ',Lz,'           : ',j,' gauss-pts DOES NOT yield prec > 6'
+            End If
+        End Do
     End Do
+    Write(Unit,*)
 End Do
-
 Close(unit)
 
 Contains

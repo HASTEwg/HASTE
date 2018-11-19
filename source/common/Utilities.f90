@@ -241,7 +241,7 @@ Pure Function Bisect_Search(x, xx, n) Result (j)
     Integer :: j
     Real(dp), Intent(In) :: x
     Integer, Intent(In) :: n
-    Real(dp), Intent(In) :: xList(1:n)
+    Real(dp), Intent(In) :: xx(1:n)
     Integer :: jl,jh,jm
     
     !First, check for endpoints
@@ -273,12 +273,13 @@ Pure Function Hunt_then_Bisect_Search(x, xx, n , up) Result (j)
     ! j=1 or j=n+1 indicates that x is not in the range [ xx(1),xx(n) ]
     Use Kinds, Only: dp
     Implicit None
+    Integer :: d
     Integer :: j
     Real(dp), Intent(In) :: x
     Integer, Intent(In) :: n
-    Real(dp), Intent(In) :: xList(1:n)
+    Real(dp), Intent(In) :: xx(1:n)
     Logical, Intent(In) :: up
-    Integer :: jl,jh,jm
+    Integer :: jl,jh
     
     If (up) Then
         d = 1

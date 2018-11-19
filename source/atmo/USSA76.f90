@@ -241,7 +241,6 @@ Function Find_Base_Layer(Z,iZb) Result(b)
     Else
         b = Bisection_Search(Z,Zb(1:10),10) - 1  !subtract 1 to get index for layer below Z
     End If
-    If (Z .EQ. Zb(b)) b = b - 1  !exactly at a layer base needs to reference the previous base for indexing purposes
 End Function Find_Base_Layer
 
 Function T(Z,layer,layer_range)
