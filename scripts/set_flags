@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 # Peprocessor definitions for conditional compilation:
 #  - Operating System (default Windows, -DLIN_OS for Linux)

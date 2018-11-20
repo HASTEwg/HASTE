@@ -30,7 +30,7 @@ Module Quadratures
 
 Contains
 
-Function Romb_Quad_ranges(f,ab,aTol,rTol) Result(q)
+Function Romb_Quad_ranges(f,ab,aTol,rTol,p) Result(q)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: q
@@ -44,22 +44,30 @@ Function Romb_Quad_ranges(f,ab,aTol,rTol) Result(q)
     End Interface
     Real(dp), Intent(In) :: ab(:)        !limits of integration
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
+    Real(dp), Intent(Out), Optional :: p  !precision achived in the final estimate
     Real(dp) :: h,hi
     Integer :: n,i
+    Real(dp) :: p_i
 
     q = 0._dp
     n = Size(ab)
     h = ab(n) - ab(1)
     Do i = 1,n-1
         hi = ab(i+1) - ab(i)
-        q = q + Romb_Quad(f,ab(i),ab(i+1),(hi/h)*aTol,rTol)
+        If (Present(p)) Then
+            q = q + Romb_Quad(f,ab(i),ab(i+1),(hi/h)*aTol,rTol,p_i)
+            p = Min(p,p_i)
+        Else
+            q = q + Romb_Quad(f,ab(i),ab(i+1),(hi/h)*aTol,rTol)
+        End If
     End Do
 End Function Romb_Quad_ranges
 
-Function Romb_Quad(f,a,b,aTol,rTol) Result(q)
+Function Romb_Quad(f,a,b,aTol,rTol,p) Result(q)
     !Integrates f(x) on (a,b) by extrapolation on successive composite trapezoid
     Use Kinds, Only: dp
     Use Utilities, Only: Converged
+    Use Utilities, Only: Prec
     Implicit None
     Real(dp):: q    !the result of the integration
     Interface
@@ -72,6 +80,7 @@ Function Romb_Quad(f,a,b,aTol,rTol) Result(q)
     End Interface
     Real(dp), Intent(In) :: a,b        !limits of integration
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
+    Real(dp), Intent(Out), Optional :: p  !precision achived in the final estimate
     Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
     Real(dp) :: T(0:Tmax)  !Extrapolation table previous row
     Real(dp) :: Tk0,Tk  !Extrapolation table current row values
@@ -83,7 +92,6 @@ Function Romb_Quad(f,a,b,aTol,rTol) Result(q)
 #   if ROMB_TABLES
         Integer :: unit
 #   endif
-
 
     !Initial trapezoid estimate
     n = 1
@@ -133,6 +141,7 @@ Function Romb_Quad(f,a,b,aTol,rTol) Result(q)
                 Write(unit,*)
                 Close(unit)
 #           endif
+            If (Present(p)) p = Prec(T(i-1),Tk)
             Return  !Normal exit
         Else !store Tk0 and Tk for next i
             If (i.EQ.Tmax) Exit
@@ -150,15 +159,12 @@ Function Romb_Quad(f,a,b,aTol,rTol) Result(q)
     End Do
     !If we get this far, we did not converge
     Write(*,*)
-    Write(*,'(A,I0,A)')        'WARNING:  Quadratures: Romberg_Quad:  Failed to converge in ',Tmax,' extrapolations.'
-    Write(*,'(A,F0.16)')       '          Final estimated value: ',Tk
-    Write(*,'(A,2(ES10.3,A))') '          Final Extrapolation Error: ',Abs(Tk-T(Tmax-1)),' (abs), ',Abs(Tk-T(Tmax-1))/Tk,' (rel)'
-    Write(*,'(A,2(ES10.3,A))') '          Convergence Criteria:      ',atol,          ' (abs), ',rtol,             ' (rel)'
+    Write(*,'(A,I0,A)')             'WARNING:  Quadratures: Romberg_Quad:  Failed to converge in ',Tmax,' extrapolations.'
+    Write(*,'(A,ES23.15,A,F0.5,A)') '          Final estimated value: ',Tk,' (~',Prec(T(i-1),Tk),' good digits)'
+    Write(*,'(A,2(ES10.3,A))')      '          Final Extrapolation Error: ',Abs(Tk-T(Tmax-1)),' (abs), ',Abs(Tk-T(Tmax-1))/Tk,' (rel)'
+    Write(*,'(A,2(ES10.3,A))')      '          Convergence Criteria:      ',atol,          ' (abs), ',rtol,             ' (rel)'
     q = Tk
-    ! Write(*,'(A,I0,A)')      'ERROR:  Quadratures: Romberg_Quad:  Failed to converge in ',Tmax,' extrapolations.'
-    ! Write(*,'(A,F0.16)')     '          Final estimated value: ',Tk
-    ! Write(*,'(2(A,ES10.3))') '          Final Extrapolation Error: ',Abs(Tk-T(i-1)),' (abs), ',Abs(Tk-T(i-1))/Tk,' (rel)'
-    ! Write(*,'(2(A,ES10.3))') '          Convergence Criteria:      ',atol,          ' (abs), ',rtol,             ' (rel)'
+    If (Present(p)) p = Prec(T(i-1),Tk)
     ! ERROR STOP
 End Function Romb_Quad
 

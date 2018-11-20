@@ -241,7 +241,6 @@ Function Find_Base_Layer(Z,iZb) Result(b)
     Else
         b = Bisection_Search(Z,Zb(1:10),10) - 1  !subtract 1 to get index for layer below Z
     End If
-    ! If (b.GT.0 .AND. Z.EQ.Zb(b)) b = b - 1  !for indexing to be strictly correct, the boundaries are considered to be part of the layer below
 End Function Find_Base_Layer
 
 Function T(Z,layer,layer_range)
@@ -352,7 +351,7 @@ Function nN2_power(Z,b) Result(x)
     Integer, Intent(In) :: b
     Real(dp) :: M_over_R
     Logical :: Z_below_100
-    Real(dp), Parameter :: xb(7:10) = (/ 0._dp,                 &  !Z = 86km
+    Real(dp), Parameter :: xb(7:10) = (/ 0._dp,                 &  !Z = 86km 
                                        & 0.88917387123689_dp, &  !Z = 91km
                                        & 3.98159977280185_dp, &  !Z = 110km
                                        & 5.05881956915730_dp  /) !Z = 120km
@@ -496,7 +495,7 @@ Function nO1_O2_integrand2(Z,b) Result(f)  !for 95 to 97 km
     
     Tz = T(Z,b+1)
     D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
-    K = K95to115(Z) !K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
+    K = K95to115(Z)
     f = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + & 
       & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
     f(1) = f(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
@@ -514,7 +513,7 @@ Function nO1_O2_integrand3(Z,b) Result(f)  !for 97 to 100 km
 
     Tz = T(Z,b+1)
     D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
-    K = K95to115(Z) !K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
+    K = K95to115(Z)
     f = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + & 
       & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand3
@@ -531,7 +530,7 @@ Function nO1_O2_integrand4(Z,b) Result(f)  !for 100 to 115 km
     
     Tz = T(Z,b+1)
     D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
-    K = K95to115(Z) !K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
+    K = K95to115(Z)
     f = g(Z) * D * (Mi(2:3) + Mi(1)*K/D) / (R_star * Tz * (D + K)) + & 
       & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand4
@@ -647,7 +646,7 @@ Function nAr_He_integrand2(Z,b) Result(f)  !for 95 to 100 km
     Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,b))
     Nb = Nb / Tz
     D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
-    K = K95to115(Z) !K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
+    K = K95to115(Z)
     y = D / (R_star * Tz * (D + K))
     f = g(Z) * y * (Mi(4:5) + M0*K/D) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
@@ -671,7 +670,7 @@ Function nAr_He_integrand4(Z,b) Result(f)  !for 100 to 115 km
     Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,b))
     Nb = Nb / Tz
     D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
-    K = K95to115(Z) !K0 * Exp(1._dp - 400._dp / (400._dp - (Z - 95._dp)**2))
+    K = K95to115(Z)
     y = D / (R_star * Tz * (D + K))
     f = g(Z) * y * (Mi(4:5) + (Sum(Nb*Mi(1:3))/Sum(Nb))*K/D) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
@@ -1113,12 +1112,7 @@ Function P(Z,layer,layer_range)
         If (P_rho_not_by_N(b)) Then
             P = Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
         Else
-            ! If (b.EQ.6) Then
-            !     !HACK Patches indexing behavior at b=6<->7 interface
-            !     Call rho_N(Z,Tz,b+1,N)
-            ! Else
-                Call rho_N(Z,Tz,b,N)
-            ! End If
+            Call rho_N(Z,Tz,b,N)
             P = N * Tb(b) * N_star  !US Standard Atmosphere 1976 equation 33c
         End If
     End If

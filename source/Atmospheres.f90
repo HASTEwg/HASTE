@@ -372,21 +372,26 @@ Subroutine Define_EPL_Layers(atm,resources_dir)
     !number of quadrature points for 12 digits of precision on STRAIGHT paths
     Integer, Parameter :: EPL_Quad_n1976_largeZeta_p6(1:7) = (/  4 ,  4 ,  5 ,  5 ,  3 ,  5 ,  4 /)
     Integer, Parameter :: EPL_Quad_n1976_smallZeta_p6(1:7) = (/  4 ,  5 ,  5 ,  6 ,  4 ,  5 ,  5 /)
+    Integer, Parameter :: EPL_Quad_n1976_largeZeta_p9(1:7) = (/   ,   ,   ,   ,   ,   ,   /)
+    Integer, Parameter :: EPL_Quad_n1976_smallZeta_p9(1:7) = (/   ,   ,   ,   ,   ,   ,   /)
     Integer, Parameter :: EPL_Quad_n1976_largeZeta_p12(1:7) = (/  6 ,  6 ,  7 ,  8 ,  5 ,  8 ,  7 /)
     Integer, Parameter :: EPL_Quad_n1976_smallZeta_p12(1:7) = (/  7 ,  8 ,  9 , 10 ,  6 ,  9 ,  9 /)
     Integer, Parameter :: EPL_Quad_nIsoT_largeZeta_p6 = 9
     Integer, Parameter :: EPL_Quad_nIsoT_smallZeta_p6 = 8
+    Integer, Parameter :: EPL_Quad_nIsoT_largeZeta_p9 = 
+    Integer, Parameter :: EPL_Quad_nIsoT_smallZeta_p9 = 
     Integer, Parameter :: EPL_Quad_nIsoT_largeZeta_p12 = 15
     Integer, Parameter :: EPL_Quad_nIsoT_smallZeta_p12 = 13
     !number of quadrature points for 6 or 12 digits of precision on ORBITAL paths
-    Integer, Parameter :: EPL_Quad_n1976_largeZeta_orbit_p6(1:7) = (/  4 ,  4 ,  5 ,  5 ,  3 ,  5 ,  4 /)
-    Integer, Parameter :: EPL_Quad_n1976_smallZeta_orbit_p6(1:7) = (/  4 ,  5 ,  5 ,  6 ,  4 ,  5 ,  5 /)
-    Integer, Parameter :: EPL_Quad_n1976_largeZeta_orbit_p12(1:7) = (/  6 ,  6 ,  7 ,  8 ,  5 ,  8 ,  7 /)
-    Integer, Parameter :: EPL_Quad_n1976_smallZeta_orbit_p12(1:7) = (/  7 ,  8 ,  9 , 10 ,  6 ,  9 ,  9 /)
-    Integer, Parameter :: EPL_Quad_nIsoT_largeZeta_orbit_p6 = 9
-    Integer, Parameter :: EPL_Quad_nIsoT_smallZeta_orbit_p6 = 8
-    Integer, Parameter :: EPL_Quad_nIsoT_largeZeta_orbit_p12 = 15
-    Integer, Parameter :: EPL_Quad_nIsoT_smallZeta_orbit_p12 = 13
+    !TODO Evaluate whether separate q-points are needed for orbital paths... so far, results have always been the same.
+    ! Integer, Parameter :: EPL_Quad_n1976_largeZeta_orbit_p6(1:7) = (/  4 ,  4 ,  5 ,  5 ,  3 ,  5 ,  4 /)
+    ! Integer, Parameter :: EPL_Quad_n1976_smallZeta_orbit_p6(1:7) = (/  4 ,  5 ,  5 ,  6 ,  4 ,  5 ,  5 /)
+    ! Integer, Parameter :: EPL_Quad_n1976_largeZeta_orbit_p12(1:7) = (/  6 ,  6 ,  7 ,  8 ,  5 ,  8 ,  7 /)
+    ! Integer, Parameter :: EPL_Quad_n1976_smallZeta_orbit_p12(1:7) = (/  7 ,  8 ,  9 , 10 ,  6 ,  9 ,  9 /)
+    ! Integer, Parameter :: EPL_Quad_nIsoT_largeZeta_orbit_p6 = 9
+    ! Integer, Parameter :: EPL_Quad_nIsoT_smallZeta_orbit_p6 = 8
+    ! Integer, Parameter :: EPL_Quad_nIsoT_largeZeta_orbit_p12 = 15
+    ! Integer, Parameter :: EPL_Quad_nIsoT_smallZeta_orbit_p12 = 13
     Type(Atmosphere_Type), Intent(InOut) :: atm
     Character(*), Intent(In) :: resources_dir
     Integer :: i,b
@@ -398,17 +403,23 @@ Subroutine Define_EPL_Layers(atm,resources_dir)
         !get number of quad points
         Select Case (atm%model_index)
             Case (atm_mod_USstd1976)
+                !number of quadrature points for 12 digits of precision on STRAIGHT paths
                 atm%EPL_lay(b)%nZ = EPL_Quad_n1976_largeZeta_p12(b)
                 atm%EPL_lay(b)%nS = EPL_Quad_n1976_smallZeta_p12(b)
-                atm%EPL_lay(b)%nRk = EPL_Quad_n1976_largeZeta_orbit_p12(b)
-                atm%EPL_lay(b)%nTk = EPL_Quad_n1976_smallZeta_orbit_p12(b)
+                !number of quadrature points for 12 digits of precision on ORBITAL paths
+                atm%EPL_lay(b)%nRk = EPL_Quad_n1976_largeZeta_p12(b)
+                atm%EPL_lay(b)%nTk = EPL_Quad_n1976_smallZeta_p12(b)
+                ! atm%EPL_lay(b)%nRk = EPL_Quad_n1976_largeZeta_orbit_p12(b)
+                ! atm%EPL_lay(b)%nTk = EPL_Quad_n1976_smallZeta_orbit_p12(b)
             Case (atm_mod_IsoTherm)
                 !number of quadrature points for 12 digits of precision on STRAIGHT paths
                 atm%EPL_lay(b)%nZ = EPL_Quad_nIsoT_largeZeta_p12
                 atm%EPL_lay(b)%nS = EPL_Quad_nIsoT_smallZeta_p12
                 !number of quadrature points for 12 digits of precision on ORBITAL paths
-                atm%EPL_lay(b)%nRk = EPL_Quad_nIsoT_largeZeta_orbit_p12
-                atm%EPL_lay(b)%nTk = EPL_Quad_nIsoT_smallZeta_orbit_p12
+                atm%EPL_lay(b)%nRk = EPL_Quad_nIsoT_largeZeta_p12
+                atm%EPL_lay(b)%nTk = EPL_Quad_nIsoT_smallZeta_p12
+                ! atm%EPL_lay(b)%nRk = EPL_Quad_nIsoT_largeZeta_orbit_p12
+                ! atm%EPL_lay(b)%nTk = EPL_Quad_nIsoT_smallZeta_orbit_p12
             Case Default
                 Call Output_Message('ERROR:  Amospheres: Define_EPL_Layers: Quad points for this atmosphere model are not implemented',kill=.TRUE.)
         End Select
