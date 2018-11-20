@@ -241,13 +241,13 @@ Function Find_Base_Layer(Z,iZb) Result(b)
     Else
         b = Bisection_Search(Z,Zb(1:10),10) - 1  !subtract 1 to get index for layer below Z
     End If
-    If (b.GT.0 .AND. Z.EQ.Zb(b)) b = b - 1  !for indexing to be strictly correct, the boundaries are considered to be part of the layer below
+    ! If (b.GT.0 .AND. Z.EQ.Zb(b)) b = b - 1  !for indexing to be strictly correct, the boundaries are considered to be part of the layer below
 End Function Find_Base_Layer
 
 Function T(Z,layer,layer_range)
     Use Kinds, Only: dp
     Implicit None
-    Real(dp) :: T  ![K]
+    Real(dp) :: T  ![K] kinetic temperature at geometric altitude Z
     Real(dp), Intent(In) :: Z ![km]
     Integer, Intent(In), Optional :: layer  !layer in which Z falls
     Integer, Intent(In), Optional :: layer_range(1:3)  !layer range over which to search
@@ -1090,7 +1090,7 @@ Function P(Z,layer,layer_range)
     If (Lb_nonzero(b)) Then
         If (T_linear_by_H(b)) Then
             Tz = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
-            If (b.EQ.6 .AND. Z.GT.80._dp) Tz = Tz * T_M0_correction(Z)  !US Standard Atmosphere 1976 equation 22
+            !NOTE: Tz is molecular temperature for altitudes below 86km
         Else
             Tz = Tb(b) + Lb(b) * (Z - Zb(b))  !US Standard Atmosphere 1976 equation 29
         End If
@@ -1113,12 +1113,12 @@ Function P(Z,layer,layer_range)
         If (P_rho_not_by_N(b)) Then
             P = Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
         Else
-            If (b.EQ.6) Then
-                !HACK Patches indexing behavior at b=6<->7 interface
-                Call rho_N(Z,Tz,b+1,N)
-            Else
+            ! If (b.EQ.6) Then
+            !     !HACK Patches indexing behavior at b=6<->7 interface
+            !     Call rho_N(Z,Tz,b+1,N)
+            ! Else
                 Call rho_N(Z,Tz,b,N)
-            End If
+            ! End If
             P = N * Tb(b) * N_star  !US Standard Atmosphere 1976 equation 33c
         End If
     End If
@@ -1146,7 +1146,7 @@ Function rho(Z,layer,layer_range)
     If (Lb_nonzero(b)) Then
         If (T_linear_by_H(b)) Then
             Tz = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
-            If (b.EQ.6 .AND. Z.GT.80._dp) Tz = Tz * T_M0_correction(Z)  !US Standard Atmosphere 1976 equation 22
+            !NOTE: Tz is molecular temperature for altitudes below 86km
         Else
             Tz = Tb(b) + Lb(b) * (Z - Zb(b))  !US Standard Atmosphere 1976 equation 29
         End If
