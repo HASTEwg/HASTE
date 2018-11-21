@@ -4,7 +4,6 @@ Module Quadratures
     Implicit None
     Private
     Public :: Romberg_Quad
-    Public :: Romberg_Simpson_Quad
     Public :: Composite_Quad
     Public :: Composite_Trapezoid
     Public :: Composite_Simpson
@@ -44,7 +43,7 @@ Function Romb_Quad_ranges(f,ab,aTol,rTol,p) Result(q)
     End Interface
     Real(dp), Intent(In) :: ab(:)        !limits of integration
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
-    Real(dp), Intent(Out), Optional :: p  !precision achived in the final estimate
+    Real(dp), Intent(Out), Optional :: p  !estimated precision achived in the final estimate
     Real(dp) :: h,hi
     Integer :: n,i
     Real(dp) :: p_i
@@ -80,7 +79,7 @@ Function Romb_Quad(f,a,b,aTol,rTol,p) Result(q)
     End Interface
     Real(dp), Intent(In) :: a,b        !limits of integration
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
-    Real(dp), Intent(Out), Optional :: p  !precision achived in the final estimate
+    Real(dp), Intent(Out), Optional :: p  !estimated precision achived in the final estimate
     Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
     Real(dp) :: T(0:Tmax)  !Extrapolation table previous row
     Real(dp) :: Tk0,Tk  !Extrapolation table current row values
@@ -89,6 +88,9 @@ Function Romb_Quad(f,a,b,aTol,rTol,p) Result(q)
     Real(dp) :: h0,h  !spacing between quadrature ordinates
     Real(dp) :: fk    !multiplier for extrapolation steps
     Real(dp) :: s     !sum of function values at quadrature ordinates
+    !    If the preprocessor directive ROMB_TABLES is set at compile-time, 
+    ! then the tables of computed values are dumped to file in the working 
+    ! directory as the routine runs.
 #   if ROMB_TABLES
         Integer :: unit
 #   endif
@@ -119,16 +121,13 @@ Function Romb_Quad(f,a,b,aTol,rTol,p) Result(q)
         Do k = 1,i  !up to i columns this row
             fk = fk * 4._dp
             Tk = (fk * Tk0 - T(k-1)) / (fk - 1._dp)
-            If (k .EQ. i) Then
-                Exit !skip storage steps if working final column
-            Else
+            If (k .LT. i) Then
                 T(k-1) = Tk0  !store Tk0 for next i
                 Tk0 = Tk  !store Tk for next k
-            End If
+            End If !otherwise, skip storage steps if working final column
         End Do
         !Check for convergence
         If (Converged(T(i-1),Tk,rTol,aTol)) Then
-        !If (Converged(T(i-1),Tk,rTol,aTol) .OR. Converged(Tk0,Tk,rTol,aTol)) Then
             q = Tk
 #           if ROMB_TABLES
                 T(i-1) = Tk0
@@ -167,65 +166,6 @@ Function Romb_Quad(f,a,b,aTol,rTol,p) Result(q)
     If (Present(p)) p = Prec(T(i-1),Tk)
     ! ERROR STOP
 End Function Romb_Quad
-
-Function Romberg_Simpson_Quad(f,a,b,aTol,rTol) Result(q)
-    Use Kinds, Only: dp
-    Use Utilities, Only: Converged
-    Implicit None
-    Real(dp):: q    !the result of the integration
-    Interface
-        Function f(x)    !the function to be integrated
-            Use Kinds,Only: dp
-            Implicit None
-            Real(dp) :: f
-            Real(dp), Intent(In) :: x
-        End Function f
-    End Interface
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
-    Integer, Parameter :: Tmax = 30  !maximum number of extrapolations in the table
-    Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
-    Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
-    Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
-    Integer :: n      !number of intervals
-    Real(dp) :: fk    !multiplier for extrapolation steps
-    Real(dp) :: h     !spacing between quadrature ordinates
-    Real(dp) :: s1,s2,s3  !sum of function values at quadrature ordinates
-
-    !Initial simpson estimate: T0(0)
-    n = 2
-    s1 = f(a) + f(b)
-    s2 = 0._dp
-    s3 = f(0.5_dp * (a + b))
-    T0(0) = (b - a) * (s1 + 4._dp*s3) * one_sixth
-    Do i = 1,Tmax !up to Tmax rows in the table
-        !Simpson estimate i-th row of table: Ti(0)
-        n = n * 2
-        s2 = s2 + s3
-        h = (b - a) / Real(n,dp)
-        s3 = 0._dp
-        Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
-            s3 = s3 + f(a + Real(j,dp)*h)
-        End Do
-        Ti(0) = h * (s1 + 2._dp*s2 + 4._dp*s3) * one_third
-        !Fill i-th row with extrapolated estimates
-        fk = 4._dp
-        Do k = 1,i  !up to i columns this row
-            fk = fk * 4._dp
-            Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
-        End Do
-        !Check for convergence compared to the final extrapolated value in the previous table row
-        If (Converged(T0(i-1),Ti(i),rTol,aTol)) Then
-            q = Ti(i) !Ti(i) is the position of the highest precision converged value
-            Return  !Normal exit
-        End If
-        !switch the current row to the previous row
-        T0 = Ti  !i-th row becomes new previous row
-    End Do
-    !If we get this far, we did not converge
-    Print *,"ERROR:  Quadratures: Romberg_Simpson_Quad:  Failed to converge in 20 extrapolations."
-    ERROR STOP
-End Function Romberg_Simpson_Quad
 
 Function Adaptive_Quad(f,a,b,Quad,rTol,aTol) Result(q)
     Use Kinds, Only: dp
@@ -305,8 +245,8 @@ Recursive Function Continue_Adaptive_Quad(f,a,b,Quad,q0,rTol,aTol,level) Result(
     q2 = Quad(f,0.5_dp*(a+b),b)
     q = q1 + q2
     If (Converged(q,q0,rTol,aTol)) Return  !check convergence with specified tolerances
-    If (level .GT. 100) Then !max allowed recursion depth, interval has been split 101 times...
-        Print *,"ERROR:  Quadratures: Continue_Adaptive_Quad:  Failed to converge before reaching max recursion depth."
+    If (level .GT. 30) Then !max allowed recursion depth, interval has been split 31 times...
+        Write(*,'(A)') 'ERROR:  Quadratures: Continue_Adaptive_Quad:  Failed to converge before reaching max recursion depth.'
         ERROR STOP
     End If
     !otherwise, recurse to refine grid
@@ -387,8 +327,8 @@ Recursive Function Continue_Adaptive_Simpson(f,x1,x3,x5,y1,y3,y5,q0,rTol,aTol,le
         q = q1 + q2 + err_est
         Return
     End If
-    If (level .GT. 100) Then !max allowed recursion depth, interval has been split 101 times...
-        Print *,"ERROR:  Quadratures: Continue_Adaptive_Simpson:  Failed to converge before reaching max recursion depth."
+    If (level .GT. 30) Then !max allowed recursion depth, interval has been split 31 times...
+        Write(*,'(A)') 'ERROR:  Quadratures: Continue_Adaptive_Simpson:  Failed to converge before reaching max recursion depth.'
         ERROR STOP
     End If
     !Otherwise, recurse to refine grid
@@ -430,7 +370,7 @@ Function Composite_Quad(f,a,b,Quad,aTol,rTol) Result(q)
     
     n = 1
     qOld = Quad(f,a,b)
-    Do i = 1,100  !max intervals is bounded by splitting interval 100 times
+    Do i = 1,31  !max intervals is bounded by splitting interval 31 times
         q = 0._dp
         n = n*2
         h = (b-a) / Real(n,dp)
@@ -441,7 +381,7 @@ Function Composite_Quad(f,a,b,Quad,aTol,rTol) Result(q)
         qOld = q
     End Do
     !if we get this far, we failed to converge
-    Print *,"ERROR:  Quadratures: Composite_Quad:  Failed to converge on ",n," intervals."
+    Write(*,'(A,I0,A)') 'ERROR:  Quadratures: Composite_Quad:  Failed to converge on ',n,' intervals.'
     ERROR STOP
 End Function Composite_Quad
 
@@ -528,7 +468,7 @@ Function Composite_Trapezoid(f,a,b,aTol,rTol) Result(q)
         qOld = q
     End Do
     !if we get this far, we failed to converge
-    Print *,"ERROR:  Quadratures: Composite_Trapezoid:  Failed to converge on ",n," intervals."
+    Write(*,'(A,I0,A)') 'ERROR:  Quadratures: Composite_Trapezoid:  Failed to converge on ',n,' intervals.'
     ERROR STOP
 End Function Composite_Trapezoid
 
@@ -568,7 +508,7 @@ Function Composite_Simpson(f,a,b,aTol,rTol) Result(q)
         qOld = q
     End Do
     !if we get this far, we failed to converge
-    Print *,"ERROR:  Quadratures: Composite_Simpson:  Failed to converge on ",n," intervals."
+    Write(*,'(A)') 'ERROR:  Quadratures: Composite_Simpson:  Failed to converge on ',n,' intervals.'
     ERROR STOP
 End Function Composite_Simpson
 
@@ -1130,7 +1070,7 @@ Function GaussLegendreN(N,f,a,b) Result(q)
             wi = w150
             ai = a150
         Case Default
-            Print *,'ERROR:  Quadratures: GaussLegendreN:  Unknown N, n = ',N
+            Write(*,'(A,I0)') 'ERROR:  Quadratures: GaussLegendreN:  Unsupported N, n = ',N
             ERROR STOP
     End Select
     q = GaussLegendre(f,a,b,n,wi,ai)
@@ -1173,7 +1113,7 @@ Function Progressive_GaussLegendre(f,a,b,rtol,atol,n_start,n_stride) Result(q)
         q_old = q
     End Do
     !If we get this far, we failed to converge on 150-point Gauss
-    Print*,'ERROR:  Quadratures: Progressive_GaussLegendre:  Failed to converge with ',i-dn,' Gauss-points.'
+    Write(*,'(A,I0,A)') 'ERROR:  Quadratures: Progressive_GaussLegendre:  Failed to converge with ',i-dn,' Gauss-points.'
     ERROR STOP
 End Function Progressive_GaussLegendre
 

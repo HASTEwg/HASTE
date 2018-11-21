@@ -10,7 +10,7 @@ Use Utilities, Only: Prec
 
 Implicit None
 
-Real(dp), SAVE :: z0,r0,zeta0,inv_rho0
+Real(dp) :: z0,z1,r0,zeta0,inv_rho0
 Integer :: b,c
 Integer, Parameter :: n_zeta = 10
 Integer, Parameter :: n_max = 20
@@ -18,60 +18,43 @@ Real(dp) :: dZ,Smax
 Real(dp) :: Ls
 Real(dp) :: Lz
 Real(dp) :: L0,L0p
-Real(dp), Parameter :: reltol = 1.E-14_dp
-Real(dp), Parameter :: abstol = 0._dp
+Real(dp) :: reltol,abstol
 Integer :: unit
 Character(1) :: sub
-Real(dp) :: z1
 
 inv_rho0 = 1._dp / rho(0._dp)
+reltol = 1.E-14_dp
+abstol = 0._dp
 Open(NEWUNIT=unit,FILE='EPLquadPrecs.tst',ACTION='WRITE',STATUS='REPLACE')
 
 !Layers 1-7 (b = 0-6) are all single layers in the lower atmosphere
 Do b = 0,6
-    Write(*,*)
+    sub = ''
     z0 = Zb(b)
-    Write(*,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,',  z = ',z0,' to ',Zb(b+1),' km'
-    Write(*,'(A)') '------------------------------------------------------------------------'
-    Write(unit,'(A)') '------------------------------------------------------------------------'
-    Write(unit,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,',  z = ',z0,' to ',Zb(b+1),' km'
-    Write(unit,'(A)') '------------------------------------------------------------------------'
+    z1 = Zb(b+1)
     r0 = R_earth + z0
-    dZ = Zb(b+1) - z0
-    !Shallow zetas
-    Call CheckEPLprecsShallow()
-    !Steep zetas
-    Call CheckEPLprecsSteep()
+    dZ = z1 - z0
+    Call CheckEPLprecs()
 End Do
+
 !Layer 8 (b = 7) goes from 86 to 91 km
 !there is a discontinuity in the USSA76 model at 86km, so the EPL integrand functions have a special case for this to use the right endpoint
 b = 7
+sub = ''
 z0 = Zb(b)
-Write(*,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,',  z = ',z0,' to ',Zb(b+1),' km'
-Write(*,'(A)') '------------------------------------------------------------------------'
-Write(unit,'(A)') '------------------------------------------------------------------------'
-Write(unit,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,',  z = ',z0,' to ',Zb(b+1),' km'
-Write(unit,'(A)') '------------------------------------------------------------------------'
+z1 = Zb(b+1)
 r0 = R_earth + z0
-dZ = Zb(b+1) - z0
-!Shallow zetas
-Call CheckEPLprecsShallow()
-!Steep zetas
-Call CheckEPLprecsSteep()
+dZ = z1 - z0
+Call CheckEPLprecs()
+
 !Layer 9 (b=8) has 4 sublayers
 b = 8
+sub = ''
 z0 = Zb(b)
-Write(*,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,',  z = ',z0,' to ',Zb(b+1),' km'
-Write(*,'(A)') '------------------------------------------------------------------------'
-Write(unit,'(A)') '------------------------------------------------------------------------'
-Write(unit,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,',  z = ',z0,' to ',Zb(b+1),' km'
-Write(unit,'(A)') '------------------------------------------------------------------------'
+z1 = Zb(b+1)
 r0 = R_earth + z0
-dZ = Zb(b+1) - z0
-!Shallow zetas
-Call CheckEPLprecsShallow()
-!Steep zetas
-Call CheckEPLprecsSteep()
+dZ = z1 - z0
+Call CheckEPLprecs()
 Do c = 1,4
     Select Case (c)
         Case (1)
@@ -91,33 +74,19 @@ Do c = 1,4
             z0 = 100._dp
             z1 = Zb(b+1)
     End Select
-    Write(*,*)
-    Write(*,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,sub//',  z = ',z0,' to ',z1,' km'
-    Write(*,'(A)') '------------------------------------------------------------------------'
-    Write(unit,'(A)') '------------------------------------------------------------------------'
-    Write(unit,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,sub//',  z = ',z0,' to ',z1,' km'
-    Write(unit,'(A)') '------------------------------------------------------------------------'
     r0 = R_earth + z0
     dZ = z1 - z0
-    !Shallow zetas
-    Call CheckEPLprecsShallow()
-    !Steep zetas
-    Call CheckEPLprecsSteep()
+    Call CheckEPLprecs()
 End Do
+
 !Layer 10 (b=9) has 2 sublayers
 b = 9
+sub = ''
 z0 = Zb(b)
-Write(*,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,',  z = ',z0,' to ',Zb(b+1),' km'
-Write(*,'(A)') '------------------------------------------------------------------------'
-Write(unit,'(A)') '------------------------------------------------------------------------'
-Write(unit,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,',  z = ',z0,' to ',Zb(b+1),' km'
-Write(unit,'(A)') '------------------------------------------------------------------------'
+z1 = Zb(b+1)
 r0 = R_earth + z0
-dZ = Zb(b+1) - z0
-!Shallow zetas
-Call CheckEPLprecsShallow()
-!Steep zetas
-Call CheckEPLprecsSteep()
+dZ = z1 - z0
+Call CheckEPLprecs()
 Do c = 1,2
     Select Case (c)
         Case (1)
@@ -129,33 +98,19 @@ Do c = 1,2
             z0 = 115._dp
             z1 = Zb(b+1)
     End Select
-    Write(*,*)
-    Write(*,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,sub//',  z = ',z0,' to ',z1,' km'
-    Write(*,'(A)') '------------------------------------------------------------------------'
-    Write(unit,'(A)') '------------------------------------------------------------------------'
-    Write(unit,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,sub//',  z = ',z0,' to ',z1,' km'
-    Write(unit,'(A)') '------------------------------------------------------------------------'
     r0 = R_earth + z0
     dZ = z1 - z0
-    !Shallow zetas
-    Call CheckEPLprecsShallow()
-    !Steep zetas
-    Call CheckEPLprecsSteep()
+    Call CheckEPLprecs()
 End Do
+
 !Layer 11 (b=10) has 2 sublayers
-b = 9
+b = 10
+sub = ''
 z0 = Zb(b)
-Write(*,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,',  z = ',z0,' to ',Zb(b+1),' km'
-Write(*,'(A)') '------------------------------------------------------------------------'
-Write(unit,'(A)') '------------------------------------------------------------------------'
-Write(unit,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,',  z = ',z0,' to ',Zb(b+1),' km'
-Write(unit,'(A)') '------------------------------------------------------------------------'
+z1 = Zb(b+1)
 r0 = R_earth + z0
-dZ = Zb(b+1) - z0
-!Shallow zetas
-Call CheckEPLprecsShallow()
-!Steep zetas
-Call CheckEPLprecsSteep()
+dZ = z1 - z0
+Call CheckEPLprecs()
 Do c = 1,2
     Select Case (c)
         Case (1)
@@ -167,23 +122,29 @@ Do c = 1,2
             z0 = 500._dp
             z1 = Zb(b+1)
     End Select
-    Write(*,*)
-    Write(*,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,sub//',  z = ',z0,' to ',z1,' km'
-    Write(*,'(A)') '------------------------------------------------------------------------'
-    Write(unit,'(A)') '------------------------------------------------------------------------'
-    Write(unit,'(A,I3,A,F10.3,A,F10.3,A)') 'LAYER ',b+1,sub//',  z = ',z0,' to ',z1,' km'
-    Write(unit,'(A)') '------------------------------------------------------------------------'
     r0 = R_earth + z0
     dZ = z1 - z0
-    !Shallow zetas
-    Call CheckEPLprecsShallow()
-    !Steep zetas
-    Call CheckEPLprecsSteep()
+    Call CheckEPLprecs()
 End Do
 
 Close(unit)
 
 Contains
+
+Subroutine CheckEPLprecs()
+    Implicit None
+
+    Write(*,'(A)') '------------------------------------------------------------------------'
+    Write(*,'(A,I0,A,F0.3,A,F0.3,A)') 'LAYER ',b+1,Trim(sub)//',  z = ',z0,' to ',z1,' km'
+    Write(*,'(A)') '------------------------------------------------------------------------'
+    Write(unit,'(A)') '------------------------------------------------------------------------'
+    Write(unit,'(A,I0,A,F0.3,A,F0.3,A)') 'LAYER ',b+1,Trim(sub)//',  z = ',z0,' to ',z1,' km'
+    Write(unit,'(A)') '------------------------------------------------------------------------'
+    !Shallow zetas
+    Call CheckEPLprecsShallow()
+    !Steep zetas
+    Call CheckEPLprecsSteep()
+End Subroutine CheckEPLprecs
 
 Subroutine CheckEPLprecsShallow()
     Use Kinds, Only: dp
@@ -212,13 +173,15 @@ Subroutine CheckEPLprecsShallow()
                 Ls = GaussLegendreN(j,EPL_Integrand_dS,0._dp,Smax)
                 Write(*,'(A,'//fmt_char//',A,I2)',ADVANCE='NO') ACHAR(13)//'      dS-p'//p_char//': ',Ls,'',': ',j
                 If (Floor(Prec(Ls,L0)) .GE. p) Then
-                    Write(*,'(A,I0)') ' gauss-pts for prec > ',p
-                    Write(unit,'(A,'//fmt_char//',A,I2,A,I0)') '      dS-p'//p_char//': ',Ls,'',': ',j,' gauss-pts for prec > ',p
-                    Exit
+                    If (Floor(Prec(GaussLegendreN(j+1,EPL_Integrand_dS,0._dp,Smax),L0)) .GE. Floor(Prec(Ls,L0))) Then
+                        Write(*,'(A,I0)') ' gauss-pts for prec > ',p
+                        Write(unit,'(A,'//fmt_char//',A,I2,A,I0)') '      dS-p'//p_char//': ',Ls,'',': ',j,' gauss-pts for prec > ',p
+                        Exit
+                    End If
                 End If
                 If (j .EQ. n_max) Then
-                    Write(*,'(A,I0)') ' gauss-pts DOES NOT yield prec > ',p
-                    Write(unit,'(A,'//fmt_char//',A,I2,A,I0)') '      dS-p'//p_char//': ',Ls,'',': ',j,' gauss-pts DOES NOT yield prec > ',p
+                    Write(*,'(A,'//fmt_char//',A,I0,A,I0,A)') ACHAR(13)//'      dS-p'//p_char//': ',Ls,'',': Prec ',p,' NOT MET w/ ',j,' gauss-pts'
+                    Write(unit,'(A,'//fmt_char//',A,I0,A,I0,A)') '      dS-p'//p_char//': ',Ls,'',': Prec ',p,' NOT MET w/ ',j,' gauss-pts'
                 End If
             End Do
         End Do
@@ -253,26 +216,30 @@ Subroutine CheckEPLprecsSteep
                 Ls = GaussLegendreN(j,EPL_Integrand_dS,0._dp,Smax)
                 Write(*,'(A,'//fmt_char//',A,I2)',ADVANCE='NO') ACHAR(13)//'      dS-p'//p_char//': ',Ls,'',': ',j
                 If (Floor(Prec(Ls,L0)) .GE. p) Then
-                    Write(*,'(A,I0)') ' gauss-pts for prec > ',p
-                    Write(unit,'(A,'//fmt_char//',A,I2,A,I0)') '      dS-p'//p_char//': ',Ls,'',': ',j,' gauss-pts for prec > ',p
-                    Exit
+                    If (Floor(Prec(GaussLegendreN(j+1,EPL_Integrand_dS,0._dp,Smax),L0)) .GE. Floor(Prec(Ls,L0))) Then
+                        Write(*,'(A,I0)') ' gauss-pts for prec > ',p
+                        Write(unit,'(A,'//fmt_char//',A,I2,A,I0)') '      dS-p'//p_char//': ',Ls,'',': ',j,' gauss-pts for prec > ',p
+                        Exit
+                    End If
                 End If
                 If (j .EQ. n_max) Then
-                    Write(*,'(A,I0)') ' gauss-pts DOES NOT yield prec > ',p
-                    Write(unit,'(A,'//fmt_char//',A,I2,A,I0)') '      dS-p'//p_char//': ',Ls,'',': ',j,' gauss-pts DOES NOT yield prec > ',p
+                    Write(*,'(A,'//fmt_char//',A,I0,A,I0,A)') ACHAR(13)//'      dS-p'//p_char//': ',Ls,'',': Prec ',p,' NOT MET w/ ',j,' gauss-pts'
+                    Write(unit,'(A,'//fmt_char//',A,I0,A,I0,A)') '      dS-p'//p_char//': ',Ls,'',': Prec ',p,' NOT MET w/ ',j,' gauss-pts'
                 End If
             End Do
             Do j = 3,n_max
                 Lz = GaussLegendreN(j,EPL_Integrand_dZ,0._dp,dZ)
                 Write(*,'(A,'//fmt_char//',A,I2)',ADVANCE='NO') ACHAR(13)//'      dZ-p'//p_char//': ',Lz,'',': ',j
                 If (Floor(Prec(Ls,L0)) .GE. p) Then
-                    Write(*,'(A,I0)') ' gauss-pts for prec > ',p
-                    Write(unit,'(A,'//fmt_char//',A,I2,A,I0)') '      dZ-p'//p_char//': ',Lz,'',': ',j,' gauss-pts for prec > ',p
-                    Exit
+                    If (Floor(Prec(GaussLegendreN(j+1,EPL_Integrand_dZ,0._dp,dZ),L0)) .GE. Floor(Prec(Lz,L0))) Then
+                        Write(*,'(A,I0)') ' gauss-pts for prec > ',p
+                        Write(unit,'(A,'//fmt_char//',A,I2,A,I0)') '      dZ-p'//p_char//': ',Lz,'',': ',j,' gauss-pts for prec > ',p
+                        Exit
+                    End If
                 End If
                 If (j .EQ. n_max) Then
-                    Write(*,'(A,I0)') ' gauss-pts DOES NOT yield prec > ',p
-                    Write(unit,'(A,'//fmt_char//',A,I2,A,I0)') '      dZ-p'//p_char//': ',Lz,'',': ',j,' gauss-pts DOES NOT yield prec > ',p
+                    Write(*,'(A,'//fmt_char//',A,I0,A,I0,A)') ACHAR(13)//'      dZ-p'//p_char//': ',Lz,'',': Prec ',p,' NOT MET w/ ',j,' gauss-pts'
+                    Write(unit,'(A,'//fmt_char//',A,I0,A,I0,A)') '      dZ-p'//p_char//': ',Lz,'',': Prec ',p,' NOT MET w/ ',j,' gauss-pts'
                 End If
             End Do
         End Do
