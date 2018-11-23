@@ -62,7 +62,7 @@ Function Romb_Quad_ranges(f,ab,aTol,rTol,p) Result(q)
     End Do
 End Function Romb_Quad_ranges
 
-Function Romb_Quad(f,a,b,aTol,rTol,p) Result(q)
+Function Romb_Quad(f,a,b,aTol,rTol,p,n_ord) Result(q)
     !Integrates f(x) on (a,b) by extrapolation on successive composite trapezoid
     Use Kinds, Only: dp
     Use Utilities, Only: Converged
@@ -80,7 +80,8 @@ Function Romb_Quad(f,a,b,aTol,rTol,p) Result(q)
     Real(dp), Intent(In) :: a,b        !limits of integration
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
     Real(dp), Intent(Out), Optional :: p  !estimated precision achived in the final estimate
-    Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
+    Integer, Intent(Out), Optional :: n_ord  !total number of function evaluations (ordinates)
+    Integer, Parameter :: Tmax = 15  !maximum number of extrapolations in the table
     Real(dp) :: T(0:Tmax)  !Extrapolation table previous row
     Real(dp) :: Tk0,Tk  !Extrapolation table current row values
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
@@ -141,6 +142,7 @@ Function Romb_Quad(f,a,b,aTol,rTol,p) Result(q)
                 Close(unit)
 #           endif
             If (Present(p)) p = Prec(T(i-1),Tk)
+            If (Present(n_ord)) n_ord = n
             Return  !Normal exit
         Else !store Tk0 and Tk for next i
             If (i.EQ.Tmax) Exit
@@ -1076,7 +1078,7 @@ Function GaussLegendreN(N,f,a,b) Result(q)
     q = GaussLegendre(f,a,b,n,wi,ai)
 End Function GaussLegendreN
 
-Function Progressive_GaussLegendre(f,a,b,rtol,atol,n_start,n_stride) Result(q)
+Function Progressive_GaussLegendre(f,a,b,rtol,atol,n_start,n_stride,n_done) Result(q)
     Use Kinds, Only: dp
     Use Utilities, Only: Converged
     Implicit None
@@ -1092,6 +1094,7 @@ Function Progressive_GaussLegendre(f,a,b,rtol,atol,n_start,n_stride) Result(q)
     Real(dp), Intent(In) :: a,b
     Real(dp), Intent(In) :: rtol,atol
     Integer, Intent(In), Optional :: n_start,n_stride
+    Integer, Intent(Out), Optional :: n_done
     Real(dp) :: q_old
     Integer :: n,dn
     Integer :: i
@@ -1109,10 +1112,14 @@ Function Progressive_GaussLegendre(f,a,b,rtol,atol,n_start,n_stride) Result(q)
     q_old = GaussLegendreN(n,f,a,b)
     Do i = n+dn,150,dn !Gauss-Legendre weights and abscissa are available up to 150 points
         q = GaussLegendreN(i,f,a,b)
-        If (Converged(q,q_old,rtol,atol)) RETURN !NORMAL EXIT
+        If (Converged(q,q_old,rtol,atol)) Then
+            If (Present(n_done)) n_done = i
+            RETURN !NORMAL EXIT
+        End If
         q_old = q
     End Do
     !If we get this far, we failed to converge on 150-point Gauss
+    If (Present(n_done)) n_done = -1
     Write(*,'(A,I0,A)') 'ERROR:  Quadratures: Progressive_GaussLegendre:  Failed to converge with ',i-dn,' Gauss-points.'
     ERROR STOP
 End Function Progressive_GaussLegendre

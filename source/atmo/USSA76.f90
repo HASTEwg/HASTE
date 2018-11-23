@@ -14,10 +14,15 @@ Module US_Std_Atm_1976
         Public :: nO1_O2_power_stops
         Public :: nAr_He_power_stops
 #   endif
+#   if GL_POINTS
+        Public :: nN2_GLpoints
+        Public :: nO1_O2_GLpoints
+        Public :: nAr_He_GLpoints
+#   endif
 
     !US Standard Atmosphere 1976 parameters
     !The following constants are defined here to ensure consistency with 1976 atmosphere model definition.
-    !There may be more modern values for these constants, but these values ensure agreement with the 1976 US Std Atmosphere model
+    !There may be more modern values for these constants, but these values ensure agreement with the 1976 US Std Atmosphere model as published
     Real(dp), Parameter :: g0 = 9.80665_dp  ![m / s^2]  accelleration due to gravity
     Real(dp), Parameter :: R_Earth = 6356.766_dp  ![km]  Radius of earth (nominal) at 45 deg latitude, used to relate geometric and geopotential heights, from US Std Atmosphere 1976
     Real(dp), Parameter :: R_star = 8.31432_dp  ![J / (mol*K)]  Universal gas constant as defined in US Standard Atmosphere 1976
@@ -55,19 +60,17 @@ Module US_Std_Atm_1976
                                        &  0._dp,  &
                                        &  0._dp   /)
     Real(dp), Parameter :: Tb(0:11) = (/ 288.15_dp, &  ![K] Computed temperature at layer boundaries 
-                                       & 216.65_dp, & 
-                                       & 216.65_dp, & 
-                                       & 228.65_dp, & 
-                                       & 270.65_dp, & 
-                                       & 270.65_dp, & 
-                                       & 214.65_dp, &
-                                       !& 186.9459083101885122_dp, & !<--value is for when M0 correction is NOT accounted for
-                                       !& 186.9459083101885122_dp, & !<--value is for when M0 correction is NOT accounted for
-                                       & 186.8671666936082608_dp, & !<--value is for when M0 correction is accounted for
-                                       & 186.8671666936082608_dp, & !<--value is for when M0 correction is accounted for
-                                       & 240._dp, &
-                                       & 360._dp, &
-                                       & 1000._dp /)
+                                       & 216.65_dp, &  !Molecular & Kinetic Temperature
+                                       & 216.65_dp, &  !Molecular & Kinetic Temperature
+                                       & 228.65_dp, &  !Molecular & Kinetic Temperature
+                                       & 270.65_dp, &  !Molecular & Kinetic Temperature
+                                       & 270.65_dp, &  !Molecular & Kinetic Temperature 
+                                       & 214.65_dp, &  !Molecular & Kinetic Temperature
+                                       & 186.8671666936082608_dp, &  !Kinetic Temperature
+                                       & 186.8671666936082608_dp, &  !Kinetic Temperature
+                                       & 240._dp, &  !Kinetic Temperature
+                                       & 360._dp, &  !Kinetic Temperature
+                                       & 1000._dp /)  !Kinetic Temperature
     Real(dp), Parameter :: Pb(0:7) = (/ 101325._dp, &   ![Pa] Computed pressure at layer boundaries
                                       & 22632.0336238972840275_dp, & 
                                       & 5474.87437675730708586_dp, & 
@@ -75,8 +78,7 @@ Module US_Std_Atm_1976
                                       & 110.905629143702212828_dp, & 
                                       & 66.9384346263881217465_dp, & 
                                       & 3.95638449983647254755_dp, &
-                                      !& 0.37337628269333201966_dp  /) !<--value is for when M0 correction is NOT accounted for
-                                      & 0.37069900314554960416_dp  /)  !<--value is for when M0 correction is accounted for
+                                      & 0.37337628269333201966_dp  /)
     Logical, Parameter :: Lb_nonzero(0:11) = (/ .TRUE.,  & 
                                               & .FALSE., & 
                                               & .TRUE.,  & 
@@ -209,7 +211,7 @@ Module US_Std_Atm_1976
     Real(dp), Parameter :: T500 = 999.2356017626150686_dp
     Real(dp), Parameter :: phiH = 7.2E11_dp
     !Convergence criteria for Romberg Quadrature routines
-#   if INTEGRAND_STOPS
+#   if (INTEGRAND_STOPS || GL_POINTS)
         Real(dp), Parameter :: rTol_tier1 = 1.E-14_dp  !N2
         Real(dp), Parameter :: rTol_tier2 = 1.E-13_dp  !O1 and O2
         Real(dp), Parameter :: rTol_tier3 = 1.E-12_dp  !Ar and He
@@ -733,7 +735,7 @@ Function Romberg_Quad_nN2(a,b,p) Result(q)
     Real(dp):: q    !the result of the integration
     Real(dp), Intent(In) :: a,b    !limits of integration
     Integer, Intent(In) :: p
-    Integer, Parameter :: Tmax = 30  !maximum number of extrapolations in the table
+    Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
     Real(dp) :: Ti(0:Tmax)  !Extrapolation table previous row
     Real(dp) :: Tk0,Tk  !Extrapolation table current row values
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
@@ -779,10 +781,10 @@ Function Romberg_Quad_nN2(a,b,p) Result(q)
         End If
     End Do
     !If we get this far, we did not converge
-    Write(*,'(A,I0,A)')      'ERROR:  US_Std_Atm_1976: Romberg_Quad_nN2:  Failed to converge in ',Tmax,' extrapolations.'
-    Write(*,'(A,F0.16)')     '          Final estimated value: ',Tk
-    Write(*,'(2(A,ES10.3))') '          Final Extrapolation Error: ',Abs(Tk-Ti(i-1)),' (abs), ',Abs(Tk-Ti(i-1))/Tk,' (rel)'
-    Write(*,'(2(A,ES10.3))') '          Convergence Criteria:      ',0._dp,          ' (abs), ',rTol_tier1,        ' (rel)'
+    Write(*,'(A,I0,A)')        'ERROR:  US_Std_Atm_1976: Romberg_Quad_nN2:  Failed to converge in ',Tmax,' extrapolations.'
+    Write(*,'(A,F0.16)')       '          Final estimated value: ',Tk
+    Write(*,'(A,2(ES10.3,A))') '          Final Extrapolation Error: ',Abs(Tk-Ti(Tmax-1)),' (abs), ',Abs(Tk-Ti(Tmax-1))/Tk,' (rel)'
+    Write(*,'(A,2(ES10.3,A))') '          Convergence Criteria:      ',0._dp,             ' (abs), ',rTol_tier1,           ' (rel)'
     ERROR STOP
 End Function Romberg_Quad_nN2
 
@@ -801,7 +803,7 @@ Function Romberg_Quad_nO1_O2(f,a,b,p) Result(q)
     End Interface
     Real(dp), Intent(In) :: a,b    !limits of integration
     Integer, Intent(In) :: p
-    Integer, Parameter :: Tmax = 30  !maximum number of extrapolations in the table
+    Integer, Parameter :: Tmax = 16  !maximum number of extrapolations in the table
     Real(dp) :: Ti(1:2,0:Tmax)  !Extrapolation table previous row
     Real(dp) :: Tk0(1:2),Tk(1:2)  !Extrapolation table current row values
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
@@ -869,7 +871,7 @@ Function Romberg_Quad_nAr_He(f,a,b,p) Result(q)
     End Interface
     Real(dp), Intent(In) :: a,b    !limits of integration
     Integer, Intent(In) :: p
-    Integer, Parameter :: Tmax = 30  !maximum number of extrapolations in the table
+    Integer, Parameter :: Tmax = 16  !maximum number of extrapolations in the table
     Real(dp) :: Ti(1:2,0:Tmax)  !Extrapolation table previous row
     Real(dp) :: Tk0(1:2),Tk(1:2)  !Extrapolation table current row values
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
@@ -970,7 +972,7 @@ Function Romberg_Quad_nH(a,b) Result(q)
     Implicit None
     Real(dp):: q    !the result of the integration
     Real(dp), Intent(In) :: a,b    !limits of integration
-    Integer, Parameter :: Tmax = 20
+    Integer, Parameter :: Tmax = 16
     Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
     Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
@@ -1028,7 +1030,7 @@ Function Romberg_Quad_p6(a,b) Result(q)
     Implicit None
     Real(dp):: q    !the result of the integration
     Real(dp), Intent(In) :: a,b    !limits of integration
-    Integer, Parameter :: Tmax = 20
+    Integer, Parameter :: Tmax = 16
     Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
     Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
@@ -1299,6 +1301,428 @@ Function nAr_He_power_stops() Result(xb)
     xb(7,2:3) = xb(6,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zs(6),Zs(7),bs(6)) !up to 115km
     xb(8,2:3) = xb(7,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand5,Zs(7),Zs(8),bs(7)) !up to 120km
 End Function nAr_He_power_stops
+# endif
+
+# if GL_POINTS
+!---------------------------------------------------------------------------------
+!  The following routines are used only for computing the required number of 
+!  Gauss-Legendre quadrature points to quickly evaluate the number density 
+!  integrals:  Used to compute necessary constants which are then  hard-coded in 
+!  the source.  They are included in compilation by defining 'GL_POINTS' as a 
+!  conditional compiler directive for the preprocessor
+!---------------------------------------------------------------------------------
+Subroutine nN2_GLpoints(zbs,nb,xb)
+    Use Kinds, Only: dp
+    Use Utilities, Only: Prec
+    Use Quadratures, Only: Romberg_Quad
+    Use Quadratures, Only: GaussLegendreN
+    Use Quadratures, Only: Progressive_GaussLegendre
+    Implicit None
+    Real(dp), Intent(Out) :: zbs(1:6)
+    Integer, Intent(Out) :: nb(1:6,1:3)
+    Real(dp), Intent(Out) :: xb(1:6,1:3)
+    Real(dp), Parameter :: Zs(1:6) = (/  86._dp, &
+                                      &  91._dp, & 
+                                      & 100._dp, & 
+                                      & 110._dp, & 
+                                      & 120._dp, &
+                                      & 1000._dp  /)
+    Integer, Parameter :: bs(1:6) = (/  7, &
+                                     &  8, & 
+                                     &  8, & 
+                                     &  9, & 
+                                     & 10, &
+                                     & 10  /)
+    Integer :: i,j
+
+    zbs = Zs
+    nb = 0
+    xb = 0._dp
+    Do i = 2,6
+        xb(i,1) = Romberg_Quad(nN2_integrand,Zs(i-1),Zs(i),0._dp,rTol_tier1,n_ord=nb(i,1))
+        xb(i,2) = Progressive_GaussLegendre(nN2_integrand,Zs(i-1),Zs(i),rTol_tier1,0._dp,n_done=nb(i,2))
+        Do j = 3,nb(i,2)
+            xb(i,3) = GaussLegendreN(j,nN2_integrand,Zs(i-1),Zs(i))
+            If (Floor(Prec(xb(i,3),xb(i,1))) .GE. NINT(-Log10(rTol_tier1))) Then
+                If (Floor(Prec(GaussLegendreN(j+1,nN2_integrand,Zs(i-1),Zs(i)),xb(i,1))).GE.Floor(Prec(xb(i,3),xb(i,1)))) Then
+                    nb(i,3) = j
+                    Exit
+                End If
+            End If
+        End Do
+    End Do
+
+Contains
+    Function nN2_integrand(z) Result(y)
+        Use Kinds, Only: dp
+        Implicit None
+        Real(dp) :: y
+        Real(dp), Intent(In) :: z
+        
+        y = g(z) / T(z)
+    End Function nN2_integrand
+End Subroutine nN2_GLpoints
+
+Subroutine nO1_O2_GLpoints(zbs,nb,xb)
+    Use Kinds, Only: dp
+    Use Utilities, Only: Prec
+    Use Quadratures, Only: Romberg_Quad
+    Use Quadratures, Only: GaussLegendreN
+    Use Quadratures, Only: Progressive_GaussLegendre
+    Implicit None
+    Real(dp), Intent(Out) :: zbs(1:9)
+    Integer, Intent(Out) :: nb(1:9,1:3,1:2)
+    Real(dp), Intent(Out) :: xb(1:9,1:3,1:2)
+    Real(dp), Parameter :: Zs(1:9) = (/  86._dp, &
+                                      &  91._dp, & 
+                                      &  95._dp, & 
+                                      &  97._dp, &
+                                      & 100._dp, & 
+                                      & 110._dp, & 
+                                      & 115._dp, & 
+                                      & 120._dp, &
+                                      & 1000._dp  /)
+    Integer, Parameter :: bs(1:9) = (/  7, &
+                                     &  8, & 
+                                     &  8, & 
+                                     &  8, & 
+                                     &  8, & 
+                                     &  9, & 
+                                     &  9, & 
+                                     & 10, &
+                                     & 10  /)
+    Integer :: i,j,b
+
+    zbs = Zs
+    nb = 0
+    xb = 0._dp
+    i = 1  !up to 91km
+    b = bs(i)
+    xb(i+1,1,1) = Romberg_Quad(nO1_O2_integrand1_1,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,1))
+    xb(i+1,1,2) = Romberg_Quad(nO1_O2_integrand1_2,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,2))
+    xb(i+1,2,1) = Progressive_GaussLegendre(nO1_O2_integrand1_1,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,1))
+    xb(i+1,2,2) = Progressive_GaussLegendre(nO1_O2_integrand1_2,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,2))
+    Do j = 3,nb(i+1,2,1)
+        xb(i+1,3,1) = GaussLegendreN(j,nO1_O2_integrand1_1,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,1),xb(i+1,1,1))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand1_1,Zs(i),Zs(i+1)),xb(i+1,1,1))).GE.Floor(Prec(xb(i+1,3,1),xb(i+1,1,1)))) Then
+                nb(i+1,3,1) = j
+                Exit
+            End If
+        End If
+    End Do
+    Do j = 3,nb(i+1,2,2)
+        xb(i+1,3,2) = GaussLegendreN(j,nO1_O2_integrand1_2,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,2),xb(i+1,1,2))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand1_2,Zs(i),Zs(i+1)),xb(i+1,1,2))).GE.Floor(Prec(xb(i+1,3,2),xb(i+1,1,2)))) Then
+                nb(i+1,3,2) = j
+                Exit
+            End If
+        End If
+    End Do
+    i = 2  !up to 95km
+    b = bs(i)
+    xb(i+1,1,1) = Romberg_Quad(nO1_O2_integrand1_1,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,1))
+    xb(i+1,1,2) = Romberg_Quad(nO1_O2_integrand1_2,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,2))
+    xb(i+1,2,1) = Progressive_GaussLegendre(nO1_O2_integrand1_1,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,1))
+    xb(i+1,2,2) = Progressive_GaussLegendre(nO1_O2_integrand1_2,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,2))
+    Do j = 3,nb(i+1,2,1)
+        xb(i+1,3,1) = GaussLegendreN(j,nO1_O2_integrand1_1,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,1),xb(i+1,1,1))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand1_1,Zs(i),Zs(i+1)),xb(i+1,1,1))).GE.Floor(Prec(xb(i+1,3,1),xb(i+1,1,1)))) Then
+                nb(i+1,3,1) = j
+                Exit
+            End If
+        End If
+    End Do
+    Do j = 3,nb(i+1,2,2)
+        xb(i+1,3,2) = GaussLegendreN(j,nO1_O2_integrand1_2,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,2),xb(i+1,1,2))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand1_2,Zs(i),Zs(i+1)),xb(i+1,1,2))).GE.Floor(Prec(xb(i+1,3,2),xb(i+1,1,2)))) Then
+                nb(i+1,3,2) = j
+                Exit
+            End If
+        End If
+    End Do
+    i = 3  !up to 97km
+    b = bs(i)
+    xb(i+1,1,1) = Romberg_Quad(nO1_O2_integrand2_1,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,1))
+    xb(i+1,1,2) = Romberg_Quad(nO1_O2_integrand2_2,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,2))
+    xb(i+1,2,1) = Progressive_GaussLegendre(nO1_O2_integrand2_1,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,1))
+    xb(i+1,2,2) = Progressive_GaussLegendre(nO1_O2_integrand2_2,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,2))
+    Do j = 3,nb(i+1,2,1)
+        xb(i+1,3,1) = GaussLegendreN(j,nO1_O2_integrand2_1,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,1),xb(i+1,1,1))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand2_1,Zs(i),Zs(i+1)),xb(i+1,1,1))).GE.Floor(Prec(xb(i+1,3,1),xb(i+1,1,1)))) Then
+                nb(i+1,3,1) = j
+                Exit
+            End If
+        End If
+    End Do
+    Do j = 3,nb(i+1,2,2)
+        xb(i+1,3,2) = GaussLegendreN(j,nO1_O2_integrand2_2,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,2),xb(i+1,1,2))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand2_2,Zs(i),Zs(i+1)),xb(i+1,1,2))).GE.Floor(Prec(xb(i+1,3,2),xb(i+1,1,2)))) Then
+                nb(i+1,3,2) = j
+                Exit
+            End If
+        End If
+    End Do
+    i = 4  !up to 100km
+    b = bs(i)
+    xb(i+1,1,1) = Romberg_Quad(nO1_O2_integrand3_1,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,1))
+    xb(i+1,1,2) = Romberg_Quad(nO1_O2_integrand3_2,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,2))
+    xb(i+1,2,1) = Progressive_GaussLegendre(nO1_O2_integrand3_1,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,1))
+    xb(i+1,2,2) = Progressive_GaussLegendre(nO1_O2_integrand3_2,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,2))
+    Do j = 3,nb(i+1,2,1)
+        xb(i+1,3,1) = GaussLegendreN(j,nO1_O2_integrand3_1,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,1),xb(i+1,1,1))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand3_1,Zs(i),Zs(i+1)),xb(i+1,1,1))).GE.Floor(Prec(xb(i+1,3,1),xb(i+1,1,1)))) Then
+                nb(i+1,3,1) = j
+                Exit
+            End If
+        End If
+    End Do
+    Do j = 3,nb(i+1,2,2)
+        xb(i+1,3,2) = GaussLegendreN(j,nO1_O2_integrand3_2,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,2),xb(i+1,1,2))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand3_2,Zs(i),Zs(i+1)),xb(i+1,1,2))).GE.Floor(Prec(xb(i+1,3,2),xb(i+1,1,2)))) Then
+                nb(i+1,3,2) = j
+                Exit
+            End If
+        End If
+    End Do
+    i = 5  !up to 110km
+    b = bs(i)
+    xb(i+1,1,1) = Romberg_Quad(nO1_O2_integrand4_1,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,1))
+    xb(i+1,1,2) = Romberg_Quad(nO1_O2_integrand4_2,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,2))
+    xb(i+1,2,1) = Progressive_GaussLegendre(nO1_O2_integrand4_1,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,1))
+    xb(i+1,2,2) = Progressive_GaussLegendre(nO1_O2_integrand4_2,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,2))
+    Do j = 3,nb(i+1,2,1)
+        xb(i+1,3,1) = GaussLegendreN(j,nO1_O2_integrand4_1,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,1),xb(i+1,1,1))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand4_1,Zs(i),Zs(i+1)),xb(i+1,1,1))).GE.Floor(Prec(xb(i+1,3,1),xb(i+1,1,1)))) Then
+                nb(i+1,3,1) = j
+                Exit
+            End If
+        End If
+    End Do
+    Do j = 3,nb(i+1,2,2)
+        xb(i+1,3,2) = GaussLegendreN(j,nO1_O2_integrand4_2,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,2),xb(i+1,1,2))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand4_2,Zs(i),Zs(i+1)),xb(i+1,1,2))).GE.Floor(Prec(xb(i+1,3,2),xb(i+1,1,2)))) Then
+                nb(i+1,3,2) = j
+                Exit
+            End If
+        End If
+    End Do
+    i = 6  !up to 115km
+    b = bs(i)
+    xb(i+1,1,1) = Romberg_Quad(nO1_O2_integrand4_1,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,1))
+    xb(i+1,1,2) = Romberg_Quad(nO1_O2_integrand4_2,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,2))
+    xb(i+1,2,1) = Progressive_GaussLegendre(nO1_O2_integrand4_1,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,1))
+    xb(i+1,2,2) = Progressive_GaussLegendre(nO1_O2_integrand4_2,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,2))
+    Do j = 3,nb(i+1,2,1)
+        xb(i+1,3,1) = GaussLegendreN(j,nO1_O2_integrand4_1,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,1),xb(i+1,1,1))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand4_1,Zs(i),Zs(i+1)),xb(i+1,1,1))).GE.Floor(Prec(xb(i+1,3,1),xb(i+1,1,1)))) Then
+                nb(i+1,3,1) = j
+                Exit
+            End If
+        End If
+    End Do
+    Do j = 3,nb(i+1,2,2)
+        xb(i+1,3,2) = GaussLegendreN(j,nO1_O2_integrand4_2,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,2),xb(i+1,1,2))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand4_2,Zs(i),Zs(i+1)),xb(i+1,1,2))).GE.Floor(Prec(xb(i+1,3,2),xb(i+1,1,2)))) Then
+                nb(i+1,3,2) = j
+                Exit
+            End If
+        End If
+    End Do
+    i = 7  !up to 120km
+    b = bs(i)
+    xb(i+1,1,1) = Romberg_Quad(nO1_O2_integrand5_1,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,1))
+    xb(i+1,1,2) = Romberg_Quad(nO1_O2_integrand5_2,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,2))
+    xb(i+1,2,1) = Progressive_GaussLegendre(nO1_O2_integrand5_1,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,1))
+    xb(i+1,2,2) = Progressive_GaussLegendre(nO1_O2_integrand5_2,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,2))
+    Do j = 3,nb(i+1,2,1)
+        xb(i+1,3,1) = GaussLegendreN(j,nO1_O2_integrand5_1,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,1),xb(i+1,1,1))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand5_1,Zs(i),Zs(i+1)),xb(i+1,1,1))).GE.Floor(Prec(xb(i+1,3,1),xb(i+1,1,1)))) Then
+                nb(i+1,3,1) = j
+                Exit
+            End If
+        End If
+    End Do
+    Do j = 3,nb(i+1,2,2)
+        xb(i+1,3,2) = GaussLegendreN(j,nO1_O2_integrand5_2,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,2),xb(i+1,1,2))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand5_2,Zs(i),Zs(i+1)),xb(i+1,1,2))).GE.Floor(Prec(xb(i+1,3,2),xb(i+1,1,2)))) Then
+                nb(i+1,3,2) = j
+                Exit
+            End If
+        End If
+    End Do
+    i = 8  !up to 1000km
+    b = bs(i)
+    xb(i+1,1,1) = Romberg_Quad(nO1_O2_integrand5_1,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,1))
+    xb(i+1,1,2) = Romberg_Quad(nO1_O2_integrand5_2,Zs(i),Zs(i+1),0._dp,rTol_tier2,n_ord=nb(i+1,1,2))
+    xb(i+1,2,1) = Progressive_GaussLegendre(nO1_O2_integrand5_1,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,1))
+    xb(i+1,2,2) = Progressive_GaussLegendre(nO1_O2_integrand5_2,Zs(i),Zs(i+1),1.E-13_dp,0._dp,n_done=nb(i+1,2,2))
+    Do j = 3,nb(i+1,2,1)
+        xb(i+1,3,1) = GaussLegendreN(j,nO1_O2_integrand5_1,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,1),xb(i+1,1,1))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand5_1,Zs(i),Zs(i+1)),xb(i+1,1,1))).GE.Floor(Prec(xb(i+1,3,1),xb(i+1,1,1)))) Then
+                nb(i+1,3,1) = j
+                Exit
+            End If
+        End If
+    End Do
+    Do j = 3,nb(i+1,2,2)
+        xb(i+1,3,2) = GaussLegendreN(j,nO1_O2_integrand5_2,Zs(i),Zs(i+1))
+        If (Floor(Prec(xb(i+1,3,2),xb(i+1,1,2))) .GE. NINT(-Log10(rTol_tier2))) Then
+            If (Floor(Prec(GaussLegendreN(j+1,nO1_O2_integrand5_2,Zs(i),Zs(i+1)),xb(i+1,1,2))).GE.Floor(Prec(xb(i+1,3,2),xb(i+1,1,2)))) Then
+                nb(i+1,3,2) = j
+                Exit
+            End If
+        End If
+    End Do
+
+Contains
+    Function nO1_O2_integrand1_1(z)
+        Use Kinds, Only: dp
+        Implicit None
+        Real(dp) :: nO1_O2_integrand1_1
+        Real(dp), Intent(In) :: z
+        Real(dp) :: x(1:2)
+
+        x = nO1_O2_integrand1(z,b)
+        nO1_O2_integrand1_1 = x(1)
+    End Function nO1_O2_integrand1_1
+    Function nO1_O2_integrand1_2(z)
+        Use Kinds, Only: dp
+        Implicit None
+        Real(dp) :: nO1_O2_integrand1_2
+        Real(dp), Intent(In) :: z
+        Real(dp) :: x(1:2)
+
+        x = nO1_O2_integrand1(z,b)
+        nO1_O2_integrand1_2 = x(2)
+    End Function nO1_O2_integrand1_2
+    Function nO1_O2_integrand2_1(z)
+        Use Kinds, Only: dp
+        Implicit None
+        Real(dp) :: nO1_O2_integrand2_1
+        Real(dp), Intent(In) :: z
+        Real(dp) :: x(1:2)
+
+        x = nO1_O2_integrand2(z,b)
+        nO1_O2_integrand2_1 = x(1)
+    End Function nO1_O2_integrand2_1
+    Function nO1_O2_integrand2_2(z)
+        Use Kinds, Only: dp
+        Implicit None
+        Real(dp) :: nO1_O2_integrand2_2
+        Real(dp), Intent(In) :: z
+        Real(dp) :: x(1:2)
+
+        x = nO1_O2_integrand2(z,b)
+        nO1_O2_integrand2_2 = x(2)
+    End Function nO1_O2_integrand2_2
+    Function nO1_O2_integrand3_1(z)
+        Use Kinds, Only: dp
+        Implicit None
+        Real(dp) :: nO1_O2_integrand3_1
+        Real(dp), Intent(In) :: z
+        Real(dp) :: x(1:2)
+
+        x = nO1_O2_integrand3(z,b)
+        nO1_O2_integrand3_1 = x(1)
+    End Function nO1_O2_integrand3_1
+    Function nO1_O2_integrand3_2(z)
+        Use Kinds, Only: dp
+        Implicit None
+        Real(dp) :: nO1_O2_integrand3_2
+        Real(dp), Intent(In) :: z
+        Real(dp) :: x(1:2)
+
+        x = nO1_O2_integrand3(z,b)
+        nO1_O2_integrand3_2 = x(2)
+    End Function nO1_O2_integrand3_2
+    Function nO1_O2_integrand4_1(z)
+        Use Kinds, Only: dp
+        Implicit None
+        Real(dp) :: nO1_O2_integrand4_1
+        Real(dp), Intent(In) :: z
+        Real(dp) :: x(1:2)
+
+        x = nO1_O2_integrand4(z,b)
+        nO1_O2_integrand4_1 = x(1)
+    End Function nO1_O2_integrand4_1
+    Function nO1_O2_integrand4_2(z)
+        Use Kinds, Only: dp
+        Implicit None
+        Real(dp) :: nO1_O2_integrand4_2
+        Real(dp), Intent(In) :: z
+        Real(dp) :: x(1:2)
+
+        x = nO1_O2_integrand4(z,b)
+        nO1_O2_integrand4_2 = x(2)
+    End Function nO1_O2_integrand4_2
+    Function nO1_O2_integrand5_1(z)
+        Use Kinds, Only: dp
+        Implicit None
+        Real(dp) :: nO1_O2_integrand5_1
+        Real(dp), Intent(In) :: z
+        Real(dp) :: x(1:2)
+
+        x = nO1_O2_integrand5(z,b)
+        nO1_O2_integrand5_1 = x(1)
+    End Function nO1_O2_integrand5_1
+    Function nO1_O2_integrand5_2(z)
+        Use Kinds, Only: dp
+        Implicit None
+        Real(dp) :: nO1_O2_integrand5_2
+        Real(dp), Intent(In) :: z
+        Real(dp) :: x(1:2)
+
+        x = nO1_O2_integrand5(z,b)
+        nO1_O2_integrand5_2 = x(2)
+    End Function nO1_O2_integrand5_2
+End Subroutine nO1_O2_GLpoints
+
+Function nAr_He_GLpoints() Result(xb)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: xb(1:8,1:3)
+    Real(dp), Parameter :: Zs(1:8) = (/  86._dp, &
+                                      &  91._dp, & 
+                                      &  95._dp, & 
+                                      &  97._dp, &
+                                      & 100._dp, & 
+                                      & 110._dp, & 
+                                      & 115._dp, & 
+                                      & 120._dp  /)
+    Integer, Parameter :: bs(1:8) = (/  7, &
+                                     &  8, & 
+                                     &  8, & 
+                                     &  8, & 
+                                     &  8, & 
+                                     &  9, & 
+                                     &  9, & 
+                                     & 10  /)
+
+    xb(:,1) = Zs
+    xb(:,2:3) = 0._dp
+    xb(2,2:3) = xb(1,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand1,Zs(1),Zs(2),bs(1)) !up to 91km
+    xb(3,2:3) = xb(2,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand1,Zs(2),Zs(3),bs(2)) !up to 95km
+    xb(4,2:3) = xb(3,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand2,Zs(3),Zs(4),bs(3)) !up to 97km
+    xb(5,2:3) = xb(4,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand2,Zs(4),Zs(5),bs(4)) !up to 100km
+    xb(6,2:3) = xb(5,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zs(5),Zs(6),bs(5)) !up to 110km
+    xb(7,2:3) = xb(6,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zs(6),Zs(7),bs(6)) !up to 115km
+    xb(8,2:3) = xb(7,2:3) + Romberg_Quad_nAr_He(nAr_He_integrand5,Zs(7),Zs(8),bs(7)) !up to 120km
+End Function nAr_He_GLpoints
 # endif
 
 End Module US_Std_Atm_1976
