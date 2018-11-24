@@ -16,21 +16,24 @@ Use US_Std_Atm_1976, Only: rho_N
 # if GL_POINTS
     Use US_Std_Atm_1976, Only: nN2_GLpoints
     Use US_Std_Atm_1976, Only: nO1_O2_GLpoints
+    Use US_Std_Atm_1976, Only: nAr_He_GLpoints
 # endif
 
 Implicit None
 
 Integer :: i,j,unit
 # if INTEGRAND_STOPS
-    Real(dp) :: ZxN2(1:5,1:2)
+    Real(dp) :: ZxN2(1:9,1:2)
     Real(dp) :: ZxO1O2(1:8,1:3)
     Real(dp) :: ZxArHe(1:8,1:3)
 # endif
 # if GL_POINTS
-    Real(dp) :: ZsN2(1:6),XsN2(1:6,1:3)
-    Integer :: NsN2(1:6,1:3)
-    Real(dp) :: ZsO1O2(1:9),XsO1O2(1:9,1:3,1:2)
-    Integer :: NsO1O2(1:9,1:3,1:2)
+    Real(dp) :: ZsN2(1:9),XsN2(1:9,1:3)
+    Integer :: NsN2(1:9,1:3)
+    Real(dp) :: ZsO1O2(1:12),XsO1O2(1:12,1:3,1:2)
+    Integer :: NsO1O2(1:12,1:3,1:2)
+    Real(dp) :: ZsArHe(1:9),XsArHe(1:9,1:3,1:2)
+    Integer :: NsArHe(1:9,1:3,1:2)
 # endif
 Real(dp) :: z
 Real(dp) :: temp,pres,dens
@@ -61,7 +64,7 @@ Real(dp), Parameter :: dZmax = 1.E-3_dp !1 meter resolution
     Write(*   ,'(A9,A23)') '--------','-------------------'
     Write(unit,'(A9,A23)') '--------','-------------------'
     ZxN2 = nN2_power_stops()
-    Do i = 2,5
+    Do i = 2,9
         Write(*   ,'(F9.3,F23.16)') ZxN2(i,1),ZxN2(i,2)
         Write(unit,'(F9.3,F23.16)') ZxN2(i,1),ZxN2(i,2)
     End Do
@@ -82,6 +85,7 @@ Real(dp), Parameter :: dZmax = 1.E-3_dp !1 meter resolution
         Write(unit,'(F9.3,2F23.16)') ZxO1O2(i,1),ZxO1O2(i,2),ZxO1O2(i,3)
     End Do
     Close(unit)
+    STOP
 
     Open(NEWUNIT=unit,FILE='IntegrandStops.tst',ACTION='WRITE',STATUS='OLD',POSITION='APPEND')
     Write(*   ,*)
@@ -105,18 +109,28 @@ Real(dp), Parameter :: dZmax = 1.E-3_dp !1 meter resolution
     Write(*,*)
     Write(*,'(A)') 'N2 Integrand quadpoints...'
     Call nN2_GLpoints(ZsN2,NsN2,XsN2)
-    Do i = 2,6
-        Write(*,'(2F8.3,A1,ES23.16,I6)') ZsN2(i-1),ZsN2(i),'',XsN2(i,1),NsN2(i,1)
-        Write(*,'(A17,ES23.16,I6)') '',XsN2(i,2),NsN2(i,2)
-        Write(*,'(A17,ES21.14,A2,I6)') '',XsN2(i,3),'',NsN2(i,3)
+    Do i = 2,9
+        Write(*,'(F8.3,F9.3,A1,ES23.16,I6)') ZsN2(i-1),ZsN2(i),'',XsN2(i,1),NsN2(i,1)
+        Write(*,'(A18,ES23.16,I6)') '',XsN2(i,2),NsN2(i,2)
+        Write(*,'(A18,ES22.15,A1,I6)') '',XsN2(i,3),'',NsN2(i,3)
     End Do
     Write(*,*)
     Write(*,'(A)') 'O1,O2 Integrand quadpoints...'
     Call nO1_O2_GLpoints(ZsO1O2,NsO1O2,XsO1O2)
+    Do i = 2,12
+        Write(*,'(F8.3,F9.3,A1,ES23.16,I6,ES23.16,I6)') ZsO1O2(i-1),ZsO1O2(i),'',XsO1O2(i,1,1),NsO1O2(i,1,1),XsO1O2(i,1,2),NsO1O2(i,1,2)
+        Write(*,'(A18,ES23.16,I6,ES23.16,I6)') '',XsO1O2(i,2,1),NsO1O2(i,2,1),XsO1O2(i,2,2),NsO1O2(i,2,2)
+        Write(*,'(A18,ES21.14,A2,I6,ES21.14,A2,I6)') '',XsO1O2(i,3,1),'',NsO1O2(i,3,1),XsO1O2(i,3,2),'',NsO1O2(i,3,2)
+    End Do
+    Write(*,*)
+    STOP
+
+    Write(*,'(A)') 'Ar,He Integrand quadpoints...'
+    Call nAr_He_GLpoints(ZsArHe,NsArHe,XsArHe)
     Do i = 2,9
-        Write(*,'(2F8.3,A1,ES23.16,I6,ES23.16,I6)') ZsO1O2(i-1),ZsO1O2(i),'',XsO1O2(i,1,1),NsO1O2(i,1,1),XsO1O2(i,1,2),NsO1O2(i,1,2)
-        Write(*,'(A17,ES23.16,I6,ES23.16,I6)') '',XsO1O2(i,2,1),NsO1O2(i,2,1),XsO1O2(i,2,2),NsO1O2(i,2,2)
-        Write(*,'(A17,ES20.13,A3,I6,ES20.13,A3,I6)') '',XsO1O2(i,3,1),'',NsO1O2(i,3,1),XsO1O2(i,3,2),'',NsO1O2(i,3,2)
+        Write(*,'(2F8.3,A1,ES23.16,I6,ES23.16,I6)') ZsArHe(i-1),ZsArHe(i),'',XsArHe(i,1,1),NsArHe(i,1,1),XsArHe(i,1,2),NsArHe(i,1,2)
+        Write(*,'(A17,ES23.16,I6,ES23.16,I6)') '',XsArHe(i,2,1),NsArHe(i,2,1),XsArHe(i,2,2),NsArHe(i,2,2)
+        Write(*,'(A17,ES19.12,A4,I6,ES19.12,A4,I6)') '',XsArHe(i,3,1),'',NsArHe(i,3,1),XsArHe(i,3,2),'',NsArHe(i,3,2)
     End Do
     Write(*,*)
     STOP
