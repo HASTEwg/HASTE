@@ -248,8 +248,8 @@ Function rng_mt19937_r53(RNG) Result(x)
     Real(dp), Parameter :: two26 = 2._dp**26
     Real(dp), Parameter :: invtwo53 = 1._dp / (2._dp**53)
     
-    a = ISHFT(RNG%i(),-5_il)
-    b = ISHFT(RNG%i(),-6_il)
+    a = Real(ISHFT(RNG%i(),-5_il),dp)
+    b = Real(ISHFT(RNG%i(),-6_il),dp)
     If (a .LT. 0._dp) a = a + two32
     If (b .LT. 0._dp) b = b + two32
     x = (a * two26 + b) * invtwo53
