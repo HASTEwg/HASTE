@@ -165,6 +165,7 @@ Module US_Std_Atm_1976
     Real(dp), Parameter :: little_A = (Zb(9)-Zb(8)) * big_A / Sqrt(big_A**2 - (Tb(9)-Tc)**2)  !US Standard Atmosphere 1976 equation B-9
     Real(dp), Parameter :: T_inf = 1000._dp
     Real(dp), Parameter :: lambda = Lb(9) / (T_inf - Tb(10))  !precomputed quantity for 1976 temperature calculations
+    Real(dp), Parameter :: R_Z9 = R_Earth + Zb(9)
     Real(dp), Parameter :: R_Z10 = R_Earth + Zb(10)
     Real(dp), Parameter :: Na = 6.022169E26_dp  ![1/kmol] Avagadro's Number
     Real(dp), Parameter :: inv_Na = 1._dp / Na
@@ -377,15 +378,18 @@ Function nN2_power(Z,b) Result(x)
                                                 & .TRUE.   /)
     Real(dp), Parameter :: rho_star_N2 = Mi(1) / R_star
     !Precomputed parameters for b = 7
-    Real(dp), Parameter :: R_Earth_sq = R_earth**2
-    Real(dp), Parameter :: g0_R0_sq_over_T7 = -g0 * R_Earth_sq / Tb(7)
+    Real(dp), Parameter :: c7 = rho_star * g0 * R_Earth**2 / (Tb(7) * (R_Earth + Zb(7)))
     !precomputed parameters for b=9
+    Real(dp), Parameter :: c9a = rho_star_N2 * Lb(9)
+    Real(dp), Parameter :: c9b = -Log(Tb(9)/R_Z9)
     Real(dp), Parameter :: L9_R0Z9 = Lb(9) * (R_Earth + Zb(9))
     Real(dp), Parameter :: g0_R0_over_T9_L9_R0Z9_sq = g0 * (R_Earth / (Tb(9)-L9_R0Z9))**2
     !precomputed parameters for b=10
-    Real(dp), Parameter :: R0sq_over_lambda_Rz10sq = R_earth**2 / (lambda * R_Z10**2)
-    Real(dp), Parameter :: g0_over_Tinf = g0 / T_inf
+    Real(dp), Parameter :: c10a = rho_star_N2 * g0 * R_Earth**2 / (T_inf * lambda * R_z10**2)
+    Real(dp), Parameter :: c10b = -lambda * R_z10**2
+    Real(dp), Parameter :: c10c = lambda * R_z10 - Log(Tb(10))
 
+    !TODO With changes to the method of evaluation, this prechecking for above/below 100km may no longer be optimal... reevaluate.
     If (Z .LE. 100._dp) Then
         M_over_R = rho_star
         Z_below_100 = .TRUE.
@@ -397,17 +401,17 @@ Function nN2_power(Z,b) Result(x)
         ! x = xb(b) + M_over_R * Romberg_Quad_nN2(Zb(b),Z,b)
         If (Z_below_100) Then !b=7
             !direct evaluation
-            ! x = M_over_R * g0_R0_sq_over_T7 / (R_Earth + Z)
-            x = M_over_R * GL_Quad_nN2_7(Z)
+            x = c7 * (Z - Zb(7)) / (R_Earth + Z)
+            ! x = M_over_R * GL_Quad_nN2_7(Z)
         Else If (b .EQ. 9) Then !b=9
             !direct evaluation
-            x = xb(9) + M_over_R * &
-                & g0_R0_over_T9_L9_R0Z9_sq * (L9_R0Z9 * (1._dp + Log(T(Z,10)/(R_Earth+Z))) - Tb(9)) / (R_Earth + Z)
+            x= xb(9) + c9a * ( ((Log(T(Z,10)/(R_Earth+Z)) * R_Z9 - (Z-Zb(9))) / (R_Earth +Z)) + c9b )
+            ! x = xb(9) + M_over_R * &
+            !     & g0_R0_over_T9_L9_R0Z9_sq * (L9_R0Z9 * (1._dp + Log(T(Z,10)/(R_Earth+Z))) - Tb(9)) / (R_Earth + Z)
             ! x = xb(9) + M_over_R * GL_Quad_nN2_9(Z)
         Else !b=10
             !direct evaluation
-            x = xb(10) + M_over_R * &
-                & g0_over_Tinf * (R0sq_over_lambda_Rz10sq * Log(T(Z,11)) - (R_Earth_sq / (R_Earth + Z)))
+            x = xb(10) + c10a * (Log(T(Z,11)) + c10b / (R_Earth + Z) + c10c)
             ! !Layer 11 (b=10) is further subdivided to keep number of quad points manageable
             ! If (Z .LT. 185._dp) Then
             !     x = xb(10) + M_over_R * GL_Quad_nN2_10a(Z)
