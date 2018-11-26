@@ -165,6 +165,7 @@ Module US_Std_Atm_1976
     Real(dp), Parameter :: little_A = (Zb(9)-Zb(8)) * big_A / Sqrt(big_A**2 - (Tb(9)-Tc)**2)  !US Standard Atmosphere 1976 equation B-9
     Real(dp), Parameter :: T_inf = 1000._dp
     Real(dp), Parameter :: lambda = Lb(9) / (T_inf - Tb(10))  !precomputed quantity for 1976 temperature calculations
+    Real(dp), Parameter :: R_Z9 = R_Earth + Zb(7)
     Real(dp), Parameter :: R_Z9 = R_Earth + Zb(9)
     Real(dp), Parameter :: R_Z10 = R_Earth + Zb(10)
     Real(dp), Parameter :: Na = 6.022169E26_dp  ![1/kmol] Avagadro's Number
@@ -361,10 +362,6 @@ Function nN2_power(Z,b) Result(x)
     Real(dp) :: x
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
-    Real(dp) :: M_over_R
-    Logical :: Z_below_100
-    ! Real(dp), Parameter :: xb(7:10) = (/ 0._dp,               &  !Z = 86km 
-    !                                    & 0.8891738712368935_dp, &  !Z = 91km
     Real(dp), Parameter :: xb(8:10) = (/ 0.8891738712368935_dp, &  !Z = 91km
                                        & 3.9815997728018484_dp, &  !Z = 110km
                                        & 5.0588195691573041_dp  /) !Z = 120km
@@ -378,58 +375,48 @@ Function nN2_power(Z,b) Result(x)
                                                 & .TRUE.   /)
     Real(dp), Parameter :: rho_star_N2 = Mi(1) / R_star
     !Precomputed parameters for b = 7
-    Real(dp), Parameter :: c7 = rho_star * g0 * R_Earth**2 / (Tb(7) * (R_Earth + Zb(7)))
+    Real(dp), Parameter :: c7 = rho_star * g0 * R_Earth * (R_earth/R_Z7) / Tb(7)
     !precomputed parameters for b=9
     Real(dp), Parameter :: c9a = rho_star_N2 * Lb(9)
     Real(dp), Parameter :: c9b = -Log(Tb(9)/R_Z9)
-    Real(dp), Parameter :: L9_R0Z9 = Lb(9) * (R_Earth + Zb(9))
-    Real(dp), Parameter :: g0_R0_over_T9_L9_R0Z9_sq = g0 * (R_Earth / (Tb(9)-L9_R0Z9))**2
     !precomputed parameters for b=10
-    Real(dp), Parameter :: c10a = rho_star_N2 * g0 * R_Earth**2 / (T_inf * lambda * R_z10**2)
+    Real(dp), Parameter :: c10a = rho_star_N2 * g0 * (R_Earth/R_Z10)**2 / (T_inf * lambda)
     Real(dp), Parameter :: c10b = -lambda * R_z10**2
     Real(dp), Parameter :: c10c = lambda * R_z10 - Log(Tb(10))
 
-    !TODO With changes to the method of evaluation, this prechecking for above/below 100km may no longer be optimal... reevaluate.
-    If (Z .LE. 100._dp) Then
-        M_over_R = rho_star
-        Z_below_100 = .TRUE.
-    Else
-        M_over_R = rho_star_N2
-        Z_below_100 = .FALSE.
-    End If
     If (no_sublayers(b)) Then !b=7, 9, or 10
-        ! x = xb(b) + M_over_R * Romberg_Quad_nN2(Zb(b),Z,b)
-        If (Z_below_100) Then !b=7
+        If (b .EQ. 7) Then !b=7
             !direct evaluation
             x = c7 * (Z - Zb(7)) / (R_Earth + Z)
-            ! x = M_over_R * GL_Quad_nN2_7(Z)
+            ! x = rho_star * Romberg_Quad_nN2(Zb(7),Z,7)
+            ! x = rho_star * GL_Quad_nN2_7(Z)
         Else If (b .EQ. 9) Then !b=9
             !direct evaluation
-            x= xb(9) + c9a * ( ((Log(T(Z,10)/(R_Earth+Z)) * R_Z9 - (Z-Zb(9))) / (R_Earth +Z)) + c9b )
-            ! x = xb(9) + M_over_R * &
-            !     & g0_R0_over_T9_L9_R0Z9_sq * (L9_R0Z9 * (1._dp + Log(T(Z,10)/(R_Earth+Z))) - Tb(9)) / (R_Earth + Z)
-            ! x = xb(9) + M_over_R * GL_Quad_nN2_9(Z)
+            x = xb(9) + c9a * ( ((Log(T(Z,10)/(R_Earth+Z)) * R_Z9 - (Z-Zb(9))) / (R_Earth +Z)) + c9b )
+            ! x = xb(9) + rho_star_N2 * Romberg_Quad_nN2(Zb(9),Z,9)
+            ! x = xb(9) + rho_star_N2 * GL_Quad_nN2_9(Z)
         Else !b=10
             !direct evaluation
             x = xb(10) + c10a * (Log(T(Z,11)) + c10b / (R_Earth + Z) + c10c)
+            ! x = xb(10) + rho_star_N2 * Romberg_Quad_nN2(Zb(10),Z,10)
             ! !Layer 11 (b=10) is further subdivided to keep number of quad points manageable
             ! If (Z .LT. 185._dp) Then
-            !     x = xb(10) + M_over_R * GL_Quad_nN2_10a(Z)
+            !     x = xb(10) + rho_star_N2 * GL_Quad_nN2_10a(Z)
             ! Else If (Z .LT. 250._dp) Then
-            !     x = xb_185 + M_over_R * GL_Quad_nN2_10b(Z)
+            !     x = xb_185 + rho_star_N2 * GL_Quad_nN2_10b(Z)
             ! Else If (Z .LT. 500._dp) Then
-            !     x = xb_250 + M_over_R * GL_Quad_nN2_10c(Z)
+            !     x = xb_250 + rho_star_N2 * GL_Quad_nN2_10c(Z)
             ! Else !Z = 500 to 1000 km
-            !     x = xb_500 + M_over_R * GL_Quad_nN2_10d(Z)
+            !     x = xb_500 + rho_star_N2 * GL_Quad_nN2_10d(Z)
             ! End If
         End If
     Else !b=8
-        If (Z_below_100) Then
-            ! x = xb(8) + M_over_R * Romberg_Quad_nN2(Zb(8),Z,8)
-            x = xb(8) + M_over_R * GL_Quad_nN2_8a(Z)
+        If (Z .LT. 100._dp) Then
+            ! x = xb(8) + rho_star * Romberg_Quad_nN2(Zb(8),Z,8)
+            x = xb(8) + rho_star * GL_Quad_nN2_8a(Z)
         Else
-            ! x = xb_100 + M_over_R * Romberg_Quad_nN2(100._dp,Z,8)
-            x = xb_100 + M_over_R * GL_Quad_nN2_8b(Z)
+            ! x = xb_100 + rho_star_N2 * Romberg_Quad_nN2(100._dp,Z,8)
+            x = xb_100 + rho_star_N2 * GL_Quad_nN2_8b(Z)
         End If
     End If
 End Function nN2_power
@@ -444,29 +431,29 @@ Function nN2_integrand(z,b) Result(x)
     x = g(z) / T(z,b+1)
 End Function nN2_integrand
 
-Function GL_Quad_nN2_7(z) Result(q)  !for 86 to 91 km
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp):: q    !the result of the integration
-    Real(dp), Intent(In) :: z    !limit of integration
-    Integer, Parameter :: n = 3
-    Real(dp), Parameter :: wi(1:n) = (/  0.5555555555555555555555555555555555555555555555555555555555555556_dp, &
-                                      &  0.8888888888888888888888888888888888888888888888888888888888888889_dp, &
-                                      &  0.5555555555555555555555555555555555555555555555555555555555555556_dp /)
-    Real(dp), Parameter :: xi(1:n) = (/ -0.7745966692414833770358530799564799221665843410583181653175147532_dp, &
-                                      &  0.0000000000000000000000000000000000000000000000000000000000000000_dp, &
-                                      &  0.7745966692414833770358530799564799221665843410583181653175147532_dp /)
-    Real(dp) :: fi(1:n)  !function values
-    Real(dp) :: c1,c2  !changes limits of integration from (a,b) to (-1,1)
-    Integer :: i
+! Function GL_Quad_nN2_7(z) Result(q)  !for 86 to 91 km
+!     Use Kinds, Only: dp
+!     Implicit None
+!     Real(dp):: q    !the result of the integration
+!     Real(dp), Intent(In) :: z    !limit of integration
+!     Integer, Parameter :: n = 3
+!     Real(dp), Parameter :: wi(1:n) = (/  0.5555555555555555555555555555555555555555555555555555555555555556_dp, &
+!                                       &  0.8888888888888888888888888888888888888888888888888888888888888889_dp, &
+!                                       &  0.5555555555555555555555555555555555555555555555555555555555555556_dp /)
+!     Real(dp), Parameter :: xi(1:n) = (/ -0.7745966692414833770358530799564799221665843410583181653175147532_dp, &
+!                                       &  0.0000000000000000000000000000000000000000000000000000000000000000_dp, &
+!                                       &  0.7745966692414833770358530799564799221665843410583181653175147532_dp /)
+!     Real(dp) :: fi(1:n)  !function values
+!     Real(dp) :: c1,c2  !changes limits of integration from (a,b) to (-1,1)
+!     Integer :: i
 
-    c1 = 0.5_dp * (z-Zb(7))
-    c2 = 0.5_dp * (z+Zb(7))
-    Do i = 1,n
-        fi(i) = nN2_integrand(c1 * xi(i) + c2,7)
-    End Do
-    q = c1 * Dot_Product(wi,fi)
-End Function GL_Quad_nN2_7
+!     c1 = 0.5_dp * (z-Zb(7))
+!     c2 = 0.5_dp * (z+Zb(7))
+!     Do i = 1,n
+!         fi(i) = nN2_integrand(c1 * xi(i) + c2,7)
+!     End Do
+!     q = c1 * Dot_Product(wi,fi)
+! End Function GL_Quad_nN2_7
 
 Function GL_Quad_nN2_8a(z) Result(q)  !for 91 to 100 km
     Use Kinds, Only: dp
