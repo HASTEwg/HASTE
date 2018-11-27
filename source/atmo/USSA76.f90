@@ -1,3 +1,11 @@
+!-------------------------------------------------------------------------------
+!  A Fortran program for atmospheric temperature, pressure, and density as 
+!  described by the United States Standard Atmosphere 1976.
+!  
+!  Coded by Whitman Dailey.  02 June 2018.
+!  Air Force Institute of Technology, Department of Engineering Physics
+!  
+!-------------------------------------------------------------------------------
 Module US_Std_Atm_1976
     
     Use Kinds, Only: dp
