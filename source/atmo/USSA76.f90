@@ -212,7 +212,7 @@ Module US_Std_Atm_1976
     Real(dp), Parameter :: nH500 = 8.E10_dp
     Real(dp), Parameter :: T500 = 999.2356017626150686_dp
     Real(dp), Parameter :: phiH = 7.2E11_dp
-    !Convergence criteria for Romberg Quadrature routines
+    !Convergence criteria for quadrature routines
 #   if (INTEGRAND_STOPS || GL_POINTS)
         Real(dp), Parameter :: rTol_tier1 = 1.E-15_dp  !N2
         Real(dp), Parameter :: rTol_tier2 = 1.E-14_dp  !O1 and O2
@@ -264,18 +264,18 @@ Function T(Z,layer,layer_range)
     Else
         b = Find_Base_Layer(Z)
     End If
-    If (Lb_nonzero(b)) Then
-        If (T_linear_by_H(b)) Then
+    If (Lb_nonzero(b)) Then !b=0,2,3,5,6,9
+        If (T_linear_by_H(b)) Then !b=0,2,3,5,6
             T = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
             If (b.EQ.6 .AND. Z.GT.80._dp) T = T * T_M0_correction(Z)  !US Standard Atmosphere 1976 equation 22
-        Else
-            T = Tb(b) + Lb(b) * (Z - Zb(b))  !US Standard Atmosphere 1976 equation 29
+        Else !b=9
+            T = Tb(9) + Lb(9) * (Z - Zb(9))  !US Standard Atmosphere 1976 equation 29
         End If
-    Else If (T_exponential(b)) Then
-        T = T_inf - (T_inf - Tb(b)) * Exp(-lambda * (Z - Zb(b)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
-    Else If (T_elliptical(b)) Then
-        T = Tc + big_A * Sqrt(1._dp - ((Z - Zb(b)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
-    Else !zero lapse rate
+    Else If (T_exponential(b)) Then !b=10
+        T = T_inf - (T_inf - Tb(10)) * Exp(-lambda * (Z - Zb(10)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
+    Else If (T_elliptical(b)) Then !b=8
+        T = Tc + big_A * Sqrt(1._dp - ((Z - Zb(8)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
+    Else !zero lapse rate, b = 1,4,7
         T = Tb(b)
     End If
 End Function T
@@ -297,19 +297,20 @@ Function dT_dZ(Z,layer,layer_range)
     Else
         b = Find_Base_Layer(Z)
     End If
-    If (Lb_nonzero(b)) Then
+    If (Lb_nonzero(b)) Then !b=0,2,3,5,6,9
         dT_dZ = Lb(b)
         If (b.EQ.6 .AND. Z.GT.80._dp) dT_dZ = dT_dZ * T_M0_correction(Z)  !US Standard Atmosphere 1976 equation 22
     Else If (T_exponential(b)) Then  !b=10
-        dT_dZ = lambda * (T_inf - Tb(10)) * ((R_Earth + Zb(10)) / (R_Earth + Z))**2 * Exp(-lambda * (Z - Zb(10)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 32
+        dT_dZ = lambda * (T_inf - Tb(10)) * (R_Z10 / (R_Earth + Z))**2 * Exp(-lambda * (Z - Zb(10)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 32
     Else If (T_elliptical(b)) Then  !b=8
         dT_dZ = -big_A * (Z - Zb(8)) / ((little_A**2) * Sqrt(1._dp - ((Z - Zb(8)) / little_A)**2))  !US Standard Atmosphere 1976 equation 28
-    Else
+    Else !b=1,4,7
         dT_dZ = 0._dp
     End If
 End Function dT_dZ
 
 Function T_M0_correction(Z) Result(c)
+    !Computes correction factor to convert molecular temperature to kinetic temperature for geometric altitudes 80-86km
     Use Kinds, Only: dp
     Use Interpolation, Only: Linear_Interp
     Implicit None
@@ -759,7 +760,6 @@ Function nO1_O2_powers(Z,b) Result(x)
     Real(dp) :: x(1:2)
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
-    Logical :: Z_below_97
     Real(dp), Parameter :: xb(1:2,8:10) = Reshape( (/ -1.2335158785531963_dp, &  !O1, Z = 91km
                                                     &  0.8987089660301266_dp, &  !O2, Z = 91km
                                                     & -1.2350403922105473_dp, &  !O1, Z = 110km
@@ -785,64 +785,46 @@ Function nO1_O2_powers(Z,b) Result(x)
                                                 & .FALSE., &
                                                 & .FALSE., &
                                                 & .TRUE.   /)
-    !precomputed parameters for b=10
-    Real(dp), Parameter :: R_Earth_sq = R_earth**2
-    Real(dp), Parameter :: R0sq_over_lambda_Rz10sq = R_earth**2 / (lambda * R_Z10**2)
-    Real(dp), Parameter :: g0_over_Tinf = g0 / T_inf
-    Real(dp), Parameter :: M_over_R(1:2) = Mi(2:3) / R_star
 
-    If (Z .LE. 97._dp) Then
-        Z_below_97 = .TRUE.
-    Else
-        Z_below_97 = .FALSE.
-    End If
-    If (no_sublayers(b)) Then
-        If (Z_below_97) Then !b=7
+    If (no_sublayers(b)) Then !b=7,10
+        If (b .EQ. 7) Then !b=7
             ! x = Romberg_Quad_nO1_O2(nO1_O2_integrand1,Zb(7),Z,7)
             x = GL_Quad_nO1_O2_7(Z)
         Else !b=10
-            !partial direct evaluation
-            x = g0_over_Tinf * (R0sq_over_lambda_Rz10sq * Log(T(Z,11)) - (R_Earth_sq / (R_Earth + Z)))
             ! x = xb(:,10) + Romberg_Quad_nO1_O2(nO1_O2_integrand5,Zb(10),Z,10)
             !Layer 11 (b=10) is further subdivided to keep number of quad points manageable
             If (Z .LT. 185._dp) Then
-                x = xb(:,10) + M_over_R * (x + GL_Quad_nO1_O2_10a(Z))
-                ! x = xb(:,10) + GL_Quad_nO1_O2_10a(Z)
+                x = xb(:,10) + GL_Quad_nO1_O2_10a(Z)
             Else If (Z .LT. 250._dp) Then
-                x = xb_185 + M_over_R * (x + GL_Quad_nO1_O2_10b(Z))
-                ! x = xb_185 + GL_Quad_nO1_O2_10b(Z)
+                x = xb_185 + GL_Quad_nO1_O2_10b(Z)
             Else If (Z .LT. 500._dp) Then
-                x = xb_250 + M_over_R * (x + GL_Quad_nO1_O2_10c(Z))
-                ! x = xb_250 + GL_Quad_nO1_O2_10c(Z)
+                x = xb_250 + GL_Quad_nO1_O2_10c(Z)
             Else !Z = 500 to 1000 km
-                x = xb_500 + M_over_R * (x + GL_Quad_nO1_O2_10d(Z))
-                ! x = xb_500 + GL_Quad_nO1_O2_10d(Z)
+                x = xb_500 + GL_Quad_nO1_O2_10d(Z)
             End If
         End If
-    Else
-        If (Z_below_97) Then !b=8
-            If (Z .LT. 95._dp) Then
+    Else !b=8,9
+        If (b .EQ. 8) Then !b=8
+            If (Z .LT. 95._dp) Then !91-95km
                 ! x = xb(:,8) + Romberg_Quad_nO1_O2(nO1_O2_integrand1,Zb(8),Z,8)
                 x = xb(:,8) + GL_Quad_nO1_O2_8a(Z)
-            Else
+            Else If (Z .LT. 97._dp) Then !95-97km
                 ! x = xb_95 + Romberg_Quad_nO1_O2(nO1_O2_integrand2,95._dp,Z,8)
                 x = xb_95 + GL_Quad_nO1_O2_8b(Z)
-            End If
-        Else !b=8 OR b=9
-            If (Z .LT. 100._dp) Then !b=8
+            Else If (Z .LT. 100._dp) Then !97-100km
                 ! x = xb_97 + Romberg_Quad_nO1_O2(nO1_O2_integrand2,97._dp,Z,8)
                 x = xb_97 + GL_Quad_nO1_O2_8c(Z)
-            Else If (b .EQ. 8) Then !b=8
+            Else !100-110km
                 ! x = xb_100 + Romberg_Quad_nO1_O2(nO1_O2_integrand3,100._dp,Z,8)
                 x = xb_100 + GL_Quad_nO1_O2_8d(Z)
-            Else !b=9
-                If (Z .LT. 115._dp) Then
-                    ! x = xb(:,9) + Romberg_Quad_nO1_O2(nO1_O2_integrand4,Zb(9),Z,9)
-                    x = xb(:,9) + GL_Quad_nO1_O2_9a(Z)
-                Else
-                    ! x = xb_115 + Romberg_Quad_nO1_O2(nO1_O2_integrand5,115._dp,Z,9)
-                    x = xb_115 + GL_Quad_nO1_O2_9b(Z)
-                End If
+            End If
+        Else !b=9
+            If (Z .LT. 115._dp) Then !110-115km
+                ! x = xb(:,9) + Romberg_Quad_nO1_O2(nO1_O2_integrand4,Zb(9),Z,9)
+                x = xb(:,9) + GL_Quad_nO1_O2_9a(Z)
+            Else !115-120km
+                ! x = xb_115 + Romberg_Quad_nO1_O2(nO1_O2_integrand5,115._dp,Z,9)
+                x = xb_115 + GL_Quad_nO1_O2_9b(Z)
             End If
         End If
     End If
@@ -940,9 +922,8 @@ Function nO1_O2_integrand5(Z,b) Result(f)  !for 115 to 1000 km
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
 
-    ! f = g(Z) * Mi(2:3) / (R_star * T(Z,b+1)) + & 
-    !   & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
-    f = bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
+    f = g(Z) * Mi(2:3) / (R_star * T(Z,b+1)) + & 
+      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand5
 
 Function GL_Quad_nO1_O2_7(z) Result(q)  !for 86 to 91 km
@@ -1418,7 +1399,6 @@ Function nAr_He_powers(Z,b) Result(x)
     Real(dp) :: x(1:2)
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
-    Logical :: Z_below_97
     Real(dp), Parameter :: xb(1:2,8:10) = Reshape( (/  0.902943388752_dp, &  !Ar, Z = 91km
                                                     &  0.796321374781_dp, &  !He, Z = 91km
                                                     &  4.611292962115_dp, &  !Ar, Z = 110km
@@ -1439,35 +1419,28 @@ Function nAr_He_powers(Z,b) Result(x)
                                                 & .FALSE., &
                                                 & .TRUE.   /)
     
-    If (Z .LE. 97._dp) Then
-        Z_below_97 = .TRUE.
-    Else
-        Z_below_97 = .FALSE.
-    End If
-    If (no_sublayers(b)) Then
-        If (Z_below_97) Then !b=7
+    If (no_sublayers(b)) Then !b=7,10
+        If (b .EQ. 7) Then !b=7
             x = Romberg_Quad_nAr_He(nAr_He_integrand1,Zb(7),Z,7)
         Else !b=10
             x = xb(:,10) + Romberg_Quad_nAr_He(nAr_He_integrand5,Zb(10),Z,10)
         End If
-    Else
-        If (Z_below_97) Then !b=8
-            If (Z .LT. 95._dp) Then
+    Else !b=8,9
+        If (b .EQ. 8) Then !b=8
+            If (Z .LT. 95._dp) Then !91-95km
                 x = xb(:,8) + Romberg_Quad_nAr_He(nAr_He_integrand1,Zb(8),Z,8)
-            Else
+            Else If (Z .LT. 97._dp) Then !95-97km
                 x = xb_95 + Romberg_Quad_nAr_He(nAr_He_integrand2,95._dp,Z,8)
-            End If
-        Else !b=8 OR b=9
-            If (Z .LT. 100._dp) Then !b=8
+            Else If (Z .LT. 100._dp) Then !97-100km
                 x = xb_97 + Romberg_Quad_nAr_He(nAr_He_integrand2,97._dp,Z,8)
-            Else If (b .EQ. 8) Then !b=8
+            Else !100-110km
                 x = xb_100 + Romberg_Quad_nAr_He(nAr_He_integrand4,100._dp,Z,8)
-            Else !b=9
-                If (Z .LT. 115._dp) Then
-                    x = xb(:,9) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zb(9),Z,9)
-                Else
-                    x = xb_115 + Romberg_Quad_nAr_He(nAr_He_integrand5,115._dp,Z,9)
-                End If
+            End If
+        Else !b=9
+            If (Z .LT. 115._dp) Then !110-115km
+                x = xb(:,9) + Romberg_Quad_nAr_He(nAr_He_integrand4,Zb(9),Z,9)
+            Else !115-120km
+                x = xb_115 + Romberg_Quad_nAr_He(nAr_He_integrand5,115._dp,Z,9)
             End If
         End If
     End If
