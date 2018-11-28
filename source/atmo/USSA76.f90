@@ -277,19 +277,56 @@ Function T(Z,layer,layer_range)
     End If
     If (Lb_nonzero(b)) Then !b=0,2,3,5,6,9
         If (T_linear_by_H(b)) Then !b=0,2,3,5,6
-            T = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
+            T = Teq23(Z,b)  !Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
             If (b.EQ.6 .AND. Z.GT.80._dp) T = T * T_M0_correction(Z)  !US Standard Atmosphere 1976 equation 22
         Else !b=9
-            T = Tb(9) + Lb(9) * (Z - Zb(9))  !US Standard Atmosphere 1976 equation 29
+            T = Teq29(Z)  !Tb(9) + Lb(9) * (Z - Zb(9))  !US Standard Atmosphere 1976 equation 29
         End If
     Else If (T_exponential(b)) Then !b=10
-        T = T_inf - (T_inf - Tb(10)) * Exp(-lambda * (Z - Zb(10)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
+        T = Teq31(Z)  !T_inf - (T_inf - Tb(10)) * Exp(-lambda * (Z - Zb(10)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
     Else If (T_elliptical(b)) Then !b=8
-        T = Tc + big_A * Sqrt(1._dp - ((Z - Zb(8)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
+        T = Teq27(Z)  !Tc + big_A * Sqrt(1._dp - ((Z - Zb(8)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
     Else !zero lapse rate, b = 1,4,7
         T = Tb(b)
     End If
 End Function T
+
+Function Teq23(Z,b)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: Teq23
+    Real(dp), Intent(In) :: Z
+    Integer, Intent(In) :: b
+
+    Teq23 = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
+End Function Teq23
+
+Function Teq27(Z)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: Teq27
+    Real(dp), Intent(In) :: Z
+
+    Teq27 = Tc + big_A * Sqrt(1._dp - ((Z - Zb(8)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
+End Function Teq27
+
+Function Teq29(Z)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: Teq29
+    Real(dp), Intent(In) :: Z
+
+    Teq29 = Tb(9) + Lb(9) * (Z - Zb(9))  !US Standard Atmosphere 1976 equation 29
+End Function Teq29
+
+Function Teq31(Z)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: Teq31
+    Real(dp), Intent(In) :: Z
+
+    Teq31 = T_inf - (T_inf - Tb(10)) * Exp(-lambda * (Z - Zb(10)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
+End Function Teq31
 
 Function dT_dZ(Z,layer,layer_range)
     Use Kinds, Only: dp
@@ -1939,37 +1976,69 @@ Function P(Z,layer,layer_range)
     Else
         b = Find_Base_Layer(Z)
     End If
-    If (Lb_nonzero(b)) Then
-        If (T_linear_by_H(b)) Then
-            Tz = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
+    If (Lb_nonzero(b)) Then !b=0,2,3,5,6,9
+        If (T_linear_by_H(b)) Then !b=0,2,3,5,6
+            Tz = Teq23(Z,b)  !Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
             !NOTE: Tz is molecular temperature for altitudes below 86km
-        Else
-            Tz = Tb(b) + Lb(b) * (Z - Zb(b))  !US Standard Atmosphere 1976 equation 29
-        End If
-        If (P_rho_not_by_N(b)) Then
-            P = Pb_Tb_L_star_Lb(b) * Tz**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
-        Else
+            P = Peq33a(Z,b)  !Pb_Tb_L_star_Lb(b) * Tz**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
+        Else !b=9
+            Tz = Teq29(Z)  !Tb(9) + Lb(9) * (Z - Zb(9))  !US Standard Atmosphere 1976 equation 29
             Call rho_N(Z,Tz,b,N)
-            P = N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
+            P = Peq33c(N,Tz)  !N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
         End If
-    Else If (T_exponential(b)) Then
-        Tz = T_inf - (T_inf - Tb(b)) * Exp(-lambda * (Z - Zb(b)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
+        ! If (P_rho_not_by_N(b)) Then !b=0,2,3,5,6
+        !     P = Peq33a(Z,b)  !Pb_Tb_L_star_Lb(b) * Tz**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
+        ! Else !b = 9
+        !     Call rho_N(Z,Tz,b,N)
+        !     P = Peq33c(N,Tz)  !N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
+        ! End If
+    Else If (T_exponential(b)) Then !b=10
+        Tz = Teq31(Z)  !T_inf - (T_inf - Tb(10)) * Exp(-lambda * (Z - Zb(10)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
         Call rho_N(Z,Tz,b,N)
-        P = N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
-    Else If (T_elliptical(b)) Then
-        Tz = Tc + big_A * Sqrt(1._dp - ((Z - Zb(b)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
+        P = Peq33c(N,Tz)  !N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
+    Else If (T_elliptical(b)) Then !b=8
+        Tz = Teq27(Z)  !Tc + big_A * Sqrt(1._dp - ((Z - Zb(8)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
         Call rho_N(Z,Tz,b,N)
-        P = N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
-    Else !zero lapse rate
+        P = Peq33c(N,Tz)  !N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
+    Else !b=1,4,7  zero lapse rate
         Tz = Tb(b)
-        If (P_rho_not_by_N(b)) Then
-            P = Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
-        Else
+        If (P_rho_not_by_N(b)) Then !b=1,4
+            P = Peq33b(Z,b)  !Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
+        Else  !b=7
             Call rho_N(Z,Tz,b,N)
-            P = N * Tb(b) * N_star  !US Standard Atmosphere 1976 equation 33c
+            P = Peq33c(N,Tz)  !N * Tb(b) * N_star  !US Standard Atmosphere 1976 equation 33c
         End If
     End If
 End Function P
+
+Function Peq33a(Tz,b)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: Peq33a
+    Real(dp), Intent(In) :: Tz
+    Integer, Intent(In) :: b
+    
+    Peq33a = Pb_Tb_L_star_Lb(b) * Tz**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
+End Function Peq33a
+
+Function Peq33b(Z,b)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: Peq33b
+    Real(dp), Intent(In) :: Z
+    Integer, Intent(In) :: b
+    
+    Peq33b = Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
+End Function Peq33b
+
+Function Peq33c(N,Tz)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: Peq33c
+    Real(dp), Intent(In) :: N,Tz
+    
+    Peq33c = N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
+End Function Peq33c
 
 Function rho(Z,layer,layer_range)
     Use Kinds, Only: dp
@@ -1978,9 +2047,11 @@ Function rho(Z,layer,layer_range)
     Real(dp), Intent(In) :: Z ![km]
     Integer, Intent(In), Optional :: layer
     Integer, Intent(In), Optional :: layer_range(1:3)
-    Real(dp) :: Tz,Pz,N(1:5)!(1:6)
+    Real(dp) :: Tz
+    Real(dp) :: Pz
+    Real(dp) :: N(1:5)!(1:6)
     Integer :: b
-    Real(dp), Parameter :: kg2g = 1000._dp  !conversion for kg to g
+!    Real(dp), Parameter :: inv_Na_kg2g = inv_Na * 1000._dp  !1/Na multiplied by conversion for kg to g
     
     !find atmospheric base layer
     If (Present(layer)) Then
@@ -1990,39 +2061,62 @@ Function rho(Z,layer,layer_range)
     Else
         b = Find_Base_Layer(Z)
     End If
-    If (Lb_nonzero(b)) Then
-        If (T_linear_by_H(b)) Then
-            Tz = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
+    If (Lb_nonzero(b)) Then !b=0,2,3,5,6,9
+        If (T_linear_by_H(b)) Then !b=0,2,3,5,6
+            Tz = Teq23(Z,b)  !Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
             !NOTE: Tz is molecular temperature for altitudes below 86km
-        Else
-            Tz = Tb(b) + Lb(b) * (Z - Zb(b))  !US Standard Atmosphere 1976 equation 29
-        End If
-        If (P_rho_not_by_N(b)) Then
-            Pz = Pb_Tb_L_star_Lb(b) * Tz**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
-            rho = Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
-        Else
+            Pz = Peq33a(Tz,b)  !Pb_Tb_L_star_Lb(b) * Tz**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
+            rho = rhoeq42_1(Tz,Pz)  !Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
+        Else !b=9
+            Tz = Teq29(Z)  !Tb(9) + Lb(9) * (Z - Zb(9))  !US Standard Atmosphere 1976 equation 29
             Call rho_N(Z,Tz,b,N)
-            rho = Sum(N * Mi(1:5)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
+            rho = rhoeq42_3(N)  !Sum(N * Mi(1:5)) * inv_Na_kg2g  !US Standard Atmosphere 1976 equation 42-3
         End If
-    Else If (T_exponential(b)) Then
-        Tz = T_inf - (T_inf - Tb(b)) * Exp(-lambda * (Z - Zb(b)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
+        ! If (P_rho_not_by_N(b)) Then !b=0,2,3,5,6
+        !     Pz = Peq33a(Tz,b)  !Pb_Tb_L_star_Lb(b) * Tz**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
+        !     rho = Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
+        ! Else !b=9
+        !     Call rho_N(Z,Tz,b,N)
+        !     rho = Sum(N * Mi(1:5)) * inv_Na_kg2g  !US Standard Atmosphere 1976 equation 42-3
+        ! End If
+    Else If (T_exponential(b)) Then !b=10
+        Tz = Teq31(Z)  !T_inf - (T_inf - Tb(10)) * Exp(-lambda * (Z - Zb(10)) * R_Z10 / (R_Earth + Z))  !US Standard Atmosphere 1976 equation 31
         Call rho_N(Z,Tz,b,N)
-        rho = Sum(N * Mi(1:5)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
-    Else If (T_elliptical(b)) Then
-        Tz = Tc + big_A * Sqrt(1._dp - ((Z - Zb(b)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
+        rho = rhoeq42_3(N)  !Sum(N * Mi(1:5)) * inv_Na_kg2g  !US Standard Atmosphere 1976 equation 42-3
+    Else If (T_elliptical(b)) Then !b=8
+        Tz = Teq27(Z)  !Tc + big_A * Sqrt(1._dp - ((Z - Zb(8)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
         Call rho_N(Z,Tz,b,N)
-        rho = Sum(N * Mi(1:5)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
-    Else !zero lapse rate
+        rho = rhoeq42_3(N)  !Sum(N * Mi(1:5)) * inv_Na_kg2g  !US Standard Atmosphere 1976 equation 42-3
+    Else !b=1,4,7  zero lapse rate
         Tz = Tb(b)
-        If (P_rho_not_by_N(b)) Then
-            Pz = Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
-            rho = Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
-        Else
+        If (P_rho_not_by_N(b)) Then !b=1,4
+            Pz = Peq33b(Z)  !Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
+            rho = rhoeq42_1(Tz,Pz)  !Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
+        Else !b=7
             Call rho_N(Z,Tz,b,N)
-            rho = Sum(N * Mi(1:5)) * inv_Na * kg2g  !US Standard Atmosphere 1976 equation 42-3
+            rho = rhoeq42_3(N)  !Sum(N * Mi(1:5)) * inv_Na_kg2g  !US Standard Atmosphere 1976 equation 42-3
         End If
     End If
 End Function rho
+
+Function rhoeq42_1(Tz,Pz)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: rhoeq42_1
+    Real(dp), Intent(In) :: Tz,Pz
+    
+    rhoeq42_1 = Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
+End Function rhoeq42_1
+
+Function rhoeq42_3(N)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: rhoeq42_3
+    Real(dp), Intent(In) :: N(1:5)
+    Real(dp), Parameter :: inv_Na_kg2g = inv_Na * 1000._dp  !1/Na multiplied by conversion for kg to g
+    
+    rhoeq42_3 = Sum(N * Mi(1:5)) * inv_Na_kg2g  !US Standard Atmosphere 1976 equation 42-3
+End Function rhoeq42_3
 
 Elemental Function Z_to_H(Z) Result(H)
     Use Kinds, Only: dp
