@@ -1,12 +1,15 @@
+Module US_Std_Atm_1976
 !-------------------------------------------------------------------------------
-!  A Fortran program for atmospheric temperature, pressure, and density as 
+!  A Fortran 2008 program for atmospheric temperature, pressure, and density as 
 !  described by the United States Standard Atmosphere 1976.
+!  
+!  Distributed under GNU General Public License v3.0
+!  Copyright (C) 2018, Whitman Dailey
 !  
 !  Coded by Whitman Dailey.  02 June 2018.
 !  Air Force Institute of Technology, Department of Engineering Physics
-!  
+!
 !-------------------------------------------------------------------------------
-Module US_Std_Atm_1976
     
     Use Kinds, Only: dp
     Implicit None    
