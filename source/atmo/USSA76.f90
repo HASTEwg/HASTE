@@ -176,7 +176,7 @@ Module US_Std_Atm_1976
     Real(dp), Parameter :: little_A = (Zb(9)-Zb(8)) * big_A / Sqrt(big_A**2 - (Tb(9)-Tc)**2)  !US Standard Atmosphere 1976 equation B-9
     Real(dp), Parameter :: T_inf = 1000._dp
     Real(dp), Parameter :: lambda = Lb(9) / (T_inf - Tb(10))  !precomputed quantity for 1976 temperature calculations
-    Real(dp), Parameter :: R_Z9 = R_Earth + Zb(7)
+    Real(dp), Parameter :: R_Z7 = R_Earth + Zb(7)
     Real(dp), Parameter :: R_Z9 = R_Earth + Zb(9)
     Real(dp), Parameter :: R_Z10 = R_Earth + Zb(10)
     Real(dp), Parameter :: Na = 6.022169E26_dp  ![1/kmol] Avagadro's Number
@@ -424,10 +424,11 @@ Function nN2_power(Z,b) Result(x)
                                                 & .TRUE.   /)
     Real(dp), Parameter :: rho_star_N2 = Mi(1) / R_star
     !Precomputed parameters for b = 7
-    Real(dp), Parameter :: c7 = rho_star * g0 * R_Earth * (R_earth/R_Z7) / Tb(7)
+    Real(dp), Parameter :: c7 = rho_star * g0 * R_Earth * (R_Earth/R_Z7) / Tb(7)
     !precomputed parameters for b=9
-    Real(dp), Parameter :: c9a = rho_star_N2 * Lb(9)
+    Real(dp), Parameter :: c9a = rho_star_N2 * g0 * (R_Earth / (Tb(9) - Lb(9)*R_Z9))**2
     Real(dp), Parameter :: c9b = -Log(Tb(9)/R_Z9)
+    Real(dp), Parameter :: c9c = (Lb(9)*R_Z9 - Tb(9)) / R_Z9
     !precomputed parameters for b=10
     Real(dp), Parameter :: c10a = rho_star_N2 * g0 * (R_Earth/R_Z10)**2 / (T_inf * lambda)
     Real(dp), Parameter :: c10b = -lambda * R_z10**2
@@ -441,7 +442,7 @@ Function nN2_power(Z,b) Result(x)
             ! x = rho_star * GL_Quad_nN2_7(Z)
         Else If (b .EQ. 9) Then !b=9
             !direct evaluation
-            x = xb(9) + c9a * ( ((Log(T(Z,10)/(R_Earth+Z)) * R_Z9 - (Z-Zb(9))) / (R_Earth +Z)) + c9b )
+            x = xb(9) + c9a * ( Lb(9) * (Log(T(Z,10)/(R_Earth+Z)) + c9b) - c9c * (Z-Zb(9)) / (R_Earth+Z) )
             ! x = xb(9) + rho_star_N2 * Romberg_Quad_nN2(Zb(9),Z,9)
             ! x = xb(9) + rho_star_N2 * GL_Quad_nN2_9(Z)
         Else !b=10
@@ -2090,7 +2091,7 @@ Function rho(Z,layer,layer_range)
     Else !b=1,4,7  zero lapse rate
         Tz = Tb(b)
         If (P_rho_not_by_N(b)) Then !b=1,4
-            Pz = Peq33b(Z)  !Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
+            Pz = Peq33b(Z,b)  !Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
             rho = rhoeq42_1(Tz,Pz)  !Pz * rho_star /  Tz  !US Standard Atmosphere 1976 equation 42-1
         Else !b=7
             Call rho_N(Z,Tz,b,N)
@@ -2192,7 +2193,10 @@ Function nN2_power_stops() Result(xb)
     xb(:,2) = 0._dp
     Do i = 2,9
         xb(i,2) = xb(i-1,2) + M_over_R(i-1) * Romberg_Quad_nN2(Zs(i-1),Zs(i),bs(i-1))
+Print*,xb(i,2)
+print*,nN2_power(zs(i),bs(i-1))
     End Do
+stop
 End Function nN2_power_stops
 
 Function nO1_O2_power_stops() Result(xb)
