@@ -139,25 +139,25 @@ Module US_Std_Atm_1976
                                                   & .FALSE., &
                                                   & .FALSE., &
                                                   & .FALSE.  /)  !flags indicating Pressure and Density computed by OTHER than number density
-    Real(dp), Parameter :: Tb_minus_LbHb(0:7) = Tb(0:7) - Lb(0:7)*Hb(0:7)  !precomputed quantity for 1976 temperature calculations
-    Real(dp), Parameter :: L_star = g0 * M0 / R_star  !precomputed quantity for 1976 pressure calculations
-    Real(dp), Parameter :: L_star_Lb(0:7) = (/ L_star / Lb(0), &  !precomputed quantity for 1976 pressure calculations
-                                             & 0._dp,          & 
-                                             & L_star / Lb(2), & 
-                                             & L_star / Lb(3), & 
-                                             & 0._dp,          & 
-                                             & L_star / Lb(5), & 
-                                             & L_star / Lb(6), &
-                                             & 0._dp           /)
-    Real(dp), Parameter :: Pb_Tb_L_star_Lb(0:7) = (/ Pb(0) * Tb(0)**L_star_Lb(0), &  !precomputed quantity for 1976 pressure calculations
-                                                   & Pb(1),                       & 
-                                                   & Pb(2) * Tb(2)**L_star_Lb(2), & 
-                                                   & Pb(3) * Tb(3)**L_star_Lb(3), & 
-                                                   & Pb(4),                       & 
-                                                   & Pb(5) * Tb(5)**L_star_Lb(5), & 
-                                                   & Pb(6) * Tb(6)**L_star_Lb(6), &
-                                                   & Pb(7)                        /)
-    Real(dp), Parameter :: L_star_Tb(0:7) = -L_star / Tb(0:7)  !precomputed quantity for 1976 pressure calculations
+    ! Real(dp), Parameter :: Tb_minus_LbHb(0:7) = Tb(0:7) - Lb(0:7)*Hb(0:7)  !precomputed quantity for 1976 temperature calculations
+    ! Real(dp), Parameter :: L_star = g0 * M0 / R_star  !precomputed quantity for 1976 pressure calculations
+    ! Real(dp), Parameter :: L_star_Lb(0:7) = (/ L_star / Lb(0), &  !precomputed quantity for 1976 pressure calculations
+    !                                          & 0._dp,          & 
+    !                                          & L_star / Lb(2), & 
+    !                                          & L_star / Lb(3), & 
+    !                                          & 0._dp,          & 
+    !                                          & L_star / Lb(5), & 
+    !                                          & L_star / Lb(6), &
+    !                                          & 0._dp           /)
+    ! Real(dp), Parameter :: Pb_Tb_L_star_Lb(0:7) = (/ Pb(0) * Tb(0)**L_star_Lb(0), &  !precomputed quantity for 1976 pressure calculations
+    !                                                & Pb(1),                       & 
+    !                                                & Pb(2) * Tb(2)**L_star_Lb(2), & 
+    !                                                & Pb(3) * Tb(3)**L_star_Lb(3), & 
+    !                                                & Pb(4),                       & 
+    !                                                & Pb(5) * Tb(5)**L_star_Lb(5), & 
+    !                                                & Pb(6) * Tb(6)**L_star_Lb(6), &
+    !                                                & Pb(7)                        /)
+    ! Real(dp), Parameter :: L_star_Tb(0:7) = -L_star / Tb(0:7)  !precomputed quantity for 1976 pressure calculations
     Real(dp), Parameter :: rho_star = M0 / R_star  !precomputed quantity for 1976 density calculations
     Real(dp), Parameter :: Tc = (Lb(9) * (Zb(9)-Zb(8)) * Tb(9) + Tb(8)**2 - Tb(9)**2) / &
                               & (Lb(9) * (Zb(9)-Zb(8)) + 2._dp * Tb(8) - 2._dp * Tb(9))  !US Standard Atmosphere 1976 equation B-8
@@ -165,12 +165,12 @@ Module US_Std_Atm_1976
     Real(dp), Parameter :: little_A = (Zb(9)-Zb(8)) * big_A / Sqrt(big_A**2 - (Tb(9)-Tc)**2)  !US Standard Atmosphere 1976 equation B-9
     Real(dp), Parameter :: T_inf = 1000._dp
     Real(dp), Parameter :: lambda = Lb(9) / (T_inf - Tb(10))  !precomputed quantity for 1976 temperature calculations
-    Real(dp), Parameter :: R_Z7 = R_Earth + Zb(7)
+    ! Real(dp), Parameter :: R_Z7 = R_Earth + Zb(7)
     Real(dp), Parameter :: R_Z9 = R_Earth + Zb(9)
     Real(dp), Parameter :: R_Z10 = R_Earth + Zb(10)
     Real(dp), Parameter :: Na = 6.022169E26_dp  ![1/kmol] Avagadro's Number
-    Real(dp), Parameter :: inv_Na = 1._dp / Na
-    Real(dp), Parameter :: N_star = R_star / Na
+    ! Real(dp), Parameter :: inv_Na = 1._dp / Na
+    ! Real(dp), Parameter :: N_star = R_star / Na
     Real(dp), Parameter :: K0 = 1.2E2_dp
     Real(dp), Parameter :: Mi(1:6) = (/ 28.0134_dp, &  !N2
                                       & 15.9994_dp, &  !O1
@@ -179,7 +179,8 @@ Module US_Std_Atm_1976
                                       &  4.0026_dp, &  !He
                                       &  0.5_dp * 2.01594_dp  /) !H1  !US Standard Atmosphere 1976 table 3
     Real(dp), Parameter :: alphaHe = -0.40_dp  !He  !US Standard Atmosphere 1976 table 6
-    Real(dp), Parameter :: alphaH1 = -0.25_dp  !H1  !US Standard Atmosphere 1976 table 6
+    Real(dp), Parameter :: alphaHe_star = alphaHe * R_star  !precomputed quantity for 1976 He number density calculations
+    ! Real(dp), Parameter :: alphaH1 = -0.25_dp  !H1  !US Standard Atmosphere 1976 table 6
     Real(dp), Parameter :: ai(2:6) = (/ 6.986E20_dp, &  !O1
                                       & 4.863E20_dp, &  !O2
                                       & 4.487E20_dp, &  !Ar
@@ -208,9 +209,10 @@ Module US_Std_Atm_1976
                                       & 8.6E16_dp,      &  !O1
                                       & 3.030898E19_dp, &  !O2
                                       & 1.351400E18_dp, &  !Ar
-                                      & 7.5817E14_dp    /) !He  !US Standard Atmosphere 1976 table 9    
+                                      & 7.5817E14_dp    /) !He  !US Standard Atmosphere 1976 table 9
+    Real(dp), Parameter :: N7_T7(1:5) = N7 * Tb(7)  !precomputed quantity for 1976 diffusion coeff calculations
     Real(dp), Parameter :: nH500 = 8.E10_dp
-    Real(dp), Parameter :: T500 = 999.2356017626150686_dp
+    ! Real(dp), Parameter :: T500 = 999.2356017626150686_dp
     Real(dp), Parameter :: phiH = 7.2E11_dp
     !Convergence criteria for quadrature routines
 #   if (INTEGRAND_STOPS || GL_POINTS)
@@ -280,17 +282,18 @@ Function T(Z,layer,layer_range)
     End If
 End Function T
 
-Function Teq23(Z,b)
+Function Teq23(Z,b) !b=0,2,3,5,6
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: Teq23
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
+    Real(dp), Parameter :: Tb_minus_LbHb(0:7) = Tb(0:7) - Lb(0:7)*Hb(0:7)  !precomputed quantity for 1976 temperature calculations
 
     Teq23 = Tb_minus_LbHb(b) + Lb(b) * Z_to_H(Z)  !US Standard Atmosphere 1976 equation 23
 End Function Teq23
 
-Function Teq27(Z)
+Function Teq27(Z) !b=8
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: Teq27
@@ -299,7 +302,7 @@ Function Teq27(Z)
     Teq27 = Tc + big_A * Sqrt(1._dp - ((Z - Zb(8)) / little_A)**2)  !US Standard Atmosphere 1976 equation 27
 End Function Teq27
 
-Function Teq29(Z)
+Function Teq29(Z) !b=9
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: Teq29
@@ -308,7 +311,7 @@ Function Teq29(Z)
     Teq29 = Tb(9) + Lb(9) * (Z - Zb(9))  !US Standard Atmosphere 1976 equation 29
 End Function Teq29
 
-Function Teq31(Z)
+Function Teq31(Z) !b=10
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: Teq31
@@ -417,8 +420,8 @@ Function nN2_power(Z,b) Result(x)
     Real(dp), Parameter :: c9c = (Lb(9)*R_Z9 - Tb(9)) / R_Z9
     !precomputed parameters for b=10
     Real(dp), Parameter :: c10a = rho_star_N2 * g0 * (R_Earth/R_Z10)**2 / (T_inf * lambda)
-    Real(dp), Parameter :: c10b = -lambda * R_z10**2
-    Real(dp), Parameter :: c10c = lambda * R_z10 - Log(Tb(10))
+    Real(dp), Parameter :: c10b = -lambda * R_Z10**2
+    Real(dp), Parameter :: c10c = lambda * R_Z10 - Log(Tb(10))
 
     If (no_sublayers(b)) Then !b=7, 9, or 10
         If (b .EQ. 7) Then !b=7
@@ -628,6 +631,7 @@ Function nO1_O2_powers(Z,b) Result(x)
 End Function nO1_O2_powers
 
 Function K95to115(Z) Result(K)
+    !computes eddy-diffusion coefficent according to US Standard Atmosphere 1976 equation 7a-c
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: K
@@ -635,14 +639,25 @@ Function K95to115(Z) Result(K)
     Real(dp) :: x
     
     If (Z .LT. 95._dp) Then
-        K = K0
+        K = K0  !US Standard Atmosphere 1976 equation 7a
     Else If (Z .LT. 115._dp) Then
         x = (Z - 95._dp)**2
         K = K0 * Exp(-x / (400._dp - x))  !US Standard Atmosphere 1976 equation 7b
     Else
-        K = 0._dp
+        K = 0._dp  !US Standard Atmosphere 1976 equation 7c
     End If
 End Function K95to115
+
+Function Dcoeff_O1_O2(Tz,Z,b) Result(D)
+    !computes molecular-diffusion coefficent according to US Standard Atmosphere 1976 equation 8 for O1 and O2
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: D(1:2)
+    Real(dp), Intent(In) :: Tz,Z
+    Integer, Intent(In) :: b
+    
+    D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7_T7(1) * Exp(-nN2_power(Z,b)) / Tz)  !US Standard Atmosphere 1976 equation 8
+End Function Dcoeff_O1_O2
 
 Function nO1_O2_integrand1(Z,b) Result(f)  !for 86 to 95 km
     Use Kinds, Only: dp
@@ -654,7 +669,7 @@ Function nO1_O2_integrand1(Z,b) Result(f)  !for 86 to 95 km
     Real(dp) :: D(1:2)
     
     Tz = T(Z,b+1)
-    D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
+    D = Dcoeff_O1_O2(Tz,Z,b)  !ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7_T7(1) * Exp(-nN2_power(Z,b)) / Tz)
     f = g(Z) * D * (Mi(2:3) + M0*K0/D) / (R_star * Tz * (D + K0)) + & 
       & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
     f(1) = f(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
@@ -670,8 +685,8 @@ Function nO1_O2_integrand2(Z,b) Result(f)  !for 95 to 97 km
     Real(dp) :: D(1:2)
     Real(dp) :: K
     
-    Tz = T(Z,b+1)
-    D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
+    Tz = Teq27(Z)  !T(Z,b+1)
+    D = Dcoeff_O1_O2(Tz,Z,b)  !ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
     K = K95to115(Z)
     f = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + & 
       & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
@@ -688,8 +703,8 @@ Function nO1_O2_integrand3(Z,b) Result(f)  !for 97 to 100 km
     Real(dp) :: D(1:2)
     Real(dp) :: K
 
-    Tz = T(Z,b+1)
-    D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
+    Tz = Teq27(Z)  !T(Z,b+1)
+    D = Dcoeff_O1_O2(Tz,Z,b)  !ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
     K = K95to115(Z)
     f = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + & 
       & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
@@ -706,7 +721,7 @@ Function nO1_O2_integrand4(Z,b) Result(f)  !for 100 to 115 km
     Real(dp) :: K
     
     Tz = T(Z,b+1)
-    D = ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
+    D = Dcoeff_O1_O2(Tz,Z,b)  !ai(2:3) * (Tz / 273.15_dp)**bi(2:3) / (N7(1) * Tb(7) * Exp(-nN2_power(Z,b)) / Tz)
     K = K95to115(Z)
     f = g(Z) * D * (Mi(2:3) + Mi(1)*K/D) / (R_star * Tz * (D + K)) + & 
       & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
@@ -1243,6 +1258,21 @@ Function nAr_He_powers(Z,b) Result(x)
     End If
 End Function nAr_He_powers
 
+Function Dcoeff_Ar_He(Tz,Z,b) Result(D)
+    !computes molecular-diffusion coefficent according to US Standard Atmosphere 1976 equation 8 for Ar and He
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: D(1:2)
+    Real(dp), Intent(In) :: Tz,Z
+    Integer, Intent(In) :: b
+    Real(dp) :: Nb(1:3)
+    
+    Nb(1) = nN2_power(Z,b)
+    Nb(2:3) = nO1_O2_powers(Z,b)
+    Nb = N7_T7(1:3) * Exp(-Nb) / Tz
+    D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)  !US Standard Atmosphere 1976 equation 8
+End Function Dcoeff_Ar_He
+
 Function nAr_He_integrand1(Z,b) Result(f)  !for 86 to 95 km
     Use Kinds, Only: dp
     Implicit None
@@ -1250,19 +1280,19 @@ Function nAr_He_integrand1(Z,b) Result(f)  !for 86 to 95 km
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
     Real(dp) :: Tz
-    Real(dp) :: Nb(1:3)
+    ! Real(dp) :: Nb(1:3)
     Real(dp) :: D(1:2)
     Real(dp) :: y(1:2)
     
     Tz = T(Z,b+1)
-    Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power(Z,b))
-    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,b))
-    Nb = Nb / Tz
-    D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
+    ! Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power(Z,b))
+    ! Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,b))
+    ! Nb = Nb / Tz
+    D = Dcoeff_Ar_He(Tz,Z,b)  !ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
     y = D / (R_star * Tz * (D + K0))
     f = g(Z) * y * (Mi(4:5) + M0*K0/D) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y(2) * alphaHe * R_star * dT_dZ(Z,b+1)
+    f(2) = f(2) + y(2) * alphaHe_star * dT_dZ(Z,b+1)
 End Function nAr_He_integrand1
 
 Function nAr_He_integrand2(Z,b) Result(f)  !for 95 to 100 km
@@ -1272,21 +1302,21 @@ Function nAr_He_integrand2(Z,b) Result(f)  !for 95 to 100 km
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
     Real(dp) :: Tz
-    Real(dp) :: Nb(1:3)
+    ! Real(dp) :: Nb(1:3)
     Real(dp) :: D(1:2)
     Real(dp) :: y(1:2)
     Real(dp) :: K
     
-    Tz = T(Z,b+1)
-    Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power(Z,b))
-    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,b))
-    Nb = Nb / Tz
-    D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
+    Tz = Teq27(Z)  !T(Z,b+1)
+    ! Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power(Z,b))
+    ! Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,b))
+    ! Nb = Nb / Tz
+    D = Dcoeff_Ar_He(Tz,Z,b)  !ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
     K = K95to115(Z)
     y = D / (R_star * Tz * (D + K))
     f = g(Z) * y * (Mi(4:5) + M0*K/D) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y(2) * alphaHe * R_star * dT_dZ(Z,b+1)
+    f(2) = f(2) + y(2) * alphaHe_star * dT_dZ(Z,b+1)
 End Function nAr_He_integrand2
 
 Function nAr_He_integrand4(Z,b) Result(f)  !for 100 to 115 km
@@ -1296,21 +1326,21 @@ Function nAr_He_integrand4(Z,b) Result(f)  !for 100 to 115 km
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
     Real(dp) :: Tz
-    Real(dp) :: Nb(1:3)
+    ! Real(dp) :: Nb(1:3)
     Real(dp) :: D(1:2)
     Real(dp) :: y(1:2)
     Real(dp) :: K
     
     Tz = T(Z,b+1)
-    Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power(Z,b))
-    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,b))
-    Nb = Nb / Tz
-    D = ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
+    ! Nb(1) = N7(1) * Tb(7) * Exp(-nN2_power(Z,b))
+    ! Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,b))
+    ! Nb = Nb / Tz
+    D = Dcoeff_Ar_He(Tz,Z,b)  !ai(4:5) * (Tz / 273.15_dp)**bi(4:5) / Sum(Nb)
     K = K95to115(Z)
     y = D / (R_star * Tz * (D + K))
     f = g(Z) * y * (Mi(4:5) + (Sum(Nb*Mi(1:3))/Sum(Nb))*K/D) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y(2) * alphaHe * R_star * dT_dZ(Z,b+1)
+    f(2) = f(2) + y(2) * alphaHe_star * dT_dZ(Z,b+1)
 End Function nAr_He_integrand4
 
 Function nAr_He_integrand5(Z,b) Result(f)  !for 115 to 1000 km
@@ -1324,7 +1354,7 @@ Function nAr_He_integrand5(Z,b) Result(f)  !for 115 to 1000 km
     y = 1._dp / (R_star * T(Z,b+1))
     f = g(Z) * y * Mi(4:5) + & 
       & bigQi(4:5) * (Z - bigUi(4:5))**2 * Exp(-bigWi(4:5)*(Z - bigUi(4:5))**3)
-    f(2) = f(2) + y * alphaHe * R_star * dT_dZ(Z,b+1)
+    f(2) = f(2) + y * alphaHe_star * dT_dZ(Z,b+1)
 End Function nAr_He_integrand5
 
 Subroutine N_densities(Z,Tz,b,N)
@@ -1362,136 +1392,6 @@ Subroutine N_density(Z,Tz,b,N)
     Call N_densities(Z,Tz,b,Ns)
     N = Sum(Ns)
 End Subroutine N_density
-
-Function Romberg_Quad_nN2(a,b,p) Result(q)
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp):: q    !the result of the integration
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Integer, Intent(In) :: p
-    Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
-    Real(dp) :: Ti(0:Tmax)  !Extrapolation table previous row
-    Real(dp) :: Tk0,Tk  !Extrapolation table current row values
-    Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
-    Integer :: n      !number of intervals
-    Real(dp) :: h0,h  !spacing between quadrature ordinates
-    Real(dp) :: fk    !multiplier for extrapolation steps
-    Real(dp) :: s     !sum of function values at quadrature ordinates
-    Real(dp) :: aj    !the j-th ordinate
-
-    !Initial trapezoid estimate: T0(0)
-    n = 1
-    s = 0.5_dp * (g(a) / T(a,p+1) + g(b) / T(b,p+1))
-    h0 = b - a
-    Ti(0) = h0 * s
-    Do i = 1,Tmax !up to Tmax rows in the table
-        !Trapezoid estimate i-th row of table: Ti(0)
-        n = n * 2
-        h = h0 / Real(n,dp)
-        Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
-            aj = a + Real(j,dp)*h
-            s = s + g(aj) / T(aj,p+1)
-        End Do
-        Tk0 = h * s
-        !Fill i-th row, columns k = 1:i, with extrapolated estimates
-        fk = 1._dp
-        Do k = 1,i
-            fk = fk * 4._dp
-            Tk = (fk * Tk0 - Ti(k-1)) / (fk - 1._dp)
-            If (k .EQ. i) Then
-                Exit !skip storage steps if working final column
-            Else
-                Ti(k-1) = Tk0  !store Tk0 for next i
-                Tk0 = Tk  !store Tk for next k
-            End If
-        End Do
-        !Check for convergence
-        If ( Abs(Ti(i-1) - Tk) .LE. rTol_tier1 * Abs(Tk) ) Then
-            q = Tk
-            Return  !Normal exit
-        Else !store Tk0 and Tk for next i
-            Ti(i-1) = Tk0
-            Ti(i) = Tk
-        End If
-    End Do
-    !If we get this far, we did not converge
-    Write(*,'(A,I0,A)')        'ERROR:  US_Std_Atm_1976: Romberg_Quad_nN2:  Failed to converge in ',Tmax,' extrapolations.'
-    Write(*,'(A,F0.16)')       '        Final estimated value: ',Tk
-    Write(*,'(A,2(ES10.3,A))') '        Final Extrapolation Error: ',Abs(Tk-Ti(Tmax-1)),' (abs), ',Abs(Tk-Ti(Tmax-1))/Tk,' (rel)'
-    Write(*,'(A,2(ES10.3,A))') '        Convergence Criteria:      ',0._dp,             ' (abs), ',rTol_tier1,           ' (rel)'
-    ERROR STOP
-End Function Romberg_Quad_nN2
-
-Function Romberg_Quad_nO1_O2(f,a,b,p) Result(q)
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp):: q(1:2)    !the result of the integration
-    Interface
-        Function f(x,k)    !the function to be integrated
-            Use Kinds,Only: dp
-            Implicit None
-            Real(dp) :: f(1:2)
-            Real(dp), Intent(In) :: x
-            Integer, Intent(In) :: k
-        End Function f
-    End Interface
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Integer, Intent(In) :: p
-    Integer, Parameter :: Tmax = 16  !maximum number of extrapolations in the table
-    Real(dp) :: Ti(1:2,0:Tmax)  !Extrapolation table previous row
-    Real(dp) :: Tk0(1:2),Tk(1:2)  !Extrapolation table current row values
-    Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
-    Integer :: n      !number of intervals
-    Real(dp) :: h0,h  !spacing between quadrature ordinates
-    Real(dp) :: fk    !multiplier for extrapolation steps
-    Real(dp) :: s(1:2)     !sum of function values at quadrature ordinates
-
-    !Initial trapezoid estimate: T0(0)
-    n = 1
-    s = 0.5_dp * (f(a,p) + f(b,p))
-    h0 = b - a
-    Ti(:,0) = h0 * s
-    Do i = 1,Tmax !up to Tmax rows in the table
-        !Trapezoid estimate i-th row of table: Ti(0)
-        n = n * 2
-        h = h0 / Real(n,dp)
-        Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
-            s = s + f(a + Real(j,dp)*h,p)
-        End Do
-        Tk0 = h * s
-        !Fill i-th row, columns k = 1:i, with extrapolated estimates
-        fk = 1._dp
-        Do k = 1,i
-            fk = fk * 4._dp
-            Tk = (fk * Tk0 - Ti(:,k-1)) / (fk - 1._dp)
-            If (k .EQ. i) Then
-                Exit !skip storage steps if working final column
-            Else
-                Ti(:,k-1) = Tk0  !store Tk0 for next i
-                Tk0 = Tk  !store Tk for next k
-            End If
-        End Do
-        !Check for convergence
-        If ( Any(Abs(Ti(:,i-1) - Tk) .LE. rTol_tier2 * Abs(Tk)) ) Then
-            q = Tk
-            Return  !Normal exit
-        Else !store Tk0 and Tk for next i
-            Ti(:,i-1) = Tk0
-            Ti(:,i) = Tk
-        End If
-    End Do
-    !If we get this far, we did not converge
-    Print*,p
-    Print*,a,b
-    Print*,Ti
-    Write(*,'(A,I0,A)')      'ERROR:  US_Std_Atm_1976: Romberg_Quad_nO1_O2:  Failed to converge in ',Tmax,' extrapolations.'
-    Write(*,'(A,F0.16)')     '          Final estimated value: ',Tk(1)
-    Write(*,'(A,F0.16)')     '                                 ',Tk(2)
-    Write(*,'(2(A,ES10.3))') '          Final Extrapolation Error: ',Abs(Tk(1)-Ti(1,Tmax-1)),' (abs), ',Abs(Tk(1)-Ti(1,Tmax-1))/Tk(1),' (rel)'
-    Write(*,'(2(A,ES10.3))') '                                     ',Abs(Tk(2)-Ti(2,Tmax-1)),' (abs), ',Abs(Tk(2)-Ti(2,Tmax-1))/Tk(2),' (rel)'
-    Write(*,'(2(A,ES10.3))') '          Convergence Criteria:      ',0._dp,               ' (abs), ',rTol_tier2,                ' (rel)'
-    ERROR STOP
-End Function Romberg_Quad_nO1_O2
 
 Function Romberg_Quad_nAr_He(f,a,b,p) Result(q)
     Use Kinds, Only: dp
@@ -1563,6 +1463,7 @@ End Function Romberg_Quad_nAr_He
 
 Function nH(Z) Result(N)
     Use Kinds, Only: dp
+    Use Quadratures, Only: Romberg_Quad
     Implicit None
     Real(dp) :: N
     Real(dp), Intent(In) :: Z
@@ -1570,22 +1471,23 @@ Function nH(Z) Result(N)
     If (Z .LT. 150._dp) Then
         N = 0._dp
     Else If (Z .LT. 500._dp) Then
-        N = (nH500 - phiH * Romberg_Quad_nH(500._dp,Z)) / p6(Z)  !US Standard Atmosphere 1976 equation 39
-    Else If (Z .GT. 500._dp) Then
+        ! N = (nH500 - phiH * Romberg_Quad_nH(500._dp,Z)) / p6(Z)  !US Standard Atmosphere 1976 equation 39
+        N = (nH500 - phiH * Romberg_Quad(nH_integrand,500._dp,Z,0._dp,rTol_tier4b)) / p6(Z)  !US Standard Atmosphere 1976 equation 39
+    Else !z .GE. 500
         N = nH500 / p6(Z)  !US Standard Atmosphere 1976 equation 39
-    Else
-        N = nH500
     End If
 End Function nH
 
 Function p6(Z) Result(p)
     Use Kinds, Only: dp
+    Use Quadratures, Only: Romberg_Quad
     Implicit None
     Real(dp) :: p
     Real(dp), Intent(In) :: Z
+    Real(dp), Parameter :: T500 = 999.2356017626150686_dp
     
-    !p = (T(Z,11) / T500)**(1._dp + alphaiH1) * Exp(Romberg_Quad_p6(500._dp,Z))
-    p = Sqrt(Sqrt((T(Z,11) / T500)**3)) * Exp(Romberg_Quad_p6(500._dp,Z))
+    ! p = Sqrt(Sqrt((T(Z,11) / T500)**3)) * Exp(Romberg_Quad_p6(500._dp,Z))
+    p = Sqrt(Sqrt((T(Z,11) / T500)**3)) * Exp(Romberg_Quad(p6_integrand,500._dp,Z,0._dp,rTol_tier4a))
 End Function p6
 
 Function nH_integrand(Z) Result(f)
@@ -1594,118 +1496,123 @@ Function nH_integrand(Z) Result(f)
     Real(dp) :: f
     Real(dp), Intent(In) :: Z
     Real(dp) :: Tz
-    Real(dp) :: D
+    Real(dp) :: Nb(1:5)
+    Real(dp) :: D_inv
     
     Tz = T(Z,11)
-    D = ai(6) * Sqrt(Tz / 273.15_dp) / & 
-      & ((      N7(1)   * Tb(7) * Exp(-nN2_power(Z,10)) + & 
-      &     Sum(N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,10))) + & 
-      &     Sum(N7(4:5) * Tb(7) * Exp(-nAr_He_powers(Z,10)))     ) / Tz)
-    f = p6(Z) / D
+    Nb(1) =   nN2_power(Z,10)
+    Nb(2:3) = nO1_O2_powers(Z,10)
+    Nb(4:5) = nAr_He_powers(Z,10)
+    Nb = N7_T7 * Exp(-Nb) / Tz
+    D_inv = Nb / (ai(6) * Sqrt(Tz / 273.15_dp))
+    f = p6(Z) * D_inv
 End Function nH_integrand
 
-Function Romberg_Quad_nH(a,b) Result(q)
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp):: q    !the result of the integration
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Integer, Parameter :: Tmax = 16
-    Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
-    Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
-    Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
-    Integer :: n      !number of intervals
-    Real(dp) :: fk    !multiplier for extrapolation steps
-    Real(dp) :: h     !spacing between quadrature ordinates
-    Real(dp) :: s     !sum of function values at quadrature ordinates
+! Function Romberg_Quad_nH(a,b) Result(q)
+!     Use Kinds, Only: dp
+!     Implicit None
+!     Real(dp):: q    !the result of the integration
+!     Real(dp), Intent(In) :: a,b    !limits of integration
+!     Integer, Parameter :: Tmax = 16
+!     Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
+!     Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
+!     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
+!     Integer :: n      !number of intervals
+!     Real(dp) :: fk    !multiplier for extrapolation steps
+!     Real(dp) :: h     !spacing between quadrature ordinates
+!     Real(dp) :: s     !sum of function values at quadrature ordinates
 
-    !Initial trapezoid estimate: T0(0)
-    n = 1
-    s = 0.5_dp * (nH_integrand(a) + nH_integrand(b))
-    T0(0) = (b - a) * s
-    Do i = 1,Tmax !up to Tmax rows in the table
-        !Trapezoid estimate i-th row of table: Ti(0)
-        n = n * 2
-        h = (b - a) / Real(n,dp)
-        Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
-            s = s + nH_integrand(a + Real(j,dp)*h)
-        End Do
-        Ti(0) = h * s
-        !Fill i-th row with extrapolated estimates
-        fk = 1._dp
-        Do k = 1,i
-            fk = fk * 4._dp
-            Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
-        End Do
-        !Check for convergence compared to the final extrapolated value in the previous table row
-        If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier4b * Abs(Ti(i)) ) Then
-            q = Ti(i) !Ti(i) is the position of the highest precision converged value
-            Return  !Normal exit
-        End If
-        !switch the current row to the previous row
-        T0 = Ti  !i-th row becomes new previous row
-    End Do
-    !If we get this far, we did not converge
-    Print *,"ERROR:  US_Std_Atm_1976: Romberg_Quad_nH:  Failed to converge in 20 extrapolations."
-    ERROR STOP
-End Function Romberg_Quad_nH
+!     !Initial trapezoid estimate: T0(0)
+!     n = 1
+!     s = 0.5_dp * (nH_integrand(a) + nH_integrand(b))
+!     T0(0) = (b - a) * s
+!     Do i = 1,Tmax !up to Tmax rows in the table
+!         !Trapezoid estimate i-th row of table: Ti(0)
+!         n = n * 2
+!         h = (b - a) / Real(n,dp)
+!         Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
+!             s = s + nH_integrand(a + Real(j,dp)*h)
+!         End Do
+!         Ti(0) = h * s
+!         !Fill i-th row with extrapolated estimates
+!         fk = 1._dp
+!         Do k = 1,i
+!             fk = fk * 4._dp
+!             Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
+!         End Do
+!         !Check for convergence compared to the final extrapolated value in the previous table row
+!         If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier4b * Abs(Ti(i)) ) Then
+!             q = Ti(i) !Ti(i) is the position of the highest precision converged value
+!             Return  !Normal exit
+!         End If
+!         !switch the current row to the previous row
+!         T0 = Ti  !i-th row becomes new previous row
+!     End Do
+!     !If we get this far, we did not converge
+!     Print *,"ERROR:  US_Std_Atm_1976: Romberg_Quad_nH:  Failed to converge in 16 extrapolations."
+!     ERROR STOP
+! End Function Romberg_Quad_nH
 
 Function p6_integrand(Z) Result(p)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: p
     Real(dp), Intent(In) :: Z
+    Real(dp) :: Tz
     Real(dp) :: Nb(1:5)
     
-    Nb(1) =   N7(1)   * Tb(7) * Exp(-nN2_power(Z,10))
-    Nb(2:3) = N7(2:3) * Tb(7) * Exp(-nO1_O2_powers(Z,10))
-    Nb(4:5) = N7(4:5) * Tb(7) * Exp(-nAr_He_powers(Z,10))
-    p = (Sum(Nb*Mi(1:5))/Sum(Nb)) * g(Z) / (R_star * T(Z,11))  !US Standard Atmosphere 1976 equation 40
+    Tz = T(Z,11)
+    Nb(1) =   nN2_power(Z,10)
+    Nb(2:3) = nO1_O2_powers(Z,10)
+    Nb(4:5) = nAr_He_powers(Z,10)
+    Nb = N7_T7 * Exp(-Nb) / Tz
+    p = ( Sum(Nb*Mi(1:5)) / Sum(Nb) ) * g(Z) / (R_star * Tz)  !US Standard Atmosphere 1976 equation 40
 End Function p6_integrand
 
-Function Romberg_Quad_p6(a,b) Result(q)
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp):: q    !the result of the integration
-    Real(dp), Intent(In) :: a,b    !limits of integration
-    Integer, Parameter :: Tmax = 16
-    Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
-    Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
-    Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
-    Integer :: n      !number of intervals
-    Real(dp) :: fk    !multiplier for extrapolation steps
-    Real(dp) :: h     !spacing between quadrature ordinates
-    Real(dp) :: s     !sum of function values at quadrature ordinates
+! Function Romberg_Quad_p6(a,b) Result(q)
+!     Use Kinds, Only: dp
+!     Implicit None
+!     Real(dp):: q    !the result of the integration
+!     Real(dp), Intent(In) :: a,b    !limits of integration
+!     Integer, Parameter :: Tmax = 16
+!     Real(dp) :: T0(0:Tmax)  !Extrapolation table, previous row
+!     Real(dp) :: Ti(0:Tmax)  !Extrapolation table, current row
+!     Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
+!     Integer :: n      !number of intervals
+!     Real(dp) :: fk    !multiplier for extrapolation steps
+!     Real(dp) :: h     !spacing between quadrature ordinates
+!     Real(dp) :: s     !sum of function values at quadrature ordinates
 
-    !Initial trapezoid estimate: T0(0)
-    n = 1
-    s = 0.5_dp * (p6_integrand(a) + p6_integrand(b))
-    T0(0) = (b - a) * s
-    Do i = 1,Tmax !up to Tmax rows in the table
-        !Trapezoid estimate i-th row of table: Ti(0)
-        n = n * 2
-        h = (b - a) / Real(n,dp)
-        Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
-            s = s + p6_integrand(a + Real(j,dp)*h)
-        End Do
-        Ti(0) = h * s
-        !Fill i-th row with extrapolated estimates
-        fk = 1._dp
-        Do k = 1,i
-            fk = fk * 4._dp
-            Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
-        End Do
-        !Check for convergence compared to the final extrapolated value in the previous table row
-        If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier4a * Abs(Ti(i)) ) Then
-            q = Ti(i) !Ti(i) is the position of the highest precision converged value
-            Return  !Normal exit
-        End If
-        !switch the current row to the previous row
-        T0 = Ti  !i-th row becomes new previous row
-    End Do
-    !If we get this far, we did not converge
-    Print *,"ERROR:  US_Std_Atm_1976: Romberg_Quad_p6:  Failed to converge in 20 extrapolations."
-    ERROR STOP
-End Function Romberg_Quad_p6
+!     !Initial trapezoid estimate: T0(0)
+!     n = 1
+!     s = 0.5_dp * (p6_integrand(a) + p6_integrand(b))
+!     T0(0) = (b - a) * s
+!     Do i = 1,Tmax !up to Tmax rows in the table
+!         !Trapezoid estimate i-th row of table: Ti(0)
+!         n = n * 2
+!         h = (b - a) / Real(n,dp)
+!         Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
+!             s = s + p6_integrand(a + Real(j,dp)*h)
+!         End Do
+!         Ti(0) = h * s
+!         !Fill i-th row with extrapolated estimates
+!         fk = 1._dp
+!         Do k = 1,i
+!             fk = fk * 4._dp
+!             Ti(k) = (fk * Ti(k-1) - T0(k-1)) / (fk - 1._dp)
+!         End Do
+!         !Check for convergence compared to the final extrapolated value in the previous table row
+!         If ( Abs(T0(i-1) - Ti(i)) .LE. rTol_tier4a * Abs(Ti(i)) ) Then
+!             q = Ti(i) !Ti(i) is the position of the highest precision converged value
+!             Return  !Normal exit
+!         End If
+!         !switch the current row to the previous row
+!         T0 = Ti  !i-th row becomes new previous row
+!     End Do
+!     !If we get this far, we did not converge
+!     Print *,"ERROR:  US_Std_Atm_1976: Romberg_Quad_p6:  Failed to converge in 16 extrapolations."
+!     ERROR STOP
+! End Function Romberg_Quad_p6
 
 Function P(Z,layer,layer_range)
     Use Kinds, Only: dp
@@ -1766,7 +1673,24 @@ Function Peq33a(Tz,b)
     Real(dp) :: Peq33a
     Real(dp), Intent(In) :: Tz
     Integer, Intent(In) :: b
-    
+    Real(dp), Parameter :: L_star = g0 * M0 / R_star  !precomputed quantity for 1976 pressure calculations
+    Real(dp), Parameter :: L_star_Lb(0:7) = (/  L_star / Lb(0), &  !precomputed quantity for 1976 pressure calculations
+                                             & -1._dp,          & 
+                                             &  L_star / Lb(2), & 
+                                             &  L_star / Lb(3), & 
+                                             & -1._dp,          & 
+                                             &  L_star / Lb(5), & 
+                                             &  L_star / Lb(6), &
+                                             & -1._dp           /)
+    Real(dp), Parameter :: Pb_Tb_L_star_Lb(0:7) = (/  Pb(0) * Tb(0)**L_star_Lb(0), &  !precomputed quantity for 1976 pressure calculations
+                                                   & -1._dp,                       & 
+                                                   &  Pb(2) * Tb(2)**L_star_Lb(2), & 
+                                                   &  Pb(3) * Tb(3)**L_star_Lb(3), & 
+                                                   & -1._dp,                       & 
+                                                   &  Pb(5) * Tb(5)**L_star_Lb(5), & 
+                                                   &  Pb(6) * Tb(6)**L_star_Lb(6), &
+                                                   & -1._dp                        /)
+
     Peq33a = Pb_Tb_L_star_Lb(b) * Tz**(-L_star_Lb(b))  !US Standard Atmosphere 1976 equation 33a
 End Function Peq33a
 
@@ -1776,6 +1700,15 @@ Function Peq33b(Z,b)
     Real(dp) :: Peq33b
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
+    Real(dp), Parameter :: L_star = g0 * M0 / R_star  !precomputed quantity for 1976 pressure calculations
+    Real(dp), Parameter :: L_star_Tb(0:7) = (/ -1._dp,          &  !precomputed quantity for 1976 pressure calculations
+                                             & -L_star / Tb(1), & 
+                                             & -1._dp,          & 
+                                             & -1._dp,          & 
+                                             & -L_star / Tb(4), & 
+                                             & -1._dp,          & 
+                                             & -1._dp,          & 
+                                             & -1._dp           /)
     
     Peq33b = Pb(b) * Exp( L_star_Tb(b) * (Z_to_H(Z) - Hb(b)) )  !US Standard Atmosphere 1976 equation 33b
 End Function Peq33b
@@ -1785,6 +1718,7 @@ Function Peq33c(N,Tz)
     Implicit None
     Real(dp) :: Peq33c
     Real(dp), Intent(In) :: N,Tz
+    Real(dp), Parameter :: N_star = R_star / Na
     
     Peq33c = N * Tz * N_star  !US Standard Atmosphere 1976 equation 33c
 End Function Peq33c
@@ -1862,7 +1796,7 @@ Function rhoeq42_3(N)
     Implicit None
     Real(dp) :: rhoeq42_3
     Real(dp), Intent(In) :: N(1:5)
-    Real(dp), Parameter :: inv_Na_kg2g = inv_Na * 1000._dp  !1/Na multiplied by conversion for kg to g
+    Real(dp), Parameter :: inv_Na_kg2g = 1000._dp / Na  !1/Na multiplied by conversion for kg to g
     
     rhoeq42_3 = Sum(N * Mi(1:5)) * inv_Na_kg2g  !US Standard Atmosphere 1976 equation 42-3
 End Function rhoeq42_3
@@ -2832,6 +2766,138 @@ Contains
         nAr_He_integrand5_2 = x(2)
     End Function nAr_He_integrand5_2
 End Subroutine nAr_He_GLpoints
+# endif
+
+# if (INTEGRAND_STOPS || GL_POINTS)
+Function Romberg_Quad_nN2(a,b,p) Result(q)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp):: q    !the result of the integration
+    Real(dp), Intent(In) :: a,b    !limits of integration
+    Integer, Intent(In) :: p
+    Integer, Parameter :: Tmax = 20  !maximum number of extrapolations in the table
+    Real(dp) :: Ti(0:Tmax)  !Extrapolation table previous row
+    Real(dp) :: Tk0,Tk  !Extrapolation table current row values
+    Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
+    Integer :: n      !number of intervals
+    Real(dp) :: h0,h  !spacing between quadrature ordinates
+    Real(dp) :: fk    !multiplier for extrapolation steps
+    Real(dp) :: s     !sum of function values at quadrature ordinates
+    Real(dp) :: aj    !the j-th ordinate
+
+    !Initial trapezoid estimate: T0(0)
+    n = 1
+    s = 0.5_dp * (g(a) / T(a,p+1) + g(b) / T(b,p+1))
+    h0 = b - a
+    Ti(0) = h0 * s
+    Do i = 1,Tmax !up to Tmax rows in the table
+        !Trapezoid estimate i-th row of table: Ti(0)
+        n = n * 2
+        h = h0 / Real(n,dp)
+        Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
+            aj = a + Real(j,dp)*h
+            s = s + g(aj) / T(aj,p+1)
+        End Do
+        Tk0 = h * s
+        !Fill i-th row, columns k = 1:i, with extrapolated estimates
+        fk = 1._dp
+        Do k = 1,i
+            fk = fk * 4._dp
+            Tk = (fk * Tk0 - Ti(k-1)) / (fk - 1._dp)
+            If (k .EQ. i) Then
+                Exit !skip storage steps if working final column
+            Else
+                Ti(k-1) = Tk0  !store Tk0 for next i
+                Tk0 = Tk  !store Tk for next k
+            End If
+        End Do
+        !Check for convergence
+        If ( Abs(Ti(i-1) - Tk) .LE. rTol_tier1 * Abs(Tk) ) Then
+            q = Tk
+            Return  !Normal exit
+        Else !store Tk0 and Tk for next i
+            Ti(i-1) = Tk0
+            Ti(i) = Tk
+        End If
+    End Do
+    !If we get this far, we did not converge
+    Write(*,'(A,I0,A)')        'ERROR:  US_Std_Atm_1976: Romberg_Quad_nN2:  Failed to converge in ',Tmax,' extrapolations.'
+    Write(*,'(A,F0.16)')       '        Final estimated value: ',Tk
+    Write(*,'(A,2(ES10.3,A))') '        Final Extrapolation Error: ',Abs(Tk-Ti(Tmax-1)),' (abs), ',Abs(Tk-Ti(Tmax-1))/Tk,' (rel)'
+    Write(*,'(A,2(ES10.3,A))') '        Convergence Criteria:      ',0._dp,             ' (abs), ',rTol_tier1,           ' (rel)'
+    ERROR STOP
+End Function Romberg_Quad_nN2
+
+Function Romberg_Quad_nO1_O2(f,a,b,p) Result(q)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp):: q(1:2)    !the result of the integration
+    Interface
+        Function f(x,k)    !the function to be integrated
+            Use Kinds,Only: dp
+            Implicit None
+            Real(dp) :: f(1:2)
+            Real(dp), Intent(In) :: x
+            Integer, Intent(In) :: k
+        End Function f
+    End Interface
+    Real(dp), Intent(In) :: a,b    !limits of integration
+    Integer, Intent(In) :: p
+    Integer, Parameter :: Tmax = 16  !maximum number of extrapolations in the table
+    Real(dp) :: Ti(1:2,0:Tmax)  !Extrapolation table previous row
+    Real(dp) :: Tk0(1:2),Tk(1:2)  !Extrapolation table current row values
+    Integer :: i,j,k  !counters: i for table row, j for quadrature ordinates, k for table column
+    Integer :: n      !number of intervals
+    Real(dp) :: h0,h  !spacing between quadrature ordinates
+    Real(dp) :: fk    !multiplier for extrapolation steps
+    Real(dp) :: s(1:2)     !sum of function values at quadrature ordinates
+
+    !Initial trapezoid estimate: T0(0)
+    n = 1
+    s = 0.5_dp * (f(a,p) + f(b,p))
+    h0 = b - a
+    Ti(:,0) = h0 * s
+    Do i = 1,Tmax !up to Tmax rows in the table
+        !Trapezoid estimate i-th row of table: Ti(0)
+        n = n * 2
+        h = h0 / Real(n,dp)
+        Do j = 1,n-1,2  !Odd values of j are NEW points at which to evaluate f
+            s = s + f(a + Real(j,dp)*h,p)
+        End Do
+        Tk0 = h * s
+        !Fill i-th row, columns k = 1:i, with extrapolated estimates
+        fk = 1._dp
+        Do k = 1,i
+            fk = fk * 4._dp
+            Tk = (fk * Tk0 - Ti(:,k-1)) / (fk - 1._dp)
+            If (k .EQ. i) Then
+                Exit !skip storage steps if working final column
+            Else
+                Ti(:,k-1) = Tk0  !store Tk0 for next i
+                Tk0 = Tk  !store Tk for next k
+            End If
+        End Do
+        !Check for convergence
+        If ( Any(Abs(Ti(:,i-1) - Tk) .LE. rTol_tier2 * Abs(Tk)) ) Then
+            q = Tk
+            Return  !Normal exit
+        Else !store Tk0 and Tk for next i
+            Ti(:,i-1) = Tk0
+            Ti(:,i) = Tk
+        End If
+    End Do
+    !If we get this far, we did not converge
+    Print*,p
+    Print*,a,b
+    Print*,Ti
+    Write(*,'(A,I0,A)')      'ERROR:  US_Std_Atm_1976: Romberg_Quad_nO1_O2:  Failed to converge in ',Tmax,' extrapolations.'
+    Write(*,'(A,F0.16)')     '          Final estimated value: ',Tk(1)
+    Write(*,'(A,F0.16)')     '                                 ',Tk(2)
+    Write(*,'(2(A,ES10.3))') '          Final Extrapolation Error: ',Abs(Tk(1)-Ti(1,Tmax-1)),' (abs), ',Abs(Tk(1)-Ti(1,Tmax-1))/Tk(1),' (rel)'
+    Write(*,'(2(A,ES10.3))') '                                     ',Abs(Tk(2)-Ti(2,Tmax-1)),' (abs), ',Abs(Tk(2)-Ti(2,Tmax-1))/Tk(2),' (rel)'
+    Write(*,'(2(A,ES10.3))') '          Convergence Criteria:      ',0._dp,               ' (abs), ',rTol_tier2,                ' (rel)'
+    ERROR STOP
+End Function Romberg_Quad_nO1_O2
 # endif
 
 End Module US_Std_Atm_1976
