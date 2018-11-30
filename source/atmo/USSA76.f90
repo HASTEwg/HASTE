@@ -551,6 +551,14 @@ Function nO1_O2_powers(Z,b) Result(x)
                                                 & .FALSE., &
                                                 & .TRUE.   /)
 
+    Real(dp), Parameter :: nQ_3W(1:2) = -bigQi(2:3) / (3._dp * bigWi(2:3))
+    Real(dp), Parameter :: eWUZb3(1:2,7:10) = (/ Exp(bigWi(2:3) * (bigUi(2:3) - Zb(7))**3), &
+                                                 Exp(bigWi(2:3) * (bigUi(2:3) - Zb(8))**3), &
+                                                 Exp(bigWi(2:3) * (bigUi(2:3) - Zb(9))**3), &
+                                                 Exp(bigWi(2:3) * (bigUi(2:3) - Zb(10))**3) /)
+    Real(dp), Parameter :: Q_3W = littleQi / (3._dp * littleWi)
+    Real(dp), Parameter :: enWZbU3(7:8) = (/ Exp(-littleWi * (Zb(7)-littleUi)**3), &
+                                             Exp(-littleWi * (Zb(7)-littleUi)**3)  /)
     Real(dp), Parameter :: rho_star_O1_O2(1:2) = Mi(2:3) / R_star
     !precomputed parameters for b=7
     Real(dp), Parameter :: c7a      = rho_star * g0 * R_Earth * (R_Earth / R_Z7) / Tb(7)
@@ -558,53 +566,60 @@ Function nO1_O2_powers(Z,b) Result(x)
     Real(dp), Parameter :: c7c      = K0 * N7(1)
     Real(dp), Parameter :: c7d(1:2) = ai(2:3) * (Tb(7)/273.15_dp)**bi(2:3)
     Real(dp), Parameter :: c7e(1:2) = Log(c7c + c7d)
-    Real(dp), Parameter :: c7f(1:2) = -bigQi(2:3) / (3._dp * bigWi(2:3))
-    Real(dp), Parameter :: c7g(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - Zb(7))**3)
-    Real(dp), Parameter :: c7h      = littleQi / (3._dp * littleWi)
-    Real(dp), Parameter :: c7i      = Exp(-littleWi * (Zb(7)-littleUi)**3)
+    !precomputed parameters for b=8b
+    Real(dp), Parameter :: eWUZb3_95(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - 95._dp)**3)
+    Real(dp), Parameter :: enWZbU3_95     = Exp(-littleWi * (95._dp-littleUi)**3)
+    !precomputed parameters for b=8c
+    Real(dp), Parameter :: eWUZb3_97(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - 97._dp)**3)
+    !precomputed parameters for b=8d
+    Real(dp), Parameter :: eWUZb3_100(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - 100._dp)**3)
     !precomputed parameters for b=9b
-    Real(dp), Parameter :: R_Z115 = R_Earth + 115._dp    
-    Real(dp), Parameter :: T115 = Tb(9) + Lb(9)*(115._dp - Zb(9))
+    Real(dp), Parameter :: R_Z115    = R_Earth + 115._dp    
+    Real(dp), Parameter :: T115      = Tb(9) + Lb(9)*(115._dp - Zb(9))
     Real(dp), Parameter :: Tb9_Lb9R9 = Tb(9) - Lb(9)*R_Z9
     Real(dp), Parameter :: c9ba(1:2) = rho_star_O1_O2 * g0 * (R_Earth / Tb9_Lb9R9)**2
     Real(dp), Parameter :: c9bb      = Tb9_Lb9R9 / R_Z115
     Real(dp), Parameter :: c9bc      = Log(R_Z115 / T115)
-    Real(dp), Parameter :: c9bd(1:2) = c7f
-    Real(dp), Parameter :: c9be(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - 115._dp)**3)
+    Real(dp), Parameter :: eWUZb3_115(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - 115._dp)**3)
     !precomputed parameters for b=10
     Real(dp), Parameter :: c10a(1:2) = rho_star_O1_O2 * g0 * (R_Earth/R_Z10)**2 / (T_inf * lambda)
     Real(dp), Parameter :: c10b      = -lambda * R_Z10**2
     Real(dp), Parameter :: c10c      = lambda * R_Z10 - Log(Tb(10))
-    Real(dp), Parameter :: c10d(1:2) = c7f
-    Real(dp), Parameter :: c10e(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - Zb(10))**3)
 
     If (no_sublayers(b)) Then !b=7,10
         If (b .EQ. 7) Then !b=7
             x = c7a * (Z - Zb(7)) / (R_Earth + Z) + c7b * (c7e - Log(c7c + c7d*Exp(nN2_power(Z,7))))
-            x = x + c7f * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - c7g)
-            x(1) = x(1) + c7h * (Exp(-littleWi * (littleUi - Z)**3) - c7i)
+            x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3(:,7))
+            x(1) = x(1) + Q_3W * (Exp(-littleWi * (littleUi - Z)**3) - enWZbU3(7))
             ! x = GL_Quad_nO1_O2_7(Z)
         Else !b=10
             x = xb(:,10) + c10a * (Log(T(Z,11)) + c10b / (R_Earth + Z) + c10c)
-            x = x + c10d * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - c10e)
+            x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3(:,10))
         End If
     Else !b=8,9
         If (b .EQ. 8) Then !b=8
             If (Z .LT. 95._dp) Then !91-95km
                 x = xb(:,8) + GL_Quad_nO1_O2_8a(Z)
+                x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3(:,8))
+                x(1) = x(1) + Q_3W * (Exp(-littleWi * (littleUi - Z)**3) - enWZbU3(8))
             Else If (Z .LT. 97._dp) Then !95-97km
                 x = xb_95 + GL_Quad_nO1_O2_8b(Z)
+                x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3_95)
+                x(1) = x(1) + Q_3W * (Exp(-littleWi * (littleUi - Z)**3) - enWZbU3_95)
             Else If (Z .LT. 100._dp) Then !97-100km
                 x = xb_97 + GL_Quad_nO1_O2_8c(Z)
+                x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3_97)
             Else !100-110km
                 x = xb_100 + GL_Quad_nO1_O2_8d(Z)
+                x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3_100)
             End If
         Else !b=9
             If (Z .LT. 115._dp) Then !110-115km
                 x = xb(:,9) + GL_Quad_nO1_O2_9a(Z)
+                x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3(:,9))
             Else !115-120km
                 x = xb_115 + c9ba * (c9bb * (Z-115._dp) / (R_Earth+Z) + Lb(9) * (Log(T(Z,10)/(R_Earth+Z)) + c9bc))
-                x = x + c9bd * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - c9be)
+                x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3_115)
                 ! x = xb_115 + GL_Quad_nO1_O2_9b(Z)
             End If
         End If
@@ -651,9 +666,9 @@ Function nO1_O2_integrand1(Z,b) Result(f)  !for 86 to 95 km
     
     Tz = T(Z,b+1)
     D = Dcoeff_O1_O2(Tz,Z,b)
-    f = g(Z) * D * (Mi(2:3) + M0*K0/D) / (R_star * Tz * (D + K0)) + & 
-      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
-    f(1) = f(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
+    f = g(Z) * D * (Mi(2:3) + M0*K0/D) / (R_star * Tz * (D + K0)) !+ & 
+    !   & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
+    ! f(1) = f(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
 End Function nO1_O2_integrand1
 
 Function nO1_O2_integrand2(Z,b) Result(f)  !for 95 to 97 km
@@ -669,9 +684,9 @@ Function nO1_O2_integrand2(Z,b) Result(f)  !for 95 to 97 km
     Tz = Teq27(Z)
     D = Dcoeff_O1_O2(Tz,Z,b)
     K = K95to115(Z)
-    f = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + & 
-      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
-    f(1) = f(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
+    f = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) !+ & 
+    !   & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
+    ! f(1) = f(1) + littleQi * (littleUi - Z)**2 * Exp(-littleWi*(littleUi - Z)**3)
 End Function nO1_O2_integrand2
 
 Function nO1_O2_integrand3(Z,b) Result(f)  !for 97 to 100 km
@@ -687,8 +702,8 @@ Function nO1_O2_integrand3(Z,b) Result(f)  !for 97 to 100 km
     Tz = Teq27(Z)
     D = Dcoeff_O1_O2(Tz,Z,b)
     K = K95to115(Z)
-    f = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) + & 
-      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
+    f = g(Z) * D * (Mi(2:3) + M0*K/D) / (R_star * Tz * (D + K)) !+ & 
+    !   & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand3
 
 Function nO1_O2_integrand4(Z,b) Result(f)  !for 100 to 115 km
@@ -704,8 +719,8 @@ Function nO1_O2_integrand4(Z,b) Result(f)  !for 100 to 115 km
     Tz = T(Z,b+1)
     D = Dcoeff_O1_O2(Tz,Z,b)
     K = K95to115(Z)
-    f = g(Z) * D * (Mi(2:3) + Mi(1)*K/D) / (R_star * Tz * (D + K)) + & 
-      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
+    f = g(Z) * D * (Mi(2:3) + Mi(1)*K/D) / (R_star * Tz * (D + K)) !+ & 
+    !   & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand4
 
 Function nO1_O2_integrand5(Z,b) Result(f)  !for 115 to 1000 km
@@ -715,8 +730,8 @@ Function nO1_O2_integrand5(Z,b) Result(f)  !for 115 to 1000 km
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
 
-    f = g(Z) * Mi(2:3) / (R_star * T(Z,b+1)) + & 
-      & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
+    f = g(Z) * Mi(2:3) / (R_star * T(Z,b+1)) !+ & 
+    !   & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand5
 
 ! Function GL_Quad_nO1_O2_7(z) Result(q)  !for 86 to 91 km
