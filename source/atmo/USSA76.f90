@@ -531,12 +531,12 @@ Function nO1_O2_powers(Z,b) Result(x)
     Real(dp) :: x(1:2)
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
-    Real(dp), Parameter :: xb(1:2,8:10) = Reshape( (/ -1.2335158785531963_dp, &  !O1, Z = 91km
-                                                    &  0.8987089660301266_dp, &  !O2, Z = 91km
-                                                    & -1.2350403922105473_dp, &  !O1, Z = 110km
-                                                    &  4.5003526937771792_dp, &  !O2, Z = 110km
-                                                    & -0.7312338738839582_dp, &  !O1, Z = 120km
-                                                    &  5.8804681169361661_dp  /), &  !O2, Z = 120km
+    Real(dp), Parameter :: xb(1:2,8:10) = Reshape( (/ -1.2335158785531963_dp, &     !O1, Z = 91km
+                                                    &  0.8987089660301266_dp, &     !O2, Z = 91km
+                                                    & -1.2350403922105473_dp, &     !O1, Z = 110km
+                                                    &  4.5003526937771792_dp, &     !O2, Z = 110km
+                                                    & -0.7312338738839582_dp, &     !O1, Z = 120km
+                                                    &  5.8804681169361661_dp  /), & !O2, Z = 120km
                                                     & (/2,3/) )
     Real(dp), Parameter :: xb_95(1:2) =  (/ -1.6326227572400906_dp, &  !O1, Z = 95km
                                           &  1.6401385731339722_dp  /) !O2, Z = 95km
@@ -550,17 +550,40 @@ Function nO1_O2_powers(Z,b) Result(x)
                                                 & .FALSE., &
                                                 & .FALSE., &
                                                 & .TRUE.   /)
-    !precomputed parameters for b=10
+
     Real(dp), Parameter :: rho_star_O1_O2(1:2) = Mi(2:3) / R_star
+    !precomputed parameters for b=7
+    Real(dp), Parameter :: c7a      = rho_star * g0 * R_Earth * (R_Earth / R_Z7) / Tb(7)
+    Real(dp), Parameter :: c7b(1:2) = (M0 - Mi(2:3)) / M0
+    Real(dp), Parameter :: c7c      = K0 * N7(1)
+    Real(dp), Parameter :: c7d(1:2) = ai(2:3) * (Tb(7)/273.15_dp)**bi(2:3)
+    Real(dp), Parameter :: c7e(1:2) = Log(c7c + c7d)
+    Real(dp), Parameter :: c7f(1:2) = -bigQi(2:3) / (3._dp * bigWi(2:3))
+    Real(dp), Parameter :: c7g(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - Zb(7))**3)
+    Real(dp), Parameter :: c7h      = littleQi / (3._dp * littleWi)
+    Real(dp), Parameter :: c7i      = Exp(-littleWi * (Zb(7)-littleUi)**3)
+    !precomputed parameters for b=9b
+    Real(dp), Parameter :: R_Z115 = R_Earth + 115._dp    
+    Real(dp), Parameter :: T115 = Tb(9) + Lb(9)*(115._dp - Zb(9))
+    Real(dp), Parameter :: Tb9_Lb9R9 = Tb(9) - Lb(9)*R_Z9
+    Real(dp), Parameter :: c9ba(1:2) = rho_star_O1_O2 * g0 * (R_Earth / Tb9_Lb9R9)**2
+    Real(dp), Parameter :: c9bb      = Tb9_Lb9R9 / R_Z115
+    Real(dp), Parameter :: c9bc      = Log(R_Z115 / T115)
+    Real(dp), Parameter :: c9bd(1:2) = c7f
+    Real(dp), Parameter :: c9be(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - 115._dp)**3)
+    !precomputed parameters for b=10
     Real(dp), Parameter :: c10a(1:2) = rho_star_O1_O2 * g0 * (R_Earth/R_Z10)**2 / (T_inf * lambda)
     Real(dp), Parameter :: c10b      = -lambda * R_Z10**2
     Real(dp), Parameter :: c10c      = lambda * R_Z10 - Log(Tb(10))
-    Real(dp), Parameter :: c10d(1:2) = -bigQi(2:3) / (3._dp * bigWi(2:3))
+    Real(dp), Parameter :: c10d(1:2) = c7f
     Real(dp), Parameter :: c10e(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - Zb(10))**3)
 
     If (no_sublayers(b)) Then !b=7,10
         If (b .EQ. 7) Then !b=7
-            x = GL_Quad_nO1_O2_7(Z)
+            x = c7a * (Z - Zb(7)) / (R_Earth + Z) + c7b * (c7e - Log(c7c + c7d*Exp(nN2_power(Z,7))))
+            x = x + c7f * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - c7g)
+            x(1) = x(1) + c7h * (Exp(-littleWi * (littleUi - Z)**3) - c7i)
+            ! x = GL_Quad_nO1_O2_7(Z)
         Else !b=10
             x = xb(:,10) + c10a * (Log(T(Z,11)) + c10b / (R_Earth + Z) + c10c)
             x = x + c10d * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - c10e)
@@ -580,7 +603,9 @@ Function nO1_O2_powers(Z,b) Result(x)
             If (Z .LT. 115._dp) Then !110-115km
                 x = xb(:,9) + GL_Quad_nO1_O2_9a(Z)
             Else !115-120km
-                x = xb_115 + GL_Quad_nO1_O2_9b(Z)
+                x = xb_115 + c9ba * (c9bb * (Z-115._dp) / (R_Earth+Z) + Lb(9) * (Log(T(Z,10)/(R_Earth+Z)) + c9bc))
+                x = x + c9bd * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - c9be)
+                ! x = xb_115 + GL_Quad_nO1_O2_9b(Z)
             End If
         End If
     End If
@@ -694,40 +719,40 @@ Function nO1_O2_integrand5(Z,b) Result(f)  !for 115 to 1000 km
       & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand5
 
-Function GL_Quad_nO1_O2_7(z) Result(q)  !for 86 to 91 km
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp):: q(1:2)    !the result of the integration
-    Real(dp), Intent(In) :: z    !limit of integration
-    Integer, Parameter :: n = 8
-    Real(dp), Parameter :: wi(1:n) = (/  0.1012285362903762591525313543099621901153940910516849570590036981_dp, &
-                                      &  0.2223810344533744705443559944262408844301308700512495647259092893_dp, &
-                                      &  0.3137066458778872873379622019866013132603289990027349376902639451_dp, &
-                                      &  0.3626837833783619829651504492771956121941460398943305405248230676_dp, &
-                                      &  0.3626837833783619829651504492771956121941460398943305405248230676_dp, &
-                                      &  0.3137066458778872873379622019866013132603289990027349376902639451_dp, &
-                                      &  0.2223810344533744705443559944262408844301308700512495647259092893_dp, &
-                                      &  0.1012285362903762591525313543099621901153940910516849570590036981_dp /)
-    Real(dp), Parameter :: xi(1:n) = (/ -0.9602898564975362316835608685694729904282352343014520382716397774_dp, &
-                                      & -0.7966664774136267395915539364758304368371717316159648320701702950_dp, &
-                                      & -0.5255324099163289858177390491892463490419642431203928577508570993_dp, &
-                                      & -0.1834346424956498049394761423601839806667578129129737823171884737_dp, &
-                                      &  0.1834346424956498049394761423601839806667578129129737823171884737_dp, &
-                                      &  0.5255324099163289858177390491892463490419642431203928577508570993_dp, &
-                                      &  0.7966664774136267395915539364758304368371717316159648320701702950_dp, &
-                                      &  0.9602898564975362316835608685694729904282352343014520382716397774_dp /)
-    Real(dp) :: fi(1:2,1:n)  !function values
-    Real(dp) :: c1,c2  !changes limits of integration from (a,b) to (-1,1)
-    Integer :: i
+! Function GL_Quad_nO1_O2_7(z) Result(q)  !for 86 to 91 km
+!     Use Kinds, Only: dp
+!     Implicit None
+!     Real(dp):: q(1:2)    !the result of the integration
+!     Real(dp), Intent(In) :: z    !limit of integration
+!     Integer, Parameter :: n = 8
+!     Real(dp), Parameter :: wi(1:n) = (/  0.1012285362903762591525313543099621901153940910516849570590036981_dp, &
+!                                       &  0.2223810344533744705443559944262408844301308700512495647259092893_dp, &
+!                                       &  0.3137066458778872873379622019866013132603289990027349376902639451_dp, &
+!                                       &  0.3626837833783619829651504492771956121941460398943305405248230676_dp, &
+!                                       &  0.3626837833783619829651504492771956121941460398943305405248230676_dp, &
+!                                       &  0.3137066458778872873379622019866013132603289990027349376902639451_dp, &
+!                                       &  0.2223810344533744705443559944262408844301308700512495647259092893_dp, &
+!                                       &  0.1012285362903762591525313543099621901153940910516849570590036981_dp /)
+!     Real(dp), Parameter :: xi(1:n) = (/ -0.9602898564975362316835608685694729904282352343014520382716397774_dp, &
+!                                       & -0.7966664774136267395915539364758304368371717316159648320701702950_dp, &
+!                                       & -0.5255324099163289858177390491892463490419642431203928577508570993_dp, &
+!                                       & -0.1834346424956498049394761423601839806667578129129737823171884737_dp, &
+!                                       &  0.1834346424956498049394761423601839806667578129129737823171884737_dp, &
+!                                       &  0.5255324099163289858177390491892463490419642431203928577508570993_dp, &
+!                                       &  0.7966664774136267395915539364758304368371717316159648320701702950_dp, &
+!                                       &  0.9602898564975362316835608685694729904282352343014520382716397774_dp /)
+!     Real(dp) :: fi(1:2,1:n)  !function values
+!     Real(dp) :: c1,c2  !changes limits of integration from (a,b) to (-1,1)
+!     Integer :: i
 
-    c1 = 0.5_dp * (z-Zb(7))
-    c2 = 0.5_dp * (z+Zb(7))
-    Do i = 1,n
-        fi(:,i) = nO1_O2_integrand1(c1 * xi(i) + c2,7)
-    End Do
-    q(1) = c1 * Dot_Product(wi,fi(1,:))
-    q(2) = c1 * Dot_Product(wi,fi(2,:))
-End Function GL_Quad_nO1_O2_7
+!     c1 = 0.5_dp * (z-Zb(7))
+!     c2 = 0.5_dp * (z+Zb(7))
+!     Do i = 1,n
+!         fi(:,i) = nO1_O2_integrand1(c1 * xi(i) + c2,7)
+!     End Do
+!     q(1) = c1 * Dot_Product(wi,fi(1,:))
+!     q(2) = c1 * Dot_Product(wi,fi(2,:))
+! End Function GL_Quad_nO1_O2_7
 
 Function GL_Quad_nO1_O2_8a(z) Result(q)  !for 91 to 95 km
     Use Kinds, Only: dp
@@ -954,36 +979,36 @@ Function GL_Quad_nO1_O2_9a(z) Result(q)  !for 110 to 115 km
     q(2) = c1 * Dot_Product(wi,fi(2,:))
 End Function GL_Quad_nO1_O2_9a
 
-Function GL_Quad_nO1_O2_9b(z) Result(q)  !for 115 to 120 km
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp):: q(1:2)    !the result of the integration
-    Real(dp), Intent(In) :: z    !limit of integration
-    Integer, Parameter :: n = 6
-    Real(dp), Parameter :: wi(1:n) = (/  0.1713244923791703450402961421727328935268225014840439823986354398_dp, &
-                                      &  0.3607615730481386075698335138377161116615218927467454822897392402_dp, &
-                                      &  0.4679139345726910473898703439895509948116556057692105353116253200_dp, &
-                                      &  0.4679139345726910473898703439895509948116556057692105353116253200_dp, &
-                                      &  0.3607615730481386075698335138377161116615218927467454822897392402_dp, &
-                                      &  0.1713244923791703450402961421727328935268225014840439823986354398_dp /)
-    Real(dp), Parameter :: xi(1:n) = (/ -0.9324695142031520278123015544939946091347657377122898248725496165_dp, &
-                                      & -0.6612093864662645136613995950199053470064485643951700708145267059_dp, &
-                                      & -0.2386191860831969086305017216807119354186106301400213501813951646_dp, &
-                                      &  0.2386191860831969086305017216807119354186106301400213501813951646_dp, &
-                                      &  0.6612093864662645136613995950199053470064485643951700708145267059_dp, &
-                                      &  0.9324695142031520278123015544939946091347657377122898248725496165_dp /)
-    Real(dp) :: fi(1:2,1:n)  !function values
-    Real(dp) :: c1,c2  !changes limits of integration from (a,b) to (-1,1)
-    Integer :: i
+! Function GL_Quad_nO1_O2_9b(z) Result(q)  !for 115 to 120 km
+!     Use Kinds, Only: dp
+!     Implicit None
+!     Real(dp):: q(1:2)    !the result of the integration
+!     Real(dp), Intent(In) :: z    !limit of integration
+!     Integer, Parameter :: n = 6
+!     Real(dp), Parameter :: wi(1:n) = (/  0.1713244923791703450402961421727328935268225014840439823986354398_dp, &
+!                                       &  0.3607615730481386075698335138377161116615218927467454822897392402_dp, &
+!                                       &  0.4679139345726910473898703439895509948116556057692105353116253200_dp, &
+!                                       &  0.4679139345726910473898703439895509948116556057692105353116253200_dp, &
+!                                       &  0.3607615730481386075698335138377161116615218927467454822897392402_dp, &
+!                                       &  0.1713244923791703450402961421727328935268225014840439823986354398_dp /)
+!     Real(dp), Parameter :: xi(1:n) = (/ -0.9324695142031520278123015544939946091347657377122898248725496165_dp, &
+!                                       & -0.6612093864662645136613995950199053470064485643951700708145267059_dp, &
+!                                       & -0.2386191860831969086305017216807119354186106301400213501813951646_dp, &
+!                                       &  0.2386191860831969086305017216807119354186106301400213501813951646_dp, &
+!                                       &  0.6612093864662645136613995950199053470064485643951700708145267059_dp, &
+!                                       &  0.9324695142031520278123015544939946091347657377122898248725496165_dp /)
+!     Real(dp) :: fi(1:2,1:n)  !function values
+!     Real(dp) :: c1,c2  !changes limits of integration from (a,b) to (-1,1)
+!     Integer :: i
 
-    c1 = 0.5_dp * (z-115._dp)
-    c2 = 0.5_dp * (z+115._dp)
-    Do i = 1,n
-        fi(:,i) = nO1_O2_integrand5(c1 * xi(i) + c2,9)
-    End Do
-    q(1) = c1 * Dot_Product(wi,fi(1,:))
-    q(2) = c1 * Dot_Product(wi,fi(2,:))
-End Function GL_Quad_nO1_O2_9b
+!     c1 = 0.5_dp * (z-115._dp)
+!     c2 = 0.5_dp * (z+115._dp)
+!     Do i = 1,n
+!         fi(:,i) = nO1_O2_integrand5(c1 * xi(i) + c2,9)
+!     End Do
+!     q(1) = c1 * Dot_Product(wi,fi(1,:))
+!     q(2) = c1 * Dot_Product(wi,fi(2,:))
+! End Function GL_Quad_nO1_O2_9b
 
 Function nAr_He_powers(Z,b) Result(x)
     Use Kinds, Only: dp
@@ -991,12 +1016,12 @@ Function nAr_He_powers(Z,b) Result(x)
     Real(dp) :: x(1:2)
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
-    Real(dp), Parameter :: xb(1:2,8:10) = Reshape( (/  0.902943388752_dp, &  !Ar, Z = 91km
-                                                    &  0.796321374781_dp, &  !He, Z = 91km
-                                                    &  4.611292962115_dp, &  !Ar, Z = 110km
-                                                    &  2.316170326929_dp, &  !He, Z = 110km
-                                                    &  6.241723061484_dp, &  !Ar, Z = 120km
-                                                    &  2.314236028135_dp  /), &  !He, Z = 120km
+    Real(dp), Parameter :: xb(1:2,8:10) = Reshape( (/  0.902943388752_dp, &     !Ar, Z = 91km
+                                                    &  0.796321374781_dp, &     !He, Z = 91km
+                                                    &  4.611292962115_dp, &     !Ar, Z = 110km
+                                                    &  2.316170326929_dp, &     !He, Z = 110km
+                                                    &  6.241723061484_dp, &     !Ar, Z = 120km
+                                                    &  2.314236028135_dp  /), & !He, Z = 120km
                                                     & (/2,3/) )
     Real(dp), Parameter :: xb_95(1:2) =  (/ 1.646377632330_dp, &  !Ar, Z = 95km
                                           & 1.337838548403_dp  /) !He, Z = 95km
