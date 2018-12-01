@@ -531,34 +531,38 @@ Function nO1_O2_powers(Z,b) Result(x)
     Real(dp) :: x(1:2)
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
-    Real(dp), Parameter :: xb(1:2,8:10) = Reshape( (/ -1.2335158785531963_dp, &     !O1, Z = 91km
-                                                    &  0.8987089660301266_dp, &     !O2, Z = 91km
-                                                    & -1.2350403922105473_dp, &     !O1, Z = 110km
-                                                    &  4.5003526937771792_dp, &     !O2, Z = 110km
-                                                    & -0.7312338738839582_dp, &     !O1, Z = 120km
-                                                    &  5.8804681169361661_dp  /), & !O2, Z = 120km
-                                                    & (/2,3/) )
-    Real(dp), Parameter :: xb_95(1:2) =  (/ -1.6326227572400906_dp, &  !O1, Z = 95km
+    Real(dp), Parameter :: xb(1:2,8:10) = Reshape( (/ -1.2335158785532041_dp, &     !O1, Z = 91km
+                                                    &  0.8987089660301270_dp, &     !O2, Z = 91km
+                                                    & -1.2350403922105540_dp, &     !O1, Z = 110km
+                                                    &  4.5003526937771818_dp, &     !O2, Z = 110km
+                                                    & -0.7312338738839658_dp, &     !O1, Z = 120km
+                                                    &  5.8804681169361679_dp  /), & !O2, Z = 120km
+                                                  & (/2,3/) )
+    Real(dp), Parameter :: xb_95(1:2) =  (/ -1.6326227572400986_dp, &  !O1, Z = 95km
                                           &  1.6401385731339722_dp  /) !O2, Z = 95km
-    Real(dp), Parameter :: xb_97(1:2) =  (/ -1.6736396506936235_dp, &  !O1, Z = 97km
+    Real(dp), Parameter :: xb_97(1:2) =  (/ -1.6736396506936311_dp, &  !O1, Z = 97km
                                           &  2.0206764985042174_dp  /) !O2, Z = 97km
-    Real(dp), Parameter :: xb_100(1:2) = (/ -1.6519505201748657_dp, &  !O1, Z = 100km
-                                          &  2.6026369578525212_dp  /) !O2, Z = 100km
-    Real(dp), Parameter :: xb_115(1:2) = (/ -0.9801497240119917_dp, &  !O1, Z = 115km
-                                          &  5.2767050379951348_dp  /) !O2, Z = 115km
+    Real(dp), Parameter :: xb_100(1:2) = (/ -1.6519505201748732_dp, &  !O1, Z = 100km
+                                          &  2.6026369578525217_dp  /) !O2, Z = 100km
+    Real(dp), Parameter :: xb_115(1:2) = (/ -0.9801497240119992_dp, &  !O1, Z = 115km
+                                          &  5.2767050379951366_dp  /) !O2, Z = 115km
     Logical, Parameter :: no_sublayers(7:10) = (/ .TRUE.,  &
                                                 & .FALSE., &
                                                 & .FALSE., &
                                                 & .TRUE.   /)
-
-    Real(dp), Parameter :: nQ_3W(1:2) = -bigQi(2:3) / (3._dp * bigWi(2:3))
-    Real(dp), Parameter :: eWUZb3(1:2,7:10) = (/ Exp(bigWi(2:3) * (bigUi(2:3) - Zb(7))**3), &
-                                                 Exp(bigWi(2:3) * (bigUi(2:3) - Zb(8))**3), &
-                                                 Exp(bigWi(2:3) * (bigUi(2:3) - Zb(9))**3), &
-                                                 Exp(bigWi(2:3) * (bigUi(2:3) - Zb(10))**3) /)
-    Real(dp), Parameter :: Q_3W = littleQi / (3._dp * littleWi)
-    Real(dp), Parameter :: enWZbU3(7:8) = (/ Exp(-littleWi * (Zb(7)-littleUi)**3), &
-                                             Exp(-littleWi * (Zb(7)-littleUi)**3)  /)
+    Real(dp), Parameter :: bigQ_3W(1:2) = -bigQi(2:3) / (3._dp * bigWi(2:3))
+    Real(dp), Parameter :: eWUZb3(1:2,7:10) = Reshape( (/ bigQ_3W(1) * Exp(bigWi(2) * (bigUi(2) - Zb(7))**3),  &
+                                                        & bigQ_3W(2) * Exp(bigWi(3) * (bigUi(3) - Zb(7))**3),  &
+                                                        & bigQ_3W(1) * Exp(bigWi(2) * (bigUi(2) - Zb(8))**3),  &
+                                                        & bigQ_3W(2) * Exp(bigWi(3) * (bigUi(3) - Zb(8))**3),  &
+                                                        & bigQ_3W(1) * Exp(bigWi(2) * (bigUi(2) - Zb(9))**3),  &
+                                                        & bigQ_3W(2) * Exp(bigWi(3) * (bigUi(3) - Zb(9))**3),  &
+                                                        & bigQ_3W(1) * Exp(bigWi(2) * (bigUi(2) - Zb(10))**3), &
+                                                        & bigQ_3W(2) * Exp(bigWi(3) * (bigUi(3) - Zb(10))**3)  /), &
+                                                      & (/2,4/) )
+    Real(dp), Parameter :: littleQ_3W = littleQi / (3._dp * littleWi)
+    Real(dp), Parameter :: enWZbU3(7:8) = (/ littleQ_3W * Exp(-littleWi * (littleUi - Zb(7))**3), &
+                                             littleQ_3W * Exp(-littleWi * (littleUi - Zb(8))**3)  /)
     Real(dp), Parameter :: rho_star_O1_O2(1:2) = Mi(2:3) / R_star
     !precomputed parameters for b=7
     Real(dp), Parameter :: c7a      = rho_star * g0 * R_Earth * (R_Earth / R_Z7) / Tb(7)
@@ -567,12 +571,12 @@ Function nO1_O2_powers(Z,b) Result(x)
     Real(dp), Parameter :: c7d(1:2) = ai(2:3) * (Tb(7)/273.15_dp)**bi(2:3)
     Real(dp), Parameter :: c7e(1:2) = Log(c7c + c7d)
     !precomputed parameters for b=8b
-    Real(dp), Parameter :: eWUZb3_95(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - 95._dp)**3)
-    Real(dp), Parameter :: enWZbU3_95     = Exp(-littleWi * (95._dp-littleUi)**3)
+    Real(dp), Parameter :: eWUZb3_95(1:2) = bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - 95._dp)**3)
+    Real(dp), Parameter :: enWZbU3_95     = littleQ_3W * Exp(-littleWi * (littleUi - 95._dp)**3)
     !precomputed parameters for b=8c
-    Real(dp), Parameter :: eWUZb3_97(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - 97._dp)**3)
+    Real(dp), Parameter :: eWUZb3_97(1:2) = bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - 97._dp)**3)
     !precomputed parameters for b=8d
-    Real(dp), Parameter :: eWUZb3_100(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - 100._dp)**3)
+    Real(dp), Parameter :: eWUZb3_100(1:2) = bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - 100._dp)**3)
     !precomputed parameters for b=9b
     Real(dp), Parameter :: R_Z115    = R_Earth + 115._dp    
     Real(dp), Parameter :: T115      = Tb(9) + Lb(9)*(115._dp - Zb(9))
@@ -580,7 +584,7 @@ Function nO1_O2_powers(Z,b) Result(x)
     Real(dp), Parameter :: c9ba(1:2) = rho_star_O1_O2 * g0 * (R_Earth / Tb9_Lb9R9)**2
     Real(dp), Parameter :: c9bb      = Tb9_Lb9R9 / R_Z115
     Real(dp), Parameter :: c9bc      = Log(R_Z115 / T115)
-    Real(dp), Parameter :: eWUZb3_115(1:2) = Exp(bigWi(2:3) * (bigUi(2:3) - 115._dp)**3)
+    Real(dp), Parameter :: eWUZb3_115(1:2) = bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - 115._dp)**3)
     !precomputed parameters for b=10
     Real(dp), Parameter :: c10a(1:2) = rho_star_O1_O2 * g0 * (R_Earth/R_Z10)**2 / (T_inf * lambda)
     Real(dp), Parameter :: c10b      = -lambda * R_Z10**2
@@ -589,38 +593,36 @@ Function nO1_O2_powers(Z,b) Result(x)
     If (no_sublayers(b)) Then !b=7,10
         If (b .EQ. 7) Then !b=7
             x = c7a * (Z - Zb(7)) / (R_Earth + Z) + c7b * (c7e - Log(c7c + c7d*Exp(nN2_power(Z,7))))
-            x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3(:,7))
-            x(1) = x(1) + Q_3W * (Exp(-littleWi * (littleUi - Z)**3) - enWZbU3(7))
-            ! x = GL_Quad_nO1_O2_7(Z)
+            x = x + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3(:,7)
+            x(1) = x(1) + littleQ_3W * Exp(-littleWi * (littleUi - Z)**3) - enWZbU3(7)
         Else !b=10
             x = xb(:,10) + c10a * (Log(T(Z,11)) + c10b / (R_Earth + Z) + c10c)
-            x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3(:,10))
+            x = x + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3(:,10)
         End If
     Else !b=8,9
         If (b .EQ. 8) Then !b=8
             If (Z .LT. 95._dp) Then !91-95km
                 x = xb(:,8) + GL_Quad_nO1_O2_8a(Z)
-                x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3(:,8))
-                x(1) = x(1) + Q_3W * (Exp(-littleWi * (littleUi - Z)**3) - enWZbU3(8))
+                x = x + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3(:,8)
+                x(1) = x(1) + littleQ_3W * Exp(-littleWi * (littleUi - Z)**3) - enWZbU3(8)
             Else If (Z .LT. 97._dp) Then !95-97km
                 x = xb_95 + GL_Quad_nO1_O2_8b(Z)
-                x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3_95)
-                x(1) = x(1) + Q_3W * (Exp(-littleWi * (littleUi - Z)**3) - enWZbU3_95)
+                x = x + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3_95
+                x(1) = x(1) + littleQ_3W * Exp(-littleWi * (littleUi - Z)**3) - enWZbU3_95
             Else If (Z .LT. 100._dp) Then !97-100km
                 x = xb_97 + GL_Quad_nO1_O2_8c(Z)
-                x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3_97)
+                x = x + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3_97
             Else !100-110km
                 x = xb_100 + GL_Quad_nO1_O2_8d(Z)
-                x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3_100)
+                x = x + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3_100
             End If
         Else !b=9
             If (Z .LT. 115._dp) Then !110-115km
                 x = xb(:,9) + GL_Quad_nO1_O2_9a(Z)
-                x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3(:,9))
+                x = x + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3(:,9)
             Else !115-120km
                 x = xb_115 + c9ba * (c9bb * (Z-115._dp) / (R_Earth+Z) + Lb(9) * (Log(T(Z,10)/(R_Earth+Z)) + c9bc))
-                x = x + nQ_3W * (Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3_115)
-                ! x = xb_115 + GL_Quad_nO1_O2_9b(Z)
+                x = x + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Z)**3) - eWUZb3_115
             End If
         End If
     End If
@@ -733,41 +735,6 @@ Function nO1_O2_integrand5(Z,b) Result(f)  !for 115 to 1000 km
     f = g(Z) * Mi(2:3) / (R_star * T(Z,b+1)) !+ & 
     !   & bigQi(2:3) * (Z - bigUi(2:3))**2 * Exp(-bigWi(2:3)*(Z - bigUi(2:3))**3)
 End Function nO1_O2_integrand5
-
-! Function GL_Quad_nO1_O2_7(z) Result(q)  !for 86 to 91 km
-!     Use Kinds, Only: dp
-!     Implicit None
-!     Real(dp):: q(1:2)    !the result of the integration
-!     Real(dp), Intent(In) :: z    !limit of integration
-!     Integer, Parameter :: n = 8
-!     Real(dp), Parameter :: wi(1:n) = (/  0.1012285362903762591525313543099621901153940910516849570590036981_dp, &
-!                                       &  0.2223810344533744705443559944262408844301308700512495647259092893_dp, &
-!                                       &  0.3137066458778872873379622019866013132603289990027349376902639451_dp, &
-!                                       &  0.3626837833783619829651504492771956121941460398943305405248230676_dp, &
-!                                       &  0.3626837833783619829651504492771956121941460398943305405248230676_dp, &
-!                                       &  0.3137066458778872873379622019866013132603289990027349376902639451_dp, &
-!                                       &  0.2223810344533744705443559944262408844301308700512495647259092893_dp, &
-!                                       &  0.1012285362903762591525313543099621901153940910516849570590036981_dp /)
-!     Real(dp), Parameter :: xi(1:n) = (/ -0.9602898564975362316835608685694729904282352343014520382716397774_dp, &
-!                                       & -0.7966664774136267395915539364758304368371717316159648320701702950_dp, &
-!                                       & -0.5255324099163289858177390491892463490419642431203928577508570993_dp, &
-!                                       & -0.1834346424956498049394761423601839806667578129129737823171884737_dp, &
-!                                       &  0.1834346424956498049394761423601839806667578129129737823171884737_dp, &
-!                                       &  0.5255324099163289858177390491892463490419642431203928577508570993_dp, &
-!                                       &  0.7966664774136267395915539364758304368371717316159648320701702950_dp, &
-!                                       &  0.9602898564975362316835608685694729904282352343014520382716397774_dp /)
-!     Real(dp) :: fi(1:2,1:n)  !function values
-!     Real(dp) :: c1,c2  !changes limits of integration from (a,b) to (-1,1)
-!     Integer :: i
-
-!     c1 = 0.5_dp * (z-Zb(7))
-!     c2 = 0.5_dp * (z+Zb(7))
-!     Do i = 1,n
-!         fi(:,i) = nO1_O2_integrand1(c1 * xi(i) + c2,7)
-!     End Do
-!     q(1) = c1 * Dot_Product(wi,fi(1,:))
-!     q(2) = c1 * Dot_Product(wi,fi(2,:))
-! End Function GL_Quad_nO1_O2_7
 
 Function GL_Quad_nO1_O2_8a(z) Result(q)  !for 91 to 95 km
     Use Kinds, Only: dp
@@ -993,37 +960,6 @@ Function GL_Quad_nO1_O2_9a(z) Result(q)  !for 110 to 115 km
     q(1) = c1 * Dot_Product(wi,fi(1,:))
     q(2) = c1 * Dot_Product(wi,fi(2,:))
 End Function GL_Quad_nO1_O2_9a
-
-! Function GL_Quad_nO1_O2_9b(z) Result(q)  !for 115 to 120 km
-!     Use Kinds, Only: dp
-!     Implicit None
-!     Real(dp):: q(1:2)    !the result of the integration
-!     Real(dp), Intent(In) :: z    !limit of integration
-!     Integer, Parameter :: n = 6
-!     Real(dp), Parameter :: wi(1:n) = (/  0.1713244923791703450402961421727328935268225014840439823986354398_dp, &
-!                                       &  0.3607615730481386075698335138377161116615218927467454822897392402_dp, &
-!                                       &  0.4679139345726910473898703439895509948116556057692105353116253200_dp, &
-!                                       &  0.4679139345726910473898703439895509948116556057692105353116253200_dp, &
-!                                       &  0.3607615730481386075698335138377161116615218927467454822897392402_dp, &
-!                                       &  0.1713244923791703450402961421727328935268225014840439823986354398_dp /)
-!     Real(dp), Parameter :: xi(1:n) = (/ -0.9324695142031520278123015544939946091347657377122898248725496165_dp, &
-!                                       & -0.6612093864662645136613995950199053470064485643951700708145267059_dp, &
-!                                       & -0.2386191860831969086305017216807119354186106301400213501813951646_dp, &
-!                                       &  0.2386191860831969086305017216807119354186106301400213501813951646_dp, &
-!                                       &  0.6612093864662645136613995950199053470064485643951700708145267059_dp, &
-!                                       &  0.9324695142031520278123015544939946091347657377122898248725496165_dp /)
-!     Real(dp) :: fi(1:2,1:n)  !function values
-!     Real(dp) :: c1,c2  !changes limits of integration from (a,b) to (-1,1)
-!     Integer :: i
-
-!     c1 = 0.5_dp * (z-115._dp)
-!     c2 = 0.5_dp * (z+115._dp)
-!     Do i = 1,n
-!         fi(:,i) = nO1_O2_integrand5(c1 * xi(i) + c2,9)
-!     End Do
-!     q(1) = c1 * Dot_Product(wi,fi(1,:))
-!     q(2) = c1 * Dot_Product(wi,fi(2,:))
-! End Function GL_Quad_nO1_O2_9b
 
 Function nAr_He_powers(Z,b) Result(x)
     Use Kinds, Only: dp
@@ -1586,6 +1522,7 @@ End Function nN2_power_stops
 
 Function nO1_O2_power_stops() Result(xb)
     Use Kinds, Only: dp
+    Use Quadratures, Only: Romberg_Quad
     Implicit None
     Real(dp) :: xb(1:8,1:3)
     Integer :: i
@@ -1605,23 +1542,77 @@ Function nO1_O2_power_stops() Result(xb)
                                      &  9, & 
                                      &  9, & 
                                      & 10  /)
+    Real(dp), Parameter :: bigQ_3W(1:2) = -bigQi(2:3) / (3._dp * bigWi(2:3))
+    Real(dp), Parameter :: eWUZb3(1:2,7:10) = Reshape( (/ bigQ_3W(1) * Exp(bigWi(2) * (bigUi(2) - Zb(7))**3),  &
+                                                        & bigQ_3W(2) * Exp(bigWi(3) * (bigUi(3) - Zb(7))**3),  &
+                                                        & bigQ_3W(1) * Exp(bigWi(2) * (bigUi(2) - Zb(8))**3),  &
+                                                        & bigQ_3W(2) * Exp(bigWi(3) * (bigUi(3) - Zb(8))**3),  &
+                                                        & bigQ_3W(1) * Exp(bigWi(2) * (bigUi(2) - Zb(9))**3),  &
+                                                        & bigQ_3W(2) * Exp(bigWi(3) * (bigUi(3) - Zb(9))**3),  &
+                                                        & bigQ_3W(1) * Exp(bigWi(2) * (bigUi(2) - Zb(10))**3), &
+                                                        & bigQ_3W(2) * Exp(bigWi(3) * (bigUi(3) - Zb(10))**3)  /), &
+                                                      & (/2,4/) )
+    Real(dp), Parameter :: littleQ_3W = littleQi / (3._dp * littleWi)
+    Real(dp), Parameter :: enWZbU3(7:8) = (/ littleQ_3W * Exp(-littleWi * (littleUi - Zb(7))**3), &
+                                             littleQ_3W * Exp(-littleWi * (littleUi - Zb(8))**3)  /)
+    Real(dp), Parameter :: rho_star_O1_O2(1:2) = Mi(2:3) / R_star
+    !precomputed parameters for b=7
+    Real(dp), Parameter :: c7a      = rho_star * g0 * R_Earth * (R_Earth / R_Z7) / Tb(7)
+    Real(dp), Parameter :: c7b(1:2) = (M0 - Mi(2:3)) / M0
+    Real(dp), Parameter :: c7c      = K0 * N7(1)
+    Real(dp), Parameter :: c7d(1:2) = ai(2:3) * (Tb(7)/273.15_dp)**bi(2:3)
+    Real(dp), Parameter :: c7e(1:2) = Log(c7c + c7d)
+    !precomputed parameters for b=8b
+    Real(dp), Parameter :: eWUZb3_95(1:2) = bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - 95._dp)**3)
+    Real(dp), Parameter :: enWZbU3_95     = littleQ_3W * Exp(-littleWi * (littleUi - 95._dp)**3)
+    !precomputed parameters for b=8c
+    Real(dp), Parameter :: eWUZb3_97(1:2) = bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - 97._dp)**3)
+    !precomputed parameters for b=8d
+    Real(dp), Parameter :: eWUZb3_100(1:2) = bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - 100._dp)**3)
+    !precomputed parameters for b=9b
+    Real(dp), Parameter :: R_Z115    = R_Earth + 115._dp    
+    Real(dp), Parameter :: T115      = Tb(9) + Lb(9)*(115._dp - Zb(9))
+    Real(dp), Parameter :: Tb9_Lb9R9 = Tb(9) - Lb(9)*R_Z9
+    Real(dp), Parameter :: c9ba(1:2) = rho_star_O1_O2 * g0 * (R_Earth / Tb9_Lb9R9)**2
+    Real(dp), Parameter :: c9bb      = Tb9_Lb9R9 / R_Z115
+    Real(dp), Parameter :: c9bc      = Log(R_Z115 / T115)
+    Real(dp), Parameter :: eWUZb3_115(1:2) = bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - 115._dp)**3)
+    !precomputed parameters for b=10
+    Real(dp), Parameter :: c10a(1:2) = rho_star_O1_O2 * g0 * (R_Earth/R_Z10)**2 / (T_inf * lambda)
+    Real(dp), Parameter :: c10b      = -lambda * R_Z10**2
+    Real(dp), Parameter :: c10c      = lambda * R_Z10 - Log(Tb(10))
 
     xb(:,1) = Zs
     xb(:,2:3) = 0._dp
-    i = 2
-    xb(i,2:3) = xb(i-1,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand1,Zs(i-1),Zs(i),bs(i-1)) !up to 91km
-    i = 3
-    xb(i,2:3) = xb(i-1,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand1,Zs(i-1),Zs(i),bs(i-1)) !up to 95km
-    i = 4
-    xb(i,2:3) = xb(i-1,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand2,Zs(i-1),Zs(i),bs(i-1)) !up to 97km
-    i = 5
-    xb(i,2:3) = xb(i-1,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand3,Zs(i-1),Zs(i),bs(i-1)) !up to 100km
-    i = 6
-    xb(i,2:3) = xb(i-1,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand4,Zs(i-1),Zs(i),bs(i-1)) !up to 110km
-    i = 7
-    xb(i,2:3) = xb(i-1,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand4,Zs(i-1),Zs(i),bs(i-1)) !up to 115km
-    i = 8
-    xb(i,2:3) = xb(i-1,2:3) + Romberg_Quad_nO1_O2(nO1_O2_integrand5,Zs(i-1),Zs(i),bs(i-1)) !up to 120km
+    i = 2  !up to 91km
+    xb(i,2:3) = xb(i-1,2:3) +  c7a * (Zs(i) - Zb(7)) / (R_Earth + Zs(i)) + c7b * (c7e - Log(c7c + c7d*Exp(nN2_power(Zs(i),7))))
+    xb(i,2:3) = xb(i,2:3) + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Zs(i))**3) - eWUZb3(:,7)
+    xb(i,2) = xb(i,2) + littleQ_3W * Exp(-littleWi * (littleUi - Zs(i))**3) - enWZbU3(7)
+    i = 3  !up to 95km
+    xb(i,2) = xb(i-1,2) + Romberg_Quad(nO1_O2_integrand1_1,Zs(i-1),Zs(i),0._dp,rTol_tier2)
+    xb(i,3) = xb(i-1,3) + Romberg_Quad(nO1_O2_integrand1_2,Zs(i-1),Zs(i),0._dp,rTol_tier2)
+    xb(i,2:3) = xb(i,2:3) + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Zs(i))**3) - eWUZb3(:,8)
+    xb(i,2) = xb(i,2) + littleQ_3W * Exp(-littleWi * (littleUi - Zs(i))**3) - enWZbU3(8)
+    i = 4  !up to 97km
+    xb(i,2) = xb(i-1,2) + Romberg_Quad(nO1_O2_integrand2_1,Zs(i-1),Zs(i),0._dp,rTol_tier2)
+    xb(i,3) = xb(i-1,3) + Romberg_Quad(nO1_O2_integrand2_2,Zs(i-1),Zs(i),0._dp,rTol_tier2)
+    xb(i,2:3) = xb(i,2:3) + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Zs(i))**3) - eWUZb3_95
+    xb(i,2) = xb(i,2) + littleQ_3W * Exp(-littleWi * (littleUi - Zs(i))**3) - enWZbU3_95
+    i = 5  !up to 100km
+    xb(i,2) = xb(i-1,2) + Romberg_Quad(nO1_O2_integrand3_1,Zs(i-1),Zs(i),0._dp,rTol_tier2)
+    xb(i,3) = xb(i-1,3) + Romberg_Quad(nO1_O2_integrand3_2,Zs(i-1),Zs(i),0._dp,rTol_tier2)
+    xb(i,2:3) = xb(i,2:3) + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Zs(i))**3) - eWUZb3_97
+    i = 6  !up to 110km
+    xb(i,2) = xb(i-1,2) + Romberg_Quad(nO1_O2_integrand4_1,Zs(i-1),Zs(i),0._dp,rTol_tier2)
+    xb(i,3) = xb(i-1,3) + Romberg_Quad(nO1_O2_integrand4_2,Zs(i-1),Zs(i),0._dp,rTol_tier2)
+    xb(i,2:3) = xb(i,2:3) + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Zs(i))**3) - eWUZb3_100
+    i = 7  !up to 115km
+    xb(i,2) = xb(i-1,2) + Romberg_Quad(nO1_O2_integrand4_1,Zs(i-1),Zs(i),0._dp,rTol_tier2)
+    xb(i,3) = xb(i-1,3) + Romberg_Quad(nO1_O2_integrand4_2,Zs(i-1),Zs(i),0._dp,rTol_tier2)
+    xb(i,2:3) = xb(i,2:3) + bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Zs(i))**3) - eWUZb3(:,9)
+    i = 8  !up to 120km
+    xb(i,2:3) = xb(i-1,2:3) +  c9ba * (c9bb * (Zs(i)-115._dp) / (R_Earth+Zs(i)) + Lb(9) * (Log(T(Zs(i),10)/(R_Earth+Zs(i))) + c9bc))
+    xb(i,2:3) = xb(i,2:3) +  bigQ_3W * Exp(bigWi(2:3) * (bigUi(2:3) - Zs(i))**3) - eWUZb3_115
 End Function nO1_O2_power_stops
 
 Function nAr_He_power_stops() Result(xb)
@@ -2257,7 +2248,9 @@ Function nO1_O2_integrand1_1(z)
     Real(dp) :: nO1_O2_integrand1_1
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nO1_O2_integrand1(z,b)
     nO1_O2_integrand1_1 = x(1)
 End Function nO1_O2_integrand1_1
@@ -2267,7 +2260,9 @@ Function nO1_O2_integrand1_2(z)
     Real(dp) :: nO1_O2_integrand1_2
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nO1_O2_integrand1(z,b)
     nO1_O2_integrand1_2 = x(2)
 End Function nO1_O2_integrand1_2
@@ -2277,7 +2272,9 @@ Function nO1_O2_integrand2_1(z)
     Real(dp) :: nO1_O2_integrand2_1
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nO1_O2_integrand2(z,b)
     nO1_O2_integrand2_1 = x(1)
 End Function nO1_O2_integrand2_1
@@ -2287,7 +2284,9 @@ Function nO1_O2_integrand2_2(z)
     Real(dp) :: nO1_O2_integrand2_2
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nO1_O2_integrand2(z,b)
     nO1_O2_integrand2_2 = x(2)
 End Function nO1_O2_integrand2_2
@@ -2297,7 +2296,9 @@ Function nO1_O2_integrand3_1(z)
     Real(dp) :: nO1_O2_integrand3_1
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nO1_O2_integrand3(z,b)
     nO1_O2_integrand3_1 = x(1)
 End Function nO1_O2_integrand3_1
@@ -2307,7 +2308,9 @@ Function nO1_O2_integrand3_2(z)
     Real(dp) :: nO1_O2_integrand3_2
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nO1_O2_integrand3(z,b)
     nO1_O2_integrand3_2 = x(2)
 End Function nO1_O2_integrand3_2
@@ -2317,7 +2320,9 @@ Function nO1_O2_integrand4_1(z)
     Real(dp) :: nO1_O2_integrand4_1
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nO1_O2_integrand4(z,b)
     nO1_O2_integrand4_1 = x(1)
 End Function nO1_O2_integrand4_1
@@ -2327,7 +2332,9 @@ Function nO1_O2_integrand4_2(z)
     Real(dp) :: nO1_O2_integrand4_2
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nO1_O2_integrand4(z,b)
     nO1_O2_integrand4_2 = x(2)
 End Function nO1_O2_integrand4_2
@@ -2337,7 +2344,9 @@ Function nO1_O2_integrand5_1(z)
     Real(dp) :: nO1_O2_integrand5_1
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nO1_O2_integrand5(z,b)
     nO1_O2_integrand5_1 = x(1)
 End Function nO1_O2_integrand5_1
@@ -2347,7 +2356,9 @@ Function nO1_O2_integrand5_2(z)
     Real(dp) :: nO1_O2_integrand5_2
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nO1_O2_integrand5(z,b)
     nO1_O2_integrand5_2 = x(2)
 End Function nO1_O2_integrand5_2
@@ -2358,7 +2369,9 @@ Function nAr_He_integrand1_1(z)
     Real(dp) :: nAr_He_integrand1_1
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nAr_He_integrand1(z,b)
     nAr_He_integrand1_1 = x(1)
 End Function nAr_He_integrand1_1
@@ -2368,7 +2381,9 @@ Function nAr_He_integrand1_2(z)
     Real(dp) :: nAr_He_integrand1_2
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nAr_He_integrand1(z,b)
     nAr_He_integrand1_2 = x(2)
 End Function nAr_He_integrand1_2
@@ -2378,7 +2393,9 @@ Function nAr_He_integrand2_1(z)
     Real(dp) :: nAr_He_integrand2_1
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nAr_He_integrand2(z,b)
     nAr_He_integrand2_1 = x(1)
 End Function nAr_He_integrand2_1
@@ -2388,7 +2405,9 @@ Function nAr_He_integrand2_2(z)
     Real(dp) :: nAr_He_integrand2_2
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nAr_He_integrand2(z,b)
     nAr_He_integrand2_2 = x(2)
 End Function nAr_He_integrand2_2
@@ -2398,7 +2417,9 @@ Function nAr_He_integrand4_1(z)
     Real(dp) :: nAr_He_integrand4_1
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nAr_He_integrand4(z,b)
     nAr_He_integrand4_1 = x(1)
 End Function nAr_He_integrand4_1
@@ -2408,7 +2429,9 @@ Function nAr_He_integrand4_2(z)
     Real(dp) :: nAr_He_integrand4_2
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nAr_He_integrand4(z,b)
     nAr_He_integrand4_2 = x(2)
 End Function nAr_He_integrand4_2
@@ -2418,7 +2441,9 @@ Function nAr_He_integrand5_1(z)
     Real(dp) :: nAr_He_integrand5_1
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nAr_He_integrand5(z,b)
     nAr_He_integrand5_1 = x(1)
 End Function nAr_He_integrand5_1
@@ -2428,7 +2453,9 @@ Function nAr_He_integrand5_2(z)
     Real(dp) :: nAr_He_integrand5_2
     Real(dp), Intent(In) :: z
     Real(dp) :: x(1:2)
+    Integer :: b
 
+    b = Find_Base_Layer(z)
     x = nAr_He_integrand5(z,b)
     nAr_He_integrand5_2 = x(2)
 End Function nAr_He_integrand5_2
