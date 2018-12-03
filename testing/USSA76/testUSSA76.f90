@@ -25,15 +25,15 @@ Integer :: i,j,unit
 # if INTEGRAND_STOPS
     Real(dp) :: ZxN2(1:5,1:2)
     Real(dp) :: ZxO1O2(1:8,1:3)
-    Real(dp) :: ZxArHe(1:12,1:3)
+    Real(dp) :: ZxArHe(1:8,1:3)
 # endif
 # if GL_POINTS
-    Real(dp) :: ZsN2(1:9),XsN2(1:9,1:3)
-    Integer :: NsN2(1:9,1:3)
-    Real(dp) :: ZsO1O2(1:14),XsO1O2(1:14,1:3,1:2)
-    Integer :: NsO1O2(1:14,1:3,1:2)
-    Real(dp) :: ZsArHe(1:9),XsArHe(1:9,1:3,1:2)
-    Integer :: NsArHe(1:9,1:3,1:2)
+    Real(dp) :: ZsN2(1:3),XsN2(1:3,1:4)
+    Integer :: NsN2(1:3,1:4)
+    Real(dp) :: ZsO1O2(1:6),XsO1O2(1:6,1:4,1:2)
+    Integer :: NsO1O2(1:6,1:4,1:2)
+    Real(dp) :: ZsArHe(1:7),XsArHe(1:7,1:4,1:2)
+    Integer :: NsArHe(1:7,1:4,1:2)
 # endif
 Real(dp) :: z
 Real(dp) :: temp,pres,dens
@@ -84,7 +84,7 @@ Real(dp), Parameter :: dZmax = 1.E-3_dp !1 meter resolution
         Write(unit,'(F9.3,2F23.16)') ZxO1O2(i,1),ZxO1O2(i,2),ZxO1O2(i,3)
     End Do
     Close(unit)
-STOP
+
     Open(NEWUNIT=unit,FILE='IntegrandStops.tst',ACTION='WRITE',STATUS='OLD',POSITION='APPEND')
     Write(*   ,*)
     Write(unit,*)
@@ -95,7 +95,7 @@ STOP
     Write(*   ,'(A9,2A23)') '--------','-------------------','-------------------'
     Write(unit,'(A9,2A23)') '--------','-------------------','-------------------'
     ZxArHe = nAr_He_power_stops()
-    Do i = 2,12
+    Do i = 2,8
         Write(*   ,'(F9.3,2F23.16)') ZxArHe(i,1),ZxArHe(i,2),ZxArHe(i,3)
         Write(unit,'(F9.3,2F23.16)') ZxArHe(i,1),ZxArHe(i,2),ZxArHe(i,3)
     End Do
@@ -106,29 +106,86 @@ STOP
 # if GL_POINTS
     Write(*,*)
     Write(*,'(A)') 'N2 Integrand quadpoints...'
+    Write(*,'(4A)') '    Z0  ','    Z1   ','  Estimate              ','  Ordinates'
+    Write(*,'(4A)') ' -------','  -------','  ----------------------','  -------------------------'
     Call nN2_GLpoints(ZsN2,NsN2,XsN2)
-    Do i = 2,9
-        Write(*,'(F8.3,F9.3,A1,ES23.16,I6)') ZsN2(i-1),ZsN2(i),'',XsN2(i,1),NsN2(i,1)
-        Write(*,'(A18,ES23.16,I6)') '',XsN2(i,2),NsN2(i,2)
-        Write(*,'(A18,ES22.15,A1,I6)') '',XsN2(i,3),'',NsN2(i,3)
+    Do i = 2,3
+        Write(*,'(F8.3,F9.3,A1,ES23.16,I6,A)') ZsN2(i-1),ZsN2(i),'',XsN2(i,1),NsN2(i,1),' <--Romb, rTol=1.E-15'
+        Write(*,'(A18,ES23.16,I6,A)') '',XsN2(i,2),NsN2(i,2),' <--GL,   rTol=1.E-15'
+        Write(*,'(A18,ES22.15,A1,I6,A)') '',XsN2(i,3),'',NsN2(i,3),' <--GL,   p=15'
+        Write(*,'(A18,ES19.12,A4,I6,A)') '',XsN2(i,4),'',NsN2(i,4),' <--GL,   p=12'
     End Do
 
     Write(*,*)
     Write(*,'(A)') 'O1,O2 Integrand quadpoints...'
+    Write(*,'(4A)') '    Z0  ','    Z1   ','      Estimate              ','  Ordinates'
+    Write(*,'(4A)') ' -------','  -------','      ----------------------','  -------------------------'
     Call nO1_O2_GLpoints(ZsO1O2,NsO1O2,XsO1O2)
-    Do i = 2,14
-        Write(*,'(F8.3,F9.3,A1,ES23.16,I6,ES23.16,I6)') ZsO1O2(i-1),ZsO1O2(i),'',XsO1O2(i,1,1),NsO1O2(i,1,1),XsO1O2(i,1,2),NsO1O2(i,1,2)
-        Write(*,'(A18,ES23.16,I6,ES23.16,I6)') '',XsO1O2(i,2,1),NsO1O2(i,2,1),XsO1O2(i,2,2),NsO1O2(i,2,2)
-        Write(*,'(A18,ES21.14,A2,I6,ES21.14,A2,I6)') '',XsO1O2(i,3,1),'',NsO1O2(i,3,1),XsO1O2(i,3,2),'',NsO1O2(i,3,2)
+    Do i = 2,6
+        Write(*,'(F8.3,F9.3,A5,ES22.15,I6,A)') ZsO1O2(i-1),ZsO1O2(i),'O1 ',XsO1O2(i,1,1),NsO1O2(i,1,1),' <--Romb, rTol=1.E-14'
+        Write(*,'(A22,ES22.15,I6,A)') '',XsO1O2(i,2,1),NsO1O2(i,2,1),' <--GL,   rTol=1.E-14'
+        Write(*,'(A22,ES21.14,A1,I6)',ADVANCE='NO') '',XsO1O2(i,3,1),'',NsO1O2(i,3,1)
+        If (NsO1O2(i,3,1).GE.NsO1O2(i,3,2)) Then
+            Write(*,'(A)') '*<--GL,   p=14'
+        Else
+            Write(*,'(A)') ' <--GL,   p=14'
+        End If
+        Write(*,'(A22,ES18.11,A4,I6)',ADVANCE='NO') '',XsO1O2(i,4,1),'',NsO1O2(i,4,1)
+        If (NsO1O2(i,4,1).GE.NsO1O2(i,4,2)) Then
+            Write(*,'(A)') '*<--GL,   p=11'
+        Else
+            Write(*,'(A)') ' <--GL,   p=11'
+        End If
+        Write(*,'(A17,A5,ES22.15,I6,A)') '','O2 ',XsO1O2(i,1,2),NsO1O2(i,1,2),' <--Romb, rTol=1.E-14'
+        Write(*,'(A22,ES22.15,I6,A)') '',XsO1O2(i,2,2),NsO1O2(i,2,2),' <--GL,   rTol=1.E-14'
+        Write(*,'(A22,ES21.14,A1,I6)',ADVANCE='NO') '',XsO1O2(i,3,2),'',NsO1O2(i,3,2)
+        If (NsO1O2(i,3,2).GT.NsO1O2(i,3,1)) Then
+            Write(*,'(A)') '*<--GL,   p=14'
+        Else
+            Write(*,'(A)') ' <--GL,   p=14'
+        End If
+        Write(*,'(A22,ES18.11,A4,I6)',ADVANCE='NO') '',XsO1O2(i,4,2),'',NsO1O2(i,4,2)
+        If (NsO1O2(i,4,2).GT.NsO1O2(i,4,1)) Then
+            Write(*,'(A)') '*<--GL,   p=11'
+        Else
+            Write(*,'(A)') ' <--GL,   p=11'
+        End If
     End Do
-STOP
+
     Write(*,*)
     Write(*,'(A)') 'Ar,He Integrand quadpoints...'
+    Write(*,'(4A)') '    Z0  ','    Z1   ','      Estimate            ','  Ordinates'
+    Write(*,'(4A)') ' -------','  -------','      --------------------','  -------------------------'
     Call nAr_He_GLpoints(ZsArHe,NsArHe,XsArHe)
-    Do i = 2,9
-        Write(*,'(2F8.3,A1,ES23.16,I6,ES23.16,I6)') ZsArHe(i-1),ZsArHe(i),'',XsArHe(i,1,1),NsArHe(i,1,1),XsArHe(i,1,2),NsArHe(i,1,2)
-        Write(*,'(A17,ES23.16,I6,ES23.16,I6)') '',XsArHe(i,2,1),NsArHe(i,2,1),XsArHe(i,2,2),NsArHe(i,2,2)
-        Write(*,'(A17,ES19.12,A4,I6,ES19.12,A4,I6)') '',XsArHe(i,3,1),'',NsArHe(i,3,1),XsArHe(i,3,2),'',NsArHe(i,3,2)
+    Do i = 2,7
+        Write(*,'(F8.3,F9.3,A5,ES21.14,I6,A)') ZsArHe(i-1),ZsArHe(i),'Ar ',XsArHe(i,1,1),NsArHe(i,1,1),' <--Romb, rTol=1.E-13'
+        Write(*,'(A22,ES21.14,I6,A)') '',XsArHe(i,2,1),NsArHe(i,2,1),' <--GL,   rTol=1.E-13'
+        Write(*,'(A22,ES20.13,A1,I6)',ADVANCE='NO') '',XsArHe(i,3,1),'',NsArHe(i,3,1)
+        If (NsArHe(i,3,1).GE.NsArHe(i,3,2)) Then
+            Write(*,'(A)') '*<--GL,   p=13'
+        Else
+            Write(*,'(A)') ' <--GL,   p=13'
+        End If
+        Write(*,'(A22,ES17.10,A4,I6)',ADVANCE='NO') '',XsArHe(i,4,1),'',NsArHe(i,4,1)
+        If (NsArHe(i,4,1).GE.NsArHe(i,4,2)) Then
+            Write(*,'(A)') '*<--GL,   p=10'
+        Else
+            Write(*,'(A)') ' <--GL,   p=10'
+        End If
+        Write(*,'(A17,A5,ES21.14,I6,A)') '','He ',XsArHe(i,1,2),NsArHe(i,1,2),' <--Romb, rTol=1.E-13'
+        Write(*,'(A22,ES21.14,I6,A)') '',XsArHe(i,2,2),NsArHe(i,2,2),' <--GL,   rTol=1.E-13'
+        Write(*,'(A22,ES20.13,A1,I6)',ADVANCE='NO') '',XsArHe(i,3,2),'',NsArHe(i,3,2)
+        If (NsArHe(i,3,2).GT.NsArHe(i,3,1)) Then
+            Write(*,'(A)') '*<--GL,   p=13'
+        Else
+            Write(*,'(A)') ' <--GL,   p=13'
+        End If
+        Write(*,'(A22,ES17.10,A4,I6)',ADVANCE='NO') '',XsArHe(i,4,2),'',NsArHe(i,4,2)
+        If (NsArHe(i,4,2).GT.NsArHe(i,4,1)) Then
+            Write(*,'(A)') '*<--GL,   p=10'
+        Else
+            Write(*,'(A)') ' <--GL,   p=10'
+        End If
     End Do
     Write(*,*)
     STOP
