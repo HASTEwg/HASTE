@@ -13,7 +13,7 @@ Implicit None
 Real(dp) :: z0,z1,r0,zeta0,inv_rho0
 Integer :: b,c
 Integer, Parameter :: n_zeta = 10
-Integer, Parameter :: n_max = 20
+Integer, Parameter :: n_max = 36
 Real(dp) :: dZ,Smax
 Real(dp) :: Ls
 Real(dp) :: Lz
@@ -23,7 +23,7 @@ Integer :: unit
 Character(1) :: sub
 
 inv_rho0 = 1._dp / rho(0._dp)
-reltol = 1.E-14_dp
+reltol = 1.E-12_dp
 abstol = 0._dp
 Open(NEWUNIT=unit,FILE='EPLquadPrecs.tst',ACTION='WRITE',STATUS='REPLACE')
 
@@ -230,7 +230,7 @@ Subroutine CheckEPLprecsSteep
             Do j = 3,n_max
                 Lz = GaussLegendreN(j,EPL_Integrand_dZ,0._dp,dZ)
                 Write(*,'(A,'//fmt_char//',A,I2)',ADVANCE='NO') ACHAR(13)//'      dZ-p'//p_char//': ',Lz,'',': ',j
-                If (Floor(Prec(Ls,L0)) .GE. p) Then
+                If (Floor(Prec(Lz,L0)) .GE. p) Then
                     If (Floor(Prec(GaussLegendreN(j+1,EPL_Integrand_dZ,0._dp,dZ),L0)) .GE. Floor(Prec(Lz,L0))) Then
                         Write(*,'(A,I0)') ' gauss-pts for prec > ',p
                         Write(unit,'(A,'//fmt_char//',A,I2,A,I0)') '      dZ-p'//p_char//': ',Lz,'',': ',j,' gauss-pts for prec > ',p
