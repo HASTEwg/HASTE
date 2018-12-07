@@ -10,7 +10,7 @@ Use Utilities, Only: Prec
 
 Implicit None
 
-Real(dp) :: z0,z1,r0,zeta0,inv_rho0
+Real(dp) :: z0,z1,r0,zeta0,rho0,inv_rho0
 Integer :: b,c
 Integer, Parameter :: n_zeta = 10
 Integer, Parameter :: n_max = 36
@@ -22,7 +22,8 @@ Real(dp) :: reltol,abstol
 Integer :: unit
 Character(1) :: sub
 
-inv_rho0 = 1._dp / rho(0._dp)
+rho0 = rho(0._dp)
+inv_rho0 = 1._dp / rho0
 reltol = 1.E-12_dp
 abstol = 0._dp
 Open(NEWUNIT=unit,FILE='EPLquadPrecs.tst',ACTION='WRITE',STATUS='REPLACE')
@@ -280,5 +281,14 @@ Function EPL_Integrand_dZ(deltaZ) Result(f)
     End If
     f = inv_rho0 * f * (r0 + deltaZ) / Sqrt((r0*zeta0)**2 + 2._dp*r0*deltaZ + deltaZ**2)
 End Function EPL_Integrand_dZ
+
+Function rho_Isotherm(Z) Result(d)
+    Use Kinds, Only: dp
+    Implicit None
+    !Isothermal atmosphere parameter
+    Real(dp), Parameter :: scale_Height_conv = 0.02927176966650182_dp
+    
+    d = rho0 * Exp(-Z / (scale_Height_conv * 273.15_dp))
+End Function rho_Isotherm
 
 End Program EPLquadpoints
