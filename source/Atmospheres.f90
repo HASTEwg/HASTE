@@ -53,8 +53,9 @@ Module Atmospheres
         Real(dp) :: wind_AF(1:3)  ![km/s]
         Logical :: discontinuous  !flag indicates an atmosphere model with discontinuities (layers)
         Real(dp), Allocatable :: Zb(:) !a local copy of the layer boundaries from atmospheres module, used for finding layer boundaries
+        Integer, Allocatable :: bZb(:) !list of base indexes mapping to the atmosphere models base indexes
         Real(dp), Allocatable :: Rb(:)
-        Integer :: iZb(1:3)  !indexes for bottom and top layers to be included (layers for z_bot and z_top), and number of layers
+        Integer :: iZb(1:3,1:2)  !indexes for bottom and top layers to be included (layers for z_bot and z_top), and number of layers
         Type(EPL_Layer_Data), Allocatable :: EPL_Lay(:)
     Contains
         Procedure, Pass :: T => Atm_Temperature  !returns atmosphere temperature at specified height
@@ -92,7 +93,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     Use FileIO_Utilities, Only: slash
     Use FileIO_Utilities, Only: Output_Message
     Use FileIO_Utilities, Only: Worker_Index
-    Use US_Std_Atm_1976, Only: Find_base_layer_1976 => Find_base_layer
+    Use Utilities, Only: Bisection_Search
     Use US_Std_Atm_1976, Only: Zb_1976 => Zb
     Implicit None
     Type(Atmosphere_Type) :: atm
@@ -116,13 +117,31 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     Logical :: has_resonance
     Integer :: n_iso
     
+    Real(dp), Parameter :: Zb_1976_extended(0:17) = (/  Zb_1976(0),  & !adds the sublayers present in USSA76
+                                                     &  Zb_1976(1),  &
+                                                     &  Zb_1976(2),  &
+                                                     &  Zb_1976(3),  &
+                                                     &  Zb_1976(4),  &
+                                                     &  Zb_1976(5),  &
+                                                     &  Zb_1976(6),  &
+                                                     &  Zb_1976(7),  &
+                                                     &  Zb_1976(8),  &
+                                                     &   95._dp,     &
+                                                     &   97._dp,     &
+                                                     &  100._dp,     &
+                                                     &  Zb_1976(9),  &
+                                                     &  115._dp,     &
+                                                     &  Zb_1976(10), &
+                                                     &  500._dp,     &
+                                                     &  Zb_1976(11)  /)
+    Integer, Parameter :: bZb_1976_extended(0:17) = (/ 0,1,2,3,4,5,6,7,8,8,8,8,9,9,10,10,11 /) !base indexes for each sublayer
+    
     NameList /AtmosphereList/  atmosphere_model,uniform_density,isothermal_temp, & 
                              & Z_top_atm,Z_bot_atm,wind_N,wind_E,composition
     NameList /csSetupList1/ n_elements
     NameList /csSetupList2/ el_fractions,n_isotopes
     NameList /csSetupList3/ isotope_names,diatomic
     NameList /isoSetupList1/ iso_fraction,n_absorption_modes,n_inelastic_lev,has_resonance
-
     
     Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//setup_file_name//', IOSTAT=',stat,kill=.TRUE.)
@@ -132,14 +151,23 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
         Case ('USstd1976')
             atm%model_index = atm_mod_USstd1976
             atm%discontinuous = .TRUE.
-            atm%iZb(1) = Find_base_layer_1976(Z_bot_atm) + 1
-            atm%iZb(2) = Find_base_layer_1976(Z_top_atm) + 1
-            If (Z_top_atm .EQ. Zb_1976(atm%iZb(2)-1)) atm%iZb(2) = atm%iZb(2)-1
-            atm%iZb(3) = atm%iZb(2) - atm%iZb(1) + 1
+            !find indexes in local layer list for bottom and top of atmosphere
+            atm%iZb(1,1) = Bisection_Search(Z_bot_atm,Zb_1976_extended(1:15),15)
+            atm%iZb(2,1) = Bisection_Search(Z_top_atm,Zb_1976_extended(1:15),15)
+            If (Z_top_atm .EQ. Zb_1976_extended(atm%iZb(2,1)-1)) atm%iZb(2,1) = atm%iZb(2,1)-1
+            atm%iZb(3,1) = atm%iZb(2,1) - atm%iZb(1,1) + 1
+            !fill layer altitudes array
             Allocate(atm%Zb(atm%iZb(1)-1:atm%iZb(2)))
-            atm%Zb = Zb_1976(atm%iZb(1)-1:atm%iZb(2))
+            atm%Zb = Zb_1976_extended(atm%iZb(1)-1:atm%iZb(2))
             atm%Zb(atm%iZb(1)-1) = Z_bot_atm
             atm%Zb(atm%iZb(2)) = Z_top_atm
+            !fill base index array
+            Allocate(atm%bZb(atm%iZb(1)-1:atm%iZb(2)))
+            atm%bZb = bZb_1976_extended(atm%iZb(1)-1:atm%iZb(2))
+            !get base indexes for atmosphere sublist
+            atm%iZb(1,2) = bZb_1976_extended(atm%iZb(1,1))
+            atm%iZb(2,2) = bZb_1976_extended(atm%iZb(2,1))
+            atm%iZb(3,2) = atm%iZb(2,2) - atm%iZb(1,2) + 1
         Case ('IsoThermal')
             atm%model_index = atm_mod_IsoTherm
             atm%discontinuous = .FALSE.
@@ -147,6 +175,8 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
             Allocate(atm%Zb(0:1))
             atm%Zb(0) = Z_bot_atm
             atm%Zb(1) = Z_top_atm
+            Allocate(atm%bZb(0:1))
+            atm%bZb = 1
         Case Default
             Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  Undefined atmosphere model',kill=.TRUE.)
     End Select
@@ -333,9 +363,9 @@ Function Atm_Temperature(atm,z,lay) Result(T)
     Select Case (atm%model_index)
         Case (atm_mod_USstd1976)
             If (Present(lay)) Then
-                T = T_1976(z,layer=lay)
+                T = T_1976(z,layer=layer=atm%bZb(lay)+1)
             Else
-                T = T_1976(z,layer_range=atm%iZb)
+                T = T_1976(z,layer_range=atm%iZb(:,2))
             End If
         Case (atm_mod_IsoTherm)
             T = atm%isothermal_temp
@@ -354,9 +384,9 @@ Function Atm_Density(atm,z,lay) Result(rho)
     Select Case (atm%model_index)
         Case (atm_mod_USstd1976)
             If (Present(lay)) Then
-                rho = rho_1976(z,layer=lay)
+                rho = rho_1976(z,layer=atm%bZb(lay)+1)
             Else
-                rho = rho_1976(z,layer_range=atm%iZb)
+                rho = rho_1976(z,layer_range=atm%iZb(:,2))
             End If
         Case (atm_mod_IsoTherm)
             rho = atm%uniform_density_ratio * rho_SL * Exp(-z / (scale_Height_conv * atm%isothermal_temp))
@@ -370,21 +400,19 @@ Subroutine Define_EPL_Layers(atm,resources_dir)
     Use Global, Only: R_earth
     Implicit None
     !number of quadrature points for 6, 9 or 12 digits of precision on STRAIGHT paths
-    !                                                  b =        0  1  2  3  4  5  6  7 8a 8b 8c 8d 9a 9b 10a 10b
-    Integer, Parameter :: EPL_Quad_n1976_smallZeta_p6(1:11) =  (/ 4, 5, 5, 6, 4, 5, 5, 4, 4, 4, 4, 8, 5, 5, 14,  7 /)
-    Integer, Parameter :: EPL_Quad_n1976_smallZeta_p9(1:11) =  (/ 5, 5, 6, 6, 4, 7, 7, 6, 6, 5, 5,14, 7, 6, 23, 10 /)
-    Integer, Parameter :: EPL_Quad_n1976_smallZeta_p12(1:11) = (/ 7, 8, 9,10, 6, 9, 9, 8, 7, 6, 7,22,14, 7, 33, 13 /)
-    Integer, Parameter :: EPL_Quad_n1976_largeZeta_p6(1:11) =  (/ 4, 4, 5, 5, 3, 5, 4, 4, 3, 3, 3, 6, 4, 4, 22, 15 /)
-    Integer, Parameter :: EPL_Quad_n1976_largeZeta_p9(1:11) =  (/ 5, 7, 7, 7, 5, 6, 6, 5, 4, 4, 4,11, 6, 5, 28, 21 /)
-    Integer, Parameter :: EPL_Quad_n1976_largeZeta_p12(1:11) = (/ 6, 6, 7, 8, 5, 8, 8, 6, 6, 5, 6,16,10, 6, 36, 28 /)
-    Integer, Parameter :: USSA76_n_sublayers(9:11) = (/ 4,2,2 /)
+    !                                          USSA76 base index: 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 9, 9, 10, 10 /)
+    Integer, Parameter :: EPL_Quad_n1976_smallZeta_p6(1:16) =  (/ 4, 5, 5, 6, 4, 5, 5, 4, 4, 4, 4, 8, 5, 5, 14,  7 /)
+    Integer, Parameter :: EPL_Quad_n1976_smallZeta_p9(1:16) =  (/ 5, 5, 6, 6, 4, 7, 7, 6, 6, 5, 5,14, 7, 6, 23, 10 /)
+    Integer, Parameter :: EPL_Quad_n1976_smallZeta_p12(1:16) = (/ 7, 8, 9,10, 6, 9, 9, 8, 7, 6, 7,22,14, 7, 33, 13 /)
+    Integer, Parameter :: EPL_Quad_n1976_largeZeta_p6(1:16) =  (/ 4, 4, 5, 5, 3, 5, 4, 4, 3, 3, 3, 6, 4, 4, 22, 15 /)
+    Integer, Parameter :: EPL_Quad_n1976_largeZeta_p9(1:16) =  (/ 5, 7, 7, 7, 5, 6, 6, 5, 4, 4, 4,11, 6, 5, 28, 21 /)
+    Integer, Parameter :: EPL_Quad_n1976_largeZeta_p12(1:16) = (/ 6, 6, 7, 8, 5, 8, 8, 6, 6, 5, 6,16,10, 6, 36, 28 /)
     Integer, Parameter :: EPL_Quad_nIsoT_smallZeta_p6 =   8
     Integer, Parameter :: EPL_Quad_nIsoT_smallZeta_p9 =  13!TODO
     Integer, Parameter :: EPL_Quad_nIsoT_smallZeta_p12 = 13
     Integer, Parameter :: EPL_Quad_nIsoT_largeZeta_p6 =   9
     Integer, Parameter :: EPL_Quad_nIsoT_largeZeta_p9 =  15!TODO
     Integer, Parameter :: EPL_Quad_nIsoT_largeZeta_p12 = 15
-    !number of quadrature points for 6, 9, or 12 digits of precision on ORBITAL paths
     !TODO Evaluate whether separate q-points numbers are needed for orbital paths... so far, results have always been the same.
     Type(Atmosphere_Type), Intent(InOut) :: atm
     Character(*), Intent(In) :: resources_dir
