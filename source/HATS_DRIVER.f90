@@ -58,7 +58,7 @@ Use FileIO_Utilities, Only: Delta_Time
 
 Implicit None
 
-Character(max_line_len), Parameter :: title = 'High-Altitude Transport to Space for Neutrons (HATS-n) v0.9.01, 15 Nov 2018'
+Character(max_line_len), Parameter :: title = 'High-Altitude Transport to Space for Neutrons (HATS-n) v0.9.02, 25 Dec 2018'
 Integer(id) :: n_histories
 Logical :: absolute_n_histories  !specifies whether number of histories is an absolute limit, or a goal to accumulate contributions on
 Logical :: prompt_exit  !specifies whether the simulation will wait for user unput before exiting
