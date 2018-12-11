@@ -191,17 +191,12 @@ Module US_Std_Atm_1976
                                       & 7.5817E14_dp    /) !He  !US Standard Atmosphere 1976 table 9
     Real(dp), Parameter :: N7_T7(1:5) = N7 * Tb(7)  !precomputed quantity for 1976 diffusion coeff calculations
     Real(dp), Parameter :: nH500 = 8.E10_dp
-    ! Real(dp), Parameter :: T500 = 999.2356017626150686_dp
     Real(dp), Parameter :: phiH = 7.2E11_dp
     !Convergence criteria for quadrature routines
 #   if (INTEGRAND_STOPS || GL_POINTS)
         Real(dp), Parameter :: rTol_tier1 = 1.E-15_dp  !N2
         Real(dp), Parameter :: rTol_tier2 = 1.E-14_dp  !O1 and O2
         Real(dp), Parameter :: rTol_tier3 = 1.E-13_dp  !Ar and He
-#   else
-        Real(dp), Parameter :: rTol_tier1 = 1.E-8_dp  !N2
-        Real(dp), Parameter :: rTol_tier2 = 1.E-7_dp  !O1 and O2
-        Real(dp), Parameter :: rTol_tier3 = 1.E-6_dp  !Ar and He
 #   endif
     Real(dp), Parameter :: rTol_tier4a = 1.E-5_dp  !H
     Real(dp), Parameter :: rTol_tier4b = 1.E-4_dp  !H
