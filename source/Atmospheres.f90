@@ -52,10 +52,11 @@ Module Atmospheres
         Real(dp) :: R_bot  ![km]
         Real(dp) :: wind_AF(1:3)  ![km/s]
         Logical :: discontinuous  !flag indicates an atmosphere model with discontinuities (layers)
-        Real(dp), Allocatable :: Zb(:) !a local copy of the layer boundaries from atmospheres module, used for finding layer boundaries
-        Integer, Allocatable :: bZb(:) !list of base indexes mapping to the atmosphere models base indexes
+        Real(dp), Allocatable :: Zb(:) !a local set of layer boundaries from atmospheres module, augmented with any natural breaks not explicit in the atmosphere model, used for finding layer boundaries
+        Integer, Allocatable :: bZb(:) !list of base indexes mapping to the atmosphere model's base indexes
         Real(dp), Allocatable :: Rb(:)
-        Integer :: iZb(1:3,1:2)  !indexes for bottom and top layers to be included (layers for z_bot and z_top), and number of layers
+        Integer :: iZb(1:3)  !indexes for bottom and top layers to be included (layers for z_bot and z_top), and number of layers
+        Integer :: iZb_map(1:3)  !indexes for bottom and top layers and number of layers IN THE ACTUAL ATMOSPHERE MODEL
         Type(EPL_Layer_Data), Allocatable :: EPL_Lay(:)
     Contains
         Procedure, Pass :: T => Atm_Temperature  !returns atmosphere temperature at specified height
@@ -117,23 +118,23 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     Logical :: has_resonance
     Integer :: n_iso
     
-    Real(dp), Parameter :: Zb_1976_extended(0:17) = (/  Zb_1976(0),  & !adds the sublayers present in USSA76
-                                                     &  Zb_1976(1),  &
-                                                     &  Zb_1976(2),  &
-                                                     &  Zb_1976(3),  &
-                                                     &  Zb_1976(4),  &
-                                                     &  Zb_1976(5),  &
-                                                     &  Zb_1976(6),  &
-                                                     &  Zb_1976(7),  &
-                                                     &  Zb_1976(8),  &
-                                                     &   95._dp,     &
-                                                     &   97._dp,     &
-                                                     &  100._dp,     &
-                                                     &  Zb_1976(9),  &
-                                                     &  115._dp,     &
-                                                     &  Zb_1976(10), &
-                                                     &  500._dp,     &
-                                                     &  Zb_1976(11)  /)
+    Real(dp), Parameter :: Zb_1976_extended(0:17) = (/  Zb_1976(0), & !adds the sublayers present in USSA76
+                                                     &  Zb_1976(1), &
+                                                     &  Zb_1976(2), &
+                                                     &  Zb_1976(3), &
+                                                     &  Zb_1976(4), &
+                                                     &  Zb_1976(5), &
+                                                     &  Zb_1976(6), &
+                                                     &  Zb_1976(7), &
+                                                     &  Zb_1976(8), &
+                                                     &      95._dp, &
+                                                     &      97._dp, &
+                                                     &     100._dp, &
+                                                     &  Zb_1976(9), &
+                                                     &     115._dp, &
+                                                     & Zb_1976(10), &
+                                                     &     500._dp, &
+                                                     & Zb_1976(11)  /)
     Integer, Parameter :: bZb_1976_extended(0:17) = (/ 0,1,2,3,4,5,6,7,8,8,8,8,9,9,10,10,11 /) !base indexes for each sublayer
     
     NameList /AtmosphereList/  atmosphere_model,uniform_density,isothermal_temp, & 
@@ -152,22 +153,21 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
             atm%model_index = atm_mod_USstd1976
             atm%discontinuous = .TRUE.
             !find indexes in local layer list for bottom and top of atmosphere
-            atm%iZb(1,1) = Bisection_Search(Z_bot_atm,Zb_1976_extended(1:15),15)
-            atm%iZb(2,1) = Bisection_Search(Z_top_atm,Zb_1976_extended(1:15),15)
-            If (Z_top_atm .EQ. Zb_1976_extended(atm%iZb(2,1)-1)) atm%iZb(2,1) = atm%iZb(2,1)-1
-            atm%iZb(3,1) = atm%iZb(2,1) - atm%iZb(1,1) + 1
+            atm%iZb(1) = Bisection_Search(Z_bot_atm,Zb_1976_extended(1:15),15)
+            atm%iZb(2) = Bisection_Search(Z_top_atm,Zb_1976_extended(1:15),15)
+            If (Z_top_atm .EQ. Zb_1976_extended(atm%iZb(2)-1)) atm%iZb(2) = atm%iZb(2)-1
+            atm%iZb(3) = atm%iZb(2) - atm%iZb(1) + 1
             !fill layer altitudes array
             Allocate(atm%Zb(atm%iZb(1)-1:atm%iZb(2)))
             atm%Zb = Zb_1976_extended(atm%iZb(1)-1:atm%iZb(2))
             atm%Zb(atm%iZb(1)-1) = Z_bot_atm
             atm%Zb(atm%iZb(2)) = Z_top_atm
-            !fill base index array
+            !fill base index arrays
             Allocate(atm%bZb(atm%iZb(1)-1:atm%iZb(2)))
             atm%bZb = bZb_1976_extended(atm%iZb(1)-1:atm%iZb(2))
-            !get base indexes for atmosphere sublist
-            atm%iZb(1,2) = bZb_1976_extended(atm%iZb(1,1))
-            atm%iZb(2,2) = bZb_1976_extended(atm%iZb(2,1))
-            atm%iZb(3,2) = atm%iZb(2,2) - atm%iZb(1,2) + 1
+            atm%iZb_map(1) = bZb_1976_extended(atm%iZb(1))	
+            atm%iZb_map(2) = bZb_1976_extended(atm%iZb(2))	
+            atm%iZb_map(3) = atm%iZb_map(2) - atm%iZb_map(1) + 1
         Case ('IsoThermal')
             atm%model_index = atm_mod_IsoTherm
             atm%discontinuous = .FALSE.
@@ -177,6 +177,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
             atm%Zb(1) = Z_top_atm
             Allocate(atm%bZb(0:1))
             atm%bZb = 1
+            atm%iZb_map = 1	
         Case Default
             Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  Undefined atmosphere model',kill=.TRUE.)
     End Select
@@ -363,9 +364,9 @@ Function Atm_Temperature(atm,z,lay) Result(T)
     Select Case (atm%model_index)
         Case (atm_mod_USstd1976)
             If (Present(lay)) Then
-                T = T_1976(z,layer=layer=atm%bZb(lay)+1)
+                T = T_1976(z,layer=atm%bZb(lay)+1)
             Else
-                T = T_1976(z,layer_range=atm%iZb(:,2))
+                T = T_1976(z,layer_range=atm%iZb_map)
             End If
         Case (atm_mod_IsoTherm)
             T = atm%isothermal_temp
@@ -386,7 +387,7 @@ Function Atm_Density(atm,z,lay) Result(rho)
             If (Present(lay)) Then
                 rho = rho_1976(z,layer=atm%bZb(lay)+1)
             Else
-                rho = rho_1976(z,layer_range=atm%iZb(:,2))
+                rho = rho_1976(z,layer_range=atm%iZb_map)
             End If
         Case (atm_mod_IsoTherm)
             rho = atm%uniform_density_ratio * rho_SL * Exp(-z / (scale_Height_conv * atm%isothermal_temp))
