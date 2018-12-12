@@ -58,6 +58,9 @@ Module Atmospheres
         Integer :: iZb(1:3)  !indexes for bottom and top layers to be included (layers for z_bot and z_top), and number of layers
         Integer :: iZb_map(1:3)  !indexes for bottom and top layers and number of layers IN THE ACTUAL ATMOSPHERE MODEL
         Type(EPL_Layer_Data), Allocatable :: EPL_Lay(:)
+#       if CHECK_L
+            Integer :: EPL_prec
+#       endif
     Contains
         Procedure, Pass :: T => Atm_Temperature  !returns atmosphere temperature at specified height
         Procedure, Pass :: rho => Atm_Density  !returns atmospheric density at specified heigh
@@ -420,7 +423,10 @@ Subroutine Define_EPL_Layers(atm,resources_dir)
     Integer :: i,b,c
     Real(dp) :: dZ
     Real(dp), Allocatable :: z(:)
-    
+
+#   if CHECK_L
+        atm%EPL_prec = 12
+#   endif
     Allocate(atm%EPL_lay(atm%iZb(1):atm%iZb(2)))
     Do b = atm%iZb(1),atm%iZb(2)
         !get number of quad points
