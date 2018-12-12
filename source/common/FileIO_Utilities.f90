@@ -1289,15 +1289,15 @@ Function Get_Host_Name() Result(s)
     Character(max_line_len) :: s
     Integer :: stat
     
-#   if IFORT
-        stat = HOSTNAM(s)  !<--IFORT implementation
-        If (stat .NE. 0) s = '<<UNKNOWN>>'
-#   else
-        s = '<<UNKNOWN>>'
-#   endif
-#   if GFORT
-        Call HOSTNM(s,stat)  !<--GFORT implementation
-        If (stat .NE. 0) s = '<<UNKNOWN>>'
+#   if (GFORT || IFORT)
+#       if GFORT
+            Call HOSTNM(s,stat)  !<--GFORT implementation
+            If (stat .NE. 0) s = '<<UNKNOWN>>'
+#       endif
+#       if IFORT
+            stat = HOSTNAM(s)  !<--IFORT implementation
+            If (stat .NE. 0) s = '<<UNKNOWN>>'
+#       endif
 #   else
         s = '<<UNKNOWN>>'
 #   endif
