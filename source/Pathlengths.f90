@@ -336,6 +336,50 @@ Subroutine EPL_orbit_upward_full(atm,z0,zeta0,h,xi,p,e,rp,L,z1_in)
     L = Sum(Lb)
 End Subroutine EPL_orbit_upward_full
 
+# if CHECK_L
+Subroutine Check_EPL(L,z0,z1,zeta0,atm)
+    !UNSTANDARD: ABORT (GFORT) is an extension
+    Use Kinds, Only: dp
+    Use Atmospheres, Only: Atmosphere_Type
+    Use Global, Only: R_Earth
+    Use Quadratures, Only Romberg_Quad
+    Use Utilities, Only: Prec
+    Implicit None
+    Real(dp), Intent(In) :: L
+    Real(dp), Intent(In) :: z0,z1,zeta0
+    Type(Atmosphere_Type), Intent(In) :: atm
+    Real(dp) :: r0,dZ
+    Real(dp) :: L0
+
+    r0 = R_Earth + z0
+    dZ = z1 - z0
+    Smax = dZ * (2._dp * r0 + dZ) / ( zeta0 * r0 + Sqrt( (zeta0 * r0)**2 + dZ * (2._dp * r0 + dZ) ) )
+    L0 = Romberg_Quad(EPL_Integrand,0._dp,Smax,aTol=0._dp,rTol=1.E-5_dp)
+    If (Prec(L0,L) .GT. 4._dp) Return !computed EPLs likely agree
+    Write(*,*)
+    Write(*,'(A)') 'ERROR:  PATHLENGTHS failed integral check...'
+#   if GFORT
+        Call abort  !<--GFORT implementation
+#   else
+        ERROR STOP
+#   endif   
+
+Contains
+    Function EPL_Integrand(s) Result(f)
+        Use Kinds, Only: dp
+        Use Utilities, Only: Smaller_Quadratic_Root
+        Use Atmospheres, Only: inv_rho_SL
+        Implicit None
+        Real(dp) :: f
+        Real(dp), Intent(In) :: s
+        Real(dp) :: deltaZ
+
+        deltaZ = Smaller_Quadratic_root(r0,s*(2._dp*r0*zeta0 + s))
+        f = inv_rho_SL * atm%rho(z0 + deltaZ)
+    End Function EPL_Integrand
+End Subroutine
+# endif
+
 Subroutine EPL_straight_upward_layers(atm,r0,zeta0,z0,nb,bb,Lb,z1_in)
     Use Kinds, Only: dp
     Use Atmospheres, Only: Atmosphere_Type
@@ -376,6 +420,9 @@ Subroutine EPL_straight_upward_layers(atm,r0,zeta0,z0,nb,bb,Lb,z1_in)
         Else
             Lb = EPL_S_partial_layer(r0,z0,z1,zeta0,b0,atm%EPL_lay(b0)%nS,atm)
         End If
+#       if CHECK_L
+            Call Check_EPL(Lb(1),z0,z1,zeta0,atm)
+#       endif
         bb(1) = b0
         Return
     Else
@@ -387,12 +434,18 @@ Subroutine EPL_straight_upward_layers(atm,r0,zeta0,z0,nb,bb,Lb,z1_in)
             Else
                 Lb(1) = EPL_S_partial_layer(r0,z0,atm%Zb(b0),zeta0,b0,atm%EPL_lay(b0)%nS,atm)
             End If
+#           if CHECK_L
+                Call Check_EPL(Lb(1),z0,atm%Zb(b0),zeta0,atm)
+#           endif
         Else  !full first layer
             If (zeta0 .GE. 0.1_dp) Then
-                Lb(1) = EPL_Z_known_layer(atm%EPL_lay(b0),zeta0)
+                Lb(1) = EPL_Z_known_layer(atm%EPL_lay(b0),zeta0,atm)
             Else
                 Lb(1) = EPL_S_known_layer(zeta0,b0,atm)
             End If
+#           if CHECK_L
+                Call Check_EPL(Lb(1),atm%Zb(b0-1),atm%Zb(b0),zeta0,atm)
+#           endif
         End If
         !full layers from b0+1 to b1-1
         i = 2
@@ -404,6 +457,9 @@ Subroutine EPL_straight_upward_layers(atm,r0,zeta0,z0,nb,bb,Lb,z1_in)
             Else
                 Lb(i) = EPL_S_known_layer(zeta1,b,atm)
             End If
+#           if CHECK_L
+                Call Check_EPL(Lb(i),atm%Zb(b-1),atm%Zb(b),zeta1,atm)
+#           endif
             i = i + 1
         End Do
         !last layer may or may not be partial
@@ -415,12 +471,18 @@ Subroutine EPL_straight_upward_layers(atm,r0,zeta0,z0,nb,bb,Lb,z1_in)
             Else
                 Lb(nb) = EPL_S_partial_layer(atm%Rb(b1),atm%Zb(b1-1),z1,zeta1,b1,atm%EPL_lay(b1)%nS,atm)
             End If
+#           if CHECK_L
+                Call Check_EPL(Lb(nb),atm%Zb(b1-1),z1,zeta1,atm)
+#           endif
         Else
             If (zeta1 .GE. 0.1_dp) Then
                 Lb(nb) = EPL_Z_known_layer(atm%EPL_lay(b),zeta1)
             Else
                 Lb(nb) = EPL_S_known_layer(zeta1,b,atm)
             End If
+#           if CHECK_L
+                Call Check_EPL(Lb(nb),atm%Zb(b1-1),atm%Zb(b1),zeta1,atm)
+#           endif
         End If
     End If
 End Subroutine EPL_straight_upward_layers
