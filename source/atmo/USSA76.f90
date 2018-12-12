@@ -224,13 +224,14 @@ Function Find_Base_Layer(Z,iZb) Result(b)
 End Function Find_Base_Layer
 
 # if CHECK_B
-Subroutine Failed_Base_Check(Z,b)
+Subroutine Check_Base(Z,b)
     !UNSTANDARD: ABORT (GFORT) is an extension
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: Z
     Integer, Intent(In) :: b
 
+    If (Z.GE.Zb(b) .AND. Z.LE.Zb(b+1)) Return !base is correct
     Write(*,*)
     Write(*,'(A,ES24.16,A,I5)') 'ERROR:  USSA76 failed base check:  Z = ',Z,', b = ',b
 #   if GFORT
@@ -259,7 +260,7 @@ Function T(Z,layer,layer_range)
         b = Find_Base_Layer(Z)
     End If
 #   if CHECK_B
-        If (.NOT.(Z.GE.Zb(b) .AND. Z.LE.Zb(b+1)) ) Call Failed_Base_Check(Z,b)
+        Call Base_Check(Z,b)
 #   endif
     If (Lb_nonzero(b)) Then !b=0,2,3,5,6,9
         If (T_linear_by_H(b)) Then !b=0,2,3,5,6
@@ -422,7 +423,7 @@ Function nN2_power(Z,b) Result(x)
     Real(dp), Parameter :: c10c = lambda * R_Z10 - Log(Tb(10))
 
 #   if CHECK_B
-        If (.NOT.(Z.GE.Zb(b) .AND. Z.LE.Zb(b+1)) ) Call Failed_Base_Check(Z,b)
+        Call Check_Base(Z,b)
 #   endif
     If (no_sublayers(b)) Then !b=7, 9, or 10
         If (b .EQ. 7) Then !b=7
@@ -581,7 +582,7 @@ Function nO1_O2_powers(Z,b) Result(x)
     Real(dp), Parameter :: c10c      = lambda * R_Z10 - Log(Tb(10))
 
 #   if CHECK_B
-        If (.NOT.(Z.GE.Zb(b) .AND. Z.LE.Zb(b+1)) ) Call Failed_Base_Check(Z,b)
+        Call Check_Base(Z,b)
 #   endif
     If (no_sublayers(b)) Then !b=7,10
         If (b .EQ. 7) Then !b=7
@@ -930,7 +931,7 @@ Function nAr_He_powers(Z,b) Result(x)
     Real(dp), Parameter :: c10d      = alphaHe * Log(Tb(10))
 
 #   if CHECK_B
-        If (.NOT.(Z.GE.Zb(b) .AND. Z.LE.Zb(b+1)) ) Call Failed_Base_Check(Z,b)
+        Call Check_Base(Z,b)
 #   endif
     If (no_sublayers(b)) Then !b=7,10
         If (b .EQ. 7) Then !b=7
@@ -1327,7 +1328,7 @@ Function P(Z,layer,layer_range)
         b = Find_Base_Layer(Z)
     End If
 #   if CHECK_B
-        If (.NOT.(Z.GE.Zb(b) .AND. Z.LE.Zb(b+1)) ) Call Failed_Base_Check(Z,b)
+        Call Check_Base(Z,b)
 #   endif
     If (Lb_nonzero(b)) Then !b=0,2,3,5,6,9
         If (T_linear_by_H(b)) Then !b=0,2,3,5,6
@@ -1435,7 +1436,7 @@ Function rho(Z,layer,layer_range)
         b = Find_Base_Layer(Z)
     End If
 #   if CHECK_B
-        If (.NOT.(Z.GE.Zb(b) .AND. Z.LE.Zb(b+1)) ) Call Failed_Base_Check(Z,b)
+        Call Check_Base(Z,b)
 #   endif
     If (Lb_nonzero(b)) Then !b=0,2,3,5,6,9
         If (T_linear_by_H(b)) Then !b=0,2,3,5,6
