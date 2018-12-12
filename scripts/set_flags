@@ -6,14 +6,17 @@ set -e
 #  - Intel MKL PRNGs (default off, -DIMKL for Intel MKL)
 #  - Coarray support (default off, -DCAF enables coarrays)
 #  - Compiler vendor (-DGFORT for gFortran, -DIFORT for Intel)
+#  - Runtime checking (use '-k' to enable all)
+#    - Checking of atmosphere base layer selections (-DCHECK_B)
+#    - Checking of pathlength integral quadratures (-DCHECK_L)
 PREP_FLAGS="-cpp -DLIN_OS -DGFORT"
-# Preprocessor flags may be appended to this using the '-p' flag from the command line
+# Additional preprocessor flags may be appended to this using the '-p' flag from the command line
 
 # General compiler flags (applies to all builds)
 OBJ_DIR="../build/obj/"
 DIR_FLAGS="-I${OBJ_DIR} -J${OBJ_DIR}"
 MATH_FLAGS="-ffinite-math-only -fno-signed-zeros -fwrapv"
-ALWAYS_FLAGS=" ${MATH_FLAGS} -ffree-line-length-0 -fimplicit-none -fexceptions -fnon-call-exceptions -ffpe-trap=invalid,zero,overflow -fmax-errors=5 ${DIR_FLAGS}"
+ALWAYS_FLAGS="${MATH_FLAGS} -ffree-line-length-0 -fimplicit-none -fexceptions -fnon-call-exceptions -ffpe-trap=invalid,zero,overflow -fmax-errors=5 ${DIR_FLAGS}"
 # DEVELOPMENT Flags (fastest compile cycle, no object files, no linking)
 SYNTAX_FLAGS="-O0 -fmax-errors=5 -Wall -Wextra -pedantic ${ALWAYS_FLAGS} -fsyntax-only"
 # DEBUG Compiler Flags (for debug builds, fast compile with full debug information)
@@ -25,7 +28,7 @@ RELEASE_FLAGS_PI="-Ofast -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -
 
 # Set compiler flags based on command flag
 COMP_FLAGS="${DEBUG_FLAGS}"
-while getopts 'sdrqwp:c' flag; do
+while getopts 'sdrqwp:ck' flag; do
   case "${flag}" in
     s) COMP_FLAGS="${SYNTAX_FLAGS}"
        ;;
@@ -45,6 +48,8 @@ while getopts 'sdrqwp:c' flag; do
        #LIB_FLAGS="${COMP_FLAGS} -lcaf_single"
        COMP_FLAGS="${COMP_FLAGS} -fcoarray=lib"
        LIB_FLAGS="${COMP_FLAGS} -lcaf_mpi"
+       ;;
+    k) PREP_FLAGS="${PREP_FLAGS} -DCHECK_B -DCHECK_L"
        ;;
   esac
 done
