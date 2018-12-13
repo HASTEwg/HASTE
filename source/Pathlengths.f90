@@ -342,20 +342,20 @@ Subroutine Check_EPL(L,z0,z1,zeta0,atm)
     Use Kinds, Only: dp
     Use Atmospheres, Only: Atmosphere_Type
     Use Global, Only: R_Earth
-    Use Quadratures, Only Romberg_Quad
+    Use Quadratures, Only: Romberg_Quad
     Use Utilities, Only: Prec
     Implicit None
     Real(dp), Intent(In) :: L
     Real(dp), Intent(In) :: z0,z1,zeta0
     Type(Atmosphere_Type), Intent(In) :: atm
-    Real(dp) :: r0,dZ
+    Real(dp) :: r0,dZ,Smax
     Real(dp) :: L0
 
     r0 = R_Earth + z0
     dZ = z1 - z0
     Smax = dZ * (2._dp * r0 + dZ) / ( zeta0 * r0 + Sqrt( (zeta0 * r0)**2 + dZ * (2._dp * r0 + dZ) ) )
-    L0 = Romberg_Quad(EPL_Integrand,0._dp,Smax,aTol=0._dp,rTol=1.E-5_dp)
-    If (Prec(L0,L) .GT. 4._dp) Return !computed EPLs likely agree
+    L0 = Romberg_Quad(EPL_Integrand,0._dp,Smax,aTol=0._dp,rTol=0.1_dp**(-0.5_dp*atm%EPL_prec))
+    If (Prec(L0,L) .GT. 0.5_dp*atm%EPL_prec) Return !computed EPLs agree to at least half precision
     Write(*,*)
     Write(*,'(A)') 'ERROR:  PATHLENGTHS failed integral check...'
 #   if GFORT
@@ -439,7 +439,7 @@ Subroutine EPL_straight_upward_layers(atm,r0,zeta0,z0,nb,bb,Lb,z1_in)
 #           endif
         Else  !full first layer
             If (zeta0 .GE. 0.1_dp) Then
-                Lb(1) = EPL_Z_known_layer(atm%EPL_lay(b0),zeta0,atm)
+                Lb(1) = EPL_Z_known_layer(atm%EPL_lay(b0),zeta0)
             Else
                 Lb(1) = EPL_S_known_layer(zeta0,b0,atm)
             End If

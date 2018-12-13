@@ -147,7 +147,7 @@ z_detector = 35793.              ![km]  Used for 'Cartesian' AND 'Celestial' geo
                                  !      'Celestial' specifies geometric altitude above Earth surface
 declination_detector = 0.        ![deg]  Measured from equator, northward is positive, Used only for
                                  !       'Celestial' geometry
-right_ascension_detector = -118.    ![deg]  Measured from prime meridian (increasing counter-clockwise
+right_ascension_detector = 0.    ![deg]  Measured from prime meridian (increasing counter-clockwise
                                  !       when viewed down from North), Used only for 'Celestial'
                                  !       geometry
 v_E_detector = 0.                ![km/s]  Easterly velocity of detector

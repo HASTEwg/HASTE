@@ -180,7 +180,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
             atm%Zb(1) = Z_top_atm
             Allocate(atm%bZb(0:1))
             atm%bZb = 1
-            atm%iZb_map = 1	
+            atm%iZb_map = 1
         Case Default
             Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  Undefined atmosphere model',kill=.TRUE.)
     End Select
@@ -420,7 +420,7 @@ Subroutine Define_EPL_Layers(atm,resources_dir)
     !TODO Evaluate whether separate q-points numbers are needed for orbital paths... so far, results have always been the same.
     Type(Atmosphere_Type), Intent(InOut) :: atm
     Character(*), Intent(In) :: resources_dir
-    Integer :: i,b,c
+    Integer :: i,b
     Real(dp) :: dZ
     Real(dp), Allocatable :: z(:)
 

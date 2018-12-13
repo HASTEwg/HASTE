@@ -234,12 +234,14 @@ Subroutine Check_Base(Z,b)
     If (Z.GE.Zb(b) .AND. Z.LE.Zb(b+1)) Return !base is correct
     Write(*,*)
     Write(*,'(A,ES24.16,A,I5)') 'ERROR:  USSA76 failed base check:  Z = ',Z,', b = ',b
+    Write(*,'(A,ES24.16)')      '                                Z(b) = ',Zb(b)
+    Write(*,'(A,ES24.16)')      '                              Z(b+1) = ',Zb(b+1)
 #   if GFORT
         Call abort  !<--GFORT implementation
 #   else
         ERROR STOP
 #   endif
-End Subroutine Failed_Base_Check
+End Subroutine Check_Base
 # endif
 
 Function T(Z,layer,layer_range)
@@ -260,7 +262,7 @@ Function T(Z,layer,layer_range)
         b = Find_Base_Layer(Z)
     End If
 #   if CHECK_B
-        Call Base_Check(Z,b)
+        Call Check_Base(Z,b)
 #   endif
     If (Lb_nonzero(b)) Then !b=0,2,3,5,6,9
         If (T_linear_by_H(b)) Then !b=0,2,3,5,6
@@ -334,7 +336,7 @@ Function dT_dZ(Z,layer,layer_range)
         b = Find_Base_Layer(Z)
     End If
 #   if CHECK_B
-        If (.NOT.(Z.GE.Zb(b) .AND. Z.LE.Zb(b+1)) ) Call Failed_Base_Check(Z,b)
+        Call Check_Base(Z,b)
 #   endif
     If (Lb_nonzero(b)) Then !b=0,2,3,5,6,9
         dT_dZ = Lb(b)
@@ -1248,66 +1250,66 @@ Subroutine N_density(Z,Tz,b,N)
     N = Sum(Ns)
 End Subroutine N_density
 
- Function nH(Z) Result(N)
-    Use Kinds, Only: dp
-    Use Quadratures, Only: Romberg_Quad
-    Implicit None
-    Real(dp) :: N
-    Real(dp), Intent(In) :: Z
+! Function nH(Z) Result(N)
+!     Use Kinds, Only: dp
+!     Use Quadratures, Only: Romberg_Quad
+!     Implicit None
+!     Real(dp) :: N
+!     Real(dp), Intent(In) :: Z
     
-    If (Z .LT. 150._dp) Then
-        N = 0._dp
-    Else If (Z .LT. 500._dp) Then
-        N = (nH500 - phiH * Romberg_Quad(nH_integrand,500._dp,Z,0._dp,rTol_tier4b)) / p6(Z)  !US Standard Atmosphere 1976 equation 39
-    Else !z .GE. 500
-        N = nH500 / p6(Z)  !US Standard Atmosphere 1976 equation 39
-    End If
-End Function nH
+!     If (Z .LT. 150._dp) Then
+!         N = 0._dp
+!     Else If (Z .LT. 500._dp) Then
+!         N = (nH500 - phiH * Romberg_Quad(nH_integrand,500._dp,Z,0._dp,rTol_tier4b)) / p6(Z)  !US Standard Atmosphere 1976 equation 39
+!     Else !z .GE. 500
+!         N = nH500 / p6(Z)  !US Standard Atmosphere 1976 equation 39
+!     End If
+! End Function nH
 
-Function p6(Z) Result(p)
-    Use Kinds, Only: dp
-    Use Quadratures, Only: Romberg_Quad
-    Implicit None
-    Real(dp) :: p
-    Real(dp), Intent(In) :: Z
-    Real(dp), Parameter :: T500 = 999.2356017626150686_dp
+! Function p6(Z) Result(p)
+!     Use Kinds, Only: dp
+!     Use Quadratures, Only: Romberg_Quad
+!     Implicit None
+!     Real(dp) :: p
+!     Real(dp), Intent(In) :: Z
+!     Real(dp), Parameter :: T500 = 999.2356017626150686_dp
     
-    p = Sqrt(Sqrt((T(Z,11) / T500)**3)) * Exp(Romberg_Quad(p6_integrand,500._dp,Z,0._dp,rTol_tier4a))
-End Function p6
+!     p = Sqrt(Sqrt((T(Z,11) / T500)**3)) * Exp(Romberg_Quad(p6_integrand,500._dp,Z,0._dp,rTol_tier4a))
+! End Function p6
 
-Function nH_integrand(Z) Result(f)
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp) :: f
-    Real(dp), Intent(In) :: Z
-    Real(dp) :: Tz
-    Real(dp) :: Nb(1:5)
-    Real(dp) :: D_inv
+! Function nH_integrand(Z) Result(f)
+!     Use Kinds, Only: dp
+!     Implicit None
+!     Real(dp) :: f
+!     Real(dp), Intent(In) :: Z
+!     Real(dp) :: Tz
+!     Real(dp) :: Nb(1:5)
+!     Real(dp) :: D_inv
     
-    Tz = T(Z,11)
-    Nb(1) =   nN2_power(Z,10)
-    Nb(2:3) = nO1_O2_powers(Z,10)
-    Nb(4:5) = nAr_He_powers(Z,10)
-    Nb = N7_T7 * Exp(-Nb) / Tz
-    D_inv = Sum(Nb) / (ai(6) * Sqrt(Tz / 273.15_dp))
-    f = p6(Z) * D_inv
-End Function nH_integrand
+!     Tz = T(Z,11)
+!     Nb(1) =   nN2_power(Z,10)
+!     Nb(2:3) = nO1_O2_powers(Z,10)
+!     Nb(4:5) = nAr_He_powers(Z,10)
+!     Nb = N7_T7 * Exp(-Nb) / Tz
+!     D_inv = Sum(Nb) / (ai(6) * Sqrt(Tz / 273.15_dp))
+!     f = p6(Z) * D_inv
+! End Function nH_integrand
 
-Function p6_integrand(Z) Result(p)
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp) :: p
-    Real(dp), Intent(In) :: Z
-    Real(dp) :: Tz
-    Real(dp) :: Nb(1:5)
+! Function p6_integrand(Z) Result(p)
+!     Use Kinds, Only: dp
+!     Implicit None
+!     Real(dp) :: p
+!     Real(dp), Intent(In) :: Z
+!     Real(dp) :: Tz
+!     Real(dp) :: Nb(1:5)
     
-    Tz = T(Z,11)
-    Nb(1) =   nN2_power(Z,10)
-    Nb(2:3) = nO1_O2_powers(Z,10)
-    Nb(4:5) = nAr_He_powers(Z,10)
-    Nb = N7_T7 * Exp(-Nb) / Tz
-    p = ( Sum(Nb*Mi(1:5)) / Sum(Nb) ) * g(Z) / (R_star * Tz)  !US Standard Atmosphere 1976 equation 40
-End Function p6_integrand
+!     Tz = T(Z,11)
+!     Nb(1) =   nN2_power(Z,10)
+!     Nb(2:3) = nO1_O2_powers(Z,10)
+!     Nb(4:5) = nAr_He_powers(Z,10)
+!     Nb = N7_T7 * Exp(-Nb) / Tz
+!     p = ( Sum(Nb*Mi(1:5)) / Sum(Nb) ) * g(Z) / (R_star * Tz)  !US Standard Atmosphere 1976 equation 40
+! End Function p6_integrand
 
 Function P(Z,layer,layer_range)
     Use Kinds, Only: dp

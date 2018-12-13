@@ -14,6 +14,8 @@ FNAME="Global"; . ./compile_it
 FNAME="Utilities"; . ./compile_it
 FNAME="FileIO_Utilities"; . ./compile_it
 FNAME="Interpolation"; . ./compile_it
+FNAME="Gauss_Legendre_w_a"; . ./compile_it
+FNAME="Quadratures"; . ./compile_it
 
 # ATMOSPHERE MODULES
 SRC_PATH="../source/atmo/"
