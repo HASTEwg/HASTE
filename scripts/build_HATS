@@ -65,4 +65,5 @@ gfortran $GFORT_FLAGS -o ${BLD_PATH}HATS.out ${SRC_PATH}${FNAME}.f90 $OBJ_FILES 
 echo "Copying resource files..."
 rm -r ${BLD_PATH}Resources
 cp -r ../source/resources ${BLD_PATH}Resources
+mv -f ${BLD_PATH}Resources/HATS_Setup.txt ${BLD_PATH}HATS_Setup.txt
 echo "Done."

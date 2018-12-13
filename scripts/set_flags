@@ -38,7 +38,7 @@ while getopts 'sdrqwp:ck' flag; do
        ;;
     q) COMP_FLAGS="${RELEASE_FLAGS_PI}"
        ;;
-    w) PREP_FLAGS="-cpp -DGFORT"
+    w) PREP_FLAGS="${PREP_FLAGS} -ULIN_OS"
        ;;
     p) PREP_FLAGS="${PREP_FLAGS} ${OPTARG}"
        ;;
