@@ -344,26 +344,45 @@ Subroutine Check_EPL(L,z0,z1,zeta0,atm)
     Use Global, Only: R_Earth
     Use Quadratures, Only: Romberg_Quad
     Use Utilities, Only: Prec
+    Use Utilities, Only: Bisection_Search
     Implicit None
     Real(dp), Intent(In) :: L
     Real(dp), Intent(In) :: z0,z1,zeta0
     Type(Atmosphere_Type), Intent(In) :: atm
     Real(dp) :: r0,dZ,Smax
     Real(dp) :: L0
+    Real(dp) :: Pgoal
+    Integer :: b
+    Real(dp) :: zeta00
 
     r0 = R_Earth + z0
     dZ = z1 - z0
     Smax = dZ * (2._dp * r0 + dZ) / ( zeta0 * r0 + Sqrt( (zeta0 * r0)**2 + dZ * (2._dp * r0 + dZ) ) )
-    L0 = Romberg_Quad(EPL_Integrand,0._dp,Smax,aTol=0._dp,rTol=0.1_dp**(-0.5_dp*atm%EPL_prec))
-    If (Prec(L0,L) .GT. 0.5_dp*atm%EPL_prec) Return !computed EPLs agree to at least half precision
+    L0 = Romberg_Quad(EPL_Integrand,0._dp,Smax,aTol=0._dp,rTol=1.E-9_dp)
+    Pgoal = Real(NINT(0.5_dp * atm%EPL_Prec)) - 0.5_dp
+    If (Prec(L0,L) .GT. Pgoal) Return !computed EPLs agree to at least half precision
     Write(*,*)
-    Write(*,'(A)') 'ERROR:  PATHLENGTHS failed integral check...'
+    Write(*,'(A,ES24.16)')           'ERROR:  PATHLENGTHS failed integral check:  L = ',L
+    Write(*,'(A,ES24.16)')           '                                           L0 = ',L0
+    Write(*,'(A,ES24.16)')           '                                            p = ',Prec(L0,L)
+    Write(*,'(A,ES24.16,A,ES24.16)') '        z0 = ',z0,         '  z1 = ',z1
+    b = Bisection_Search(z1,atm%Zb,atm%iZb(3)) - 1
+    Write(*,'(A,ES24.16,A,ES24.16)') '       Zbs = ',atm%zb(b-1),'  ---  ',atm%zb(b)
+    Write(*,'(A,ES24.16)')           '     zeta0 = ',zeta0
+    dZ = atm%Zb(b) - atm%zb(b-1)
+    r0 = R_Earth + atm%zb(b-1)
+    If (z0 .NE. atm%zb(b-1)) Then
+        zeta00 = zeta_upward(R_earth+z0,R_earth+z0-r0,zeta0)
+    Else
+        zeta00 = zeta0
+    End If
+    Write(*,'(A,ES24.16)')           '    zeta00 = ',zeta00
+    Write(*,'(A,ES24.16,A,F6.2,A)')  '         S = ',Smax,' (',100._dp * (Smax / (dZ * (2._dp * r0 + dZ) / ( zeta00 * r0 + Sqrt( (zeta00 * r0)**2 + dZ * (2._dp * r0 + dZ) ) ))),'% of full layer path)'
 #   if GFORT
         Call abort  !<--GFORT implementation
 #   else
         ERROR STOP
 #   endif   
-
 Contains
     Function EPL_Integrand(s) Result(f)
         Use Kinds, Only: dp
@@ -467,9 +486,9 @@ Subroutine EPL_straight_upward_layers(atm,r0,zeta0,z0,nb,bb,Lb,z1_in)
         zeta1 = zeta_upward(r0,atm%Zb(b1-1)-z0,zeta0)
         If (partial_last_layer) Then
             If (zeta1 .GE. 0.1_dp) Then
-                Lb(nb) = EPL_Z_partial_layer(atm%Rb(b1),atm%Zb(b1-1),z1,zeta1,b1,atm%EPL_lay(b1)%nZ,atm)
+                Lb(nb) = EPL_Z_partial_layer(atm%Rb(b1-1),atm%Zb(b1-1),z1,zeta1,b1,atm%EPL_lay(b1)%nZ,atm)
             Else
-                Lb(nb) = EPL_S_partial_layer(atm%Rb(b1),atm%Zb(b1-1),z1,zeta1,b1,atm%EPL_lay(b1)%nS,atm)
+                Lb(nb) = EPL_S_partial_layer(atm%Rb(b1-1),atm%Zb(b1-1),z1,zeta1,b1,atm%EPL_lay(b1)%nS,atm)
             End If
 #           if CHECK_L
                 Call Check_EPL(Lb(nb),atm%Zb(b1-1),z1,zeta1,atm)

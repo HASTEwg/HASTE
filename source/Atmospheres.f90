@@ -138,7 +138,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
                                                      & Zb_1976(10), &
                                                      &     500._dp, &
                                                      & Zb_1976(11)  /)
-    Integer, Parameter :: bZb_1976_extended(0:16) = (/ 0,1,2,3,4,5,6,7,8,8,8,8,9,9,10,10,11 /) !base indexes for each sublayer
+    Integer, Parameter :: bZb_1976_extended(1:16) = (/ 0,1,2,3,4,5,6,7,8,8,8,8,9,9,10,10 /) !base indexes for each sublayer
     
     NameList /AtmosphereList/  atmosphere_model,uniform_density,isothermal_temp, & 
                              & Z_top_atm,Z_bot_atm,wind_N,wind_E,composition
@@ -167,7 +167,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
             atm%Zb(atm%iZb(2)) = Z_top_atm
             !fill base index arrays
             Allocate(atm%bZb(atm%iZb(1)-1:atm%iZb(2)))
-            atm%bZb = bZb_1976_extended(atm%iZb(1)-1:atm%iZb(2))
+            atm%bZb = bZb_1976_extended(atm%iZb(1):atm%iZb(2))
             atm%iZb_map(1) = bZb_1976_extended(atm%iZb(1))
             atm%iZb_map(2) = bZb_1976_extended(atm%iZb(2))
             atm%iZb_map(3) = atm%iZb_map(2) - atm%iZb_map(1) + 1

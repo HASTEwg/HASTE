@@ -232,8 +232,9 @@ Subroutine Check_Base(Z,b)
     Integer, Intent(In) :: b
 
     If (Z.GE.Zb(b) .AND. Z.LE.Zb(b+1)) Return !base is correct
+    If (Z-2._dp*Spacing(Z) .LT. Zb(b+1)) Return  !accounts for case where Z is arbitrarily close to the upper boundary
     Write(*,*)
-    Write(*,'(A,ES24.16,A,I5)') 'ERROR:  USSA76 failed base check:  Z = ',Z,', b = ',b
+    Write(*,'(A,ES24.16,A,I3)') 'ERROR:  USSA76 failed base check:  Z = ',Z,', b = ',b
     Write(*,'(A,ES24.16)')      '                                Z(b) = ',Zb(b)
     Write(*,'(A,ES24.16)')      '                              Z(b+1) = ',Zb(b+1)
 #   if GFORT

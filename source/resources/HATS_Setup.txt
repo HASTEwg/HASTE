@@ -21,7 +21,7 @@ interim_period = 300       ! Number of interim_units between interim outputs.
 
 &EstimatorSetupList
 !---------------------------------------------------------------------------------------------------
-n_neutron_histories = 1000000  !number of neutron histories to run
+n_neutron_histories = 10000  !number of neutron histories to run
 absolute_n_histories = .TRUE.     !<.TRUE.,.FALSE.>  TRUE sets number of histories to exactly the 
                                   !                  number specified above, FALSE will cause the 
                                   !                  simulation to run until the number of histories
