@@ -337,7 +337,7 @@ Subroutine EPL_orbit_upward_full(atm,z0,zeta0,h,xi,p,e,rp,L,z1_in)
 End Subroutine EPL_orbit_upward_full
 
 # if CHECK_L
-Subroutine Check_EPL(L,z0,z1,zeta0,atm)
+Subroutine Check_EPL(L,z0,z1,zeta0,b,atm)
     !UNSTANDARD: ABORT (GFORT) is an extension
     Use Kinds, Only: dp
     Use Atmospheres, Only: Atmosphere_Type
@@ -348,25 +348,25 @@ Subroutine Check_EPL(L,z0,z1,zeta0,atm)
     Implicit None
     Real(dp), Intent(In) :: L
     Real(dp), Intent(In) :: z0,z1,zeta0
+    Integer, Intent(In) :: b
     Type(Atmosphere_Type), Intent(In) :: atm
     Real(dp) :: r0,dZ,Smax
     Real(dp) :: L0
     Real(dp) :: Pgoal
-    Integer :: b
     Real(dp) :: zeta00
+    Real(dp), Parameter :: two_thirds = 2._dp / 3._dp
 
     r0 = R_Earth + z0
     dZ = z1 - z0
     Smax = dZ * (2._dp * r0 + dZ) / ( zeta0 * r0 + Sqrt( (zeta0 * r0)**2 + dZ * (2._dp * r0 + dZ) ) )
     L0 = Romberg_Quad(EPL_Integrand,0._dp,Smax,aTol=0._dp,rTol=1.E-9_dp)
-    Pgoal = Real(NINT(0.5_dp * atm%EPL_Prec)) - 0.5_dp
-    If (Prec(L0,L) .GT. Pgoal) Return !computed EPLs agree to at least half precision
+    Pgoal = two_thirds * Real(atm%EPL_Prec,dp)
+    If (Prec(L0,L) .GT. Pgoal) Return !computed EPLs agree to at least two thirds of the desired precision
     Write(*,*)
     Write(*,'(A,ES24.16)')           'ERROR:  PATHLENGTHS failed integral check:  L = ',L
     Write(*,'(A,ES24.16)')           '                                           L0 = ',L0
     Write(*,'(A,ES24.16)')           '                                            p = ',Prec(L0,L)
     Write(*,'(A,ES24.16,A,ES24.16)') '        z0 = ',z0,         '  z1 = ',z1
-    b = Bisection_Search(z1,atm%Zb,atm%iZb(3)) - 1
     Write(*,'(A,ES24.16,A,ES24.16)') '       Zbs = ',atm%zb(b-1),'  ---  ',atm%zb(b)
     Write(*,'(A,ES24.16)')           '     zeta0 = ',zeta0
     dZ = atm%Zb(b) - atm%zb(b-1)
@@ -440,7 +440,7 @@ Subroutine EPL_straight_upward_layers(atm,r0,zeta0,z0,nb,bb,Lb,z1_in)
             Lb = EPL_S_partial_layer(r0,z0,z1,zeta0,b0,atm%EPL_lay(b0)%nS,atm)
         End If
 #       if CHECK_L
-            Call Check_EPL(Lb(1),z0,z1,zeta0,atm)
+            Call Check_EPL(Lb(1),z0,z1,zeta0,b0,atm)
 #       endif
         bb(1) = b0
         Return
@@ -454,7 +454,7 @@ Subroutine EPL_straight_upward_layers(atm,r0,zeta0,z0,nb,bb,Lb,z1_in)
                 Lb(1) = EPL_S_partial_layer(r0,z0,atm%Zb(b0),zeta0,b0,atm%EPL_lay(b0)%nS,atm)
             End If
 #           if CHECK_L
-                Call Check_EPL(Lb(1),z0,atm%Zb(b0),zeta0,atm)
+                Call Check_EPL(Lb(1),z0,atm%Zb(b0),zeta0,b0,atm)
 #           endif
         Else  !full first layer
             If (zeta0 .GE. 0.1_dp) Then
@@ -463,7 +463,7 @@ Subroutine EPL_straight_upward_layers(atm,r0,zeta0,z0,nb,bb,Lb,z1_in)
                 Lb(1) = EPL_S_known_layer(zeta0,b0,atm)
             End If
 #           if CHECK_L
-                Call Check_EPL(Lb(1),atm%Zb(b0-1),atm%Zb(b0),zeta0,atm)
+                Call Check_EPL(Lb(1),atm%Zb(b0-1),atm%Zb(b0),zeta0,b0,atm)
 #           endif
         End If
         !full layers from b0+1 to b1-1
@@ -477,7 +477,7 @@ Subroutine EPL_straight_upward_layers(atm,r0,zeta0,z0,nb,bb,Lb,z1_in)
                 Lb(i) = EPL_S_known_layer(zeta1,b,atm)
             End If
 #           if CHECK_L
-                Call Check_EPL(Lb(i),atm%Zb(b-1),atm%Zb(b),zeta1,atm)
+                Call Check_EPL(Lb(i),atm%Zb(b-1),atm%Zb(b),zeta1,b,atm)
 #           endif
             i = i + 1
         End Do
@@ -491,7 +491,7 @@ Subroutine EPL_straight_upward_layers(atm,r0,zeta0,z0,nb,bb,Lb,z1_in)
                 Lb(nb) = EPL_S_partial_layer(atm%Rb(b1-1),atm%Zb(b1-1),z1,zeta1,b1,atm%EPL_lay(b1)%nS,atm)
             End If
 #           if CHECK_L
-                Call Check_EPL(Lb(nb),atm%Zb(b1-1),z1,zeta1,atm)
+                Call Check_EPL(Lb(nb),atm%Zb(b1-1),z1,zeta1,b1,atm)
 #           endif
         Else
             If (zeta1 .GE. 0.1_dp) Then
@@ -500,7 +500,7 @@ Subroutine EPL_straight_upward_layers(atm,r0,zeta0,z0,nb,bb,Lb,z1_in)
                 Lb(nb) = EPL_S_known_layer(zeta1,b,atm)
             End If
 #           if CHECK_L
-                Call Check_EPL(Lb(nb),atm%Zb(b1-1),atm%Zb(b1),zeta1,atm)
+                Call Check_EPL(Lb(nb),atm%Zb(b1-1),atm%Zb(b1),zeta1,b1,atm)
 #           endif
         End If
     End If

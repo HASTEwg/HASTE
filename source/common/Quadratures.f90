@@ -62,7 +62,7 @@ Function Romb_Quad_ranges(f,ab,aTol,rTol,p) Result(q)
     End Do
 End Function Romb_Quad_ranges
 
-Function Romb_Quad(f,a,b,aTol,rTol,p,n_ord) Result(q)
+Function Romb_Quad(f,a,b,aTol,rTol,p,n_ord,n_ext) Result(q)
     !Integrates f(x) on (a,b) by extrapolation on successive composite trapezoid
     Use Kinds, Only: dp
     Use Utilities, Only: Converged
@@ -81,6 +81,7 @@ Function Romb_Quad(f,a,b,aTol,rTol,p,n_ord) Result(q)
     Real(dp), Intent(In) :: rTol,aTol  !relative and absolute tolerances for convergence
     Real(dp), Intent(Out), Optional :: p  !estimated precision achived in the final estimate
     Integer, Intent(Out), Optional :: n_ord  !total number of function evaluations (ordinates)
+    Integer, Intent(Out), Optional :: n_ext  !total number of extrapolation stages (rows in the table)
     Integer, Parameter :: Tmax = 15  !maximum number of extrapolations in the table
     Real(dp) :: T(0:Tmax)  !Extrapolation table previous row
     Real(dp) :: Tk0,Tk  !Extrapolation table current row values
@@ -89,6 +90,8 @@ Function Romb_Quad(f,a,b,aTol,rTol,p,n_ord) Result(q)
     Real(dp) :: h0,h  !spacing between quadrature ordinates
     Real(dp) :: fk    !multiplier for extrapolation steps
     Real(dp) :: s     !sum of function values at quadrature ordinates
+    Real(dp) :: Prec0 !precision of the previous extrapolation (used to monitor convergence)
+    Integer :: ifin   !final number of extrapolations performed
     !    If the preprocessor directive ROMB_TABLES is set at compile-time, 
     ! then the tables of computed values are dumped to file in the working 
     ! directory as the routine runs.
@@ -101,6 +104,7 @@ Function Romb_Quad(f,a,b,aTol,rTol,p,n_ord) Result(q)
     s = 0.5_dp * (f(a) + f(b))
     h0 = b - a
     T(0) = h0 * s
+    Prec0 = -1._dp
 #   if ROMB_TABLES
         Open(NEWUNIT=unit,FILE='Romb_Tables.tst',ACTION='WRITE',STATUS='UNKNOWN',POSITION='APPEND')
         Do k = 0,Tmax
@@ -143,9 +147,21 @@ Function Romb_Quad(f,a,b,aTol,rTol,p,n_ord) Result(q)
 #           endif
             If (Present(p)) p = Prec(T(i-1),Tk)
             If (Present(n_ord)) n_ord = n
+            If (Present(n_ext)) n_ext = i
             Return  !Normal exit
-        Else !store Tk0 and Tk for next i
-            If (i.EQ.Tmax) Exit
+        Else  !Check for failures and prep for the next time though the loop
+            !check for exit conditions other than convergence (failures)
+            If (i .EQ. Tmax) Then  !maximum extrapolation has been reached without convergence
+                ifin = Tmax
+                Exit
+            Else If (i.GT.Tmax/2) Then
+                If (Prec(T(i-1),Tk).LT.Prec0) Then  !precision was LOST instead of gained on this extrapolation, convergence will not occur
+                    ifin = i
+                    Exit
+                End If
+            End If
+            !store Tk0 and Tk for next i, and update precision monitor
+            Prec0 = Prec(T(i-1),Tk)
             T(i-1) = Tk0
             T(i) = Tk
 #           if ROMB_TABLES
@@ -160,12 +176,15 @@ Function Romb_Quad(f,a,b,aTol,rTol,p,n_ord) Result(q)
     End Do
     !If we get this far, we did not converge
     Write(*,*)
-    Write(*,'(A,I0,A)')             'WARNING:  Quadratures: Romberg_Quad:  Failed to converge in ',Tmax,' extrapolations.'
-    Write(*,'(A,ES23.15,A,F0.5,A)') '          Final estimated value: ',Tk,' (~',Prec(T(i-1),Tk),' good digits)'
-    Write(*,'(A,2(ES10.3,A))')      '          Final Extrapolation Error: ',Abs(Tk-T(Tmax-1)),' (abs), ',Abs(Tk-T(Tmax-1))/Tk,' (rel)'
-    Write(*,'(A,2(ES10.3,A))')      '          Convergence Criteria:      ',atol,          ' (abs), ',rtol,             ' (rel)'
+    Write(*,'(A,I0,A)')                'WARNING:  Quadratures: Romberg_Quad:  Failed to converge in ',ifin,' extrapolations.'
+    If (ifin .LT. Tmax) Write(*,'(A)') '          Extrapolation was terminated for loss of precision.'
+    Write(*,'(A,ES23.15,A,F0.5,A)')    '          Final estimated value: ',Tk,' (~',Prec(T(ifin-1),Tk),' good digits)'
+    Write(*,'(A,2(ES10.3,A))')         '          Final Extrapolation Error: ',Abs(Tk-T(ifin-1)),' (abs), ',Abs(Tk-T(ifin-1))/Tk,' (rel)'
+    Write(*,'(A,2(ES10.3,A))')         '          Convergence Criteria:      ',atol,             ' (abs), ',rtol,                ' (rel)'
     q = Tk
-    If (Present(p)) p = Prec(T(i-1),Tk)
+    If (Present(p)) p = Prec(T(ifin-1),Tk)
+    If (Present(n_ord)) n_ord = n
+    If (Present(n_ext)) n_ext = ifin
     ! ERROR STOP
 End Function Romb_Quad
 
