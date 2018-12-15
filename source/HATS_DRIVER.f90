@@ -1,6 +1,26 @@
-Program HATS
 !-------------------------------------------------------------------------------
 !   High-Altitude Transport to Space for Neutrons (HATS-n)
+!   
+!   The High-Altitude Transport to Space (HATS) estimator is a high fidelity 
+!   Monte Carlo code written in modern Fortran for estimating the radiation 
+!   field seen by a space-based detector from a point source in or above the 
+!   atmosphere.
+!   
+!   Copyright (C) 2017  Whitman T. Dailey
+!   
+!   This program is free software: you can redistribute it and/or modify
+!   it under the terms of the GNU General Public License version 3 as 
+!   published by the Free Software Foundation.
+!   
+!   This program is distributed in the hope that it will be useful,
+!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!   GNU General Public License for more details.
+!   
+!   You should have received a copy of the GNU General Public License
+!   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+!-------------------------------------------------------------------------------
+!   Version History
 !   0.0     Initial version based on HASTE-n TE and HASTE-n
 !   0.1     Initial release candidate, debugged & ready for studies.  Ready for
 !           multithreading or coarray implementations.
@@ -17,6 +37,8 @@ Program HATS
 !   0.9     Major portability revision: gFortran compiler, IA32/IA64/ARM 
 !           architectures now supported
 !-------------------------------------------------------------------------------
+Program HATS
+
 Use Kinds, Only: dp  !double precision real
 Use Kinds, Only: il  !long integer
 Use Kinds, Only: id  !double integer
