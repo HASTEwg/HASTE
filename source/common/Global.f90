@@ -60,11 +60,17 @@ Module Global
                                & 1._dp / (0.35_dp * nA * 1000._dp)
 
 !  Earth and Gravitation
-    Real(dp), Parameter :: R_Earth = 6371._dp     ![km] Mean radius of earth
+    Real(dp), Parameter :: R_Earth = 6371._dp     ![km] Mean volumetric radius of earth
     Real(dp), Parameter :: std_grav_parameter = 398600.4418_dp  ![km^3 / s^2]  standard gravitational parameter of Earth
     Real(dp), Parameter :: Escape_speed = &  !minimum speed to escape earth's gravitational influence from the surface
                                & Sqrt(2._dp * std_grav_parameter / R_Earth)  ![km/s]
     Real(dp), Parameter :: rot_Earth = 7.292115E-5_dp  ![rad/s] Mean rotational speed of the Earth (radians per SIDEREAL second)
     Real(dp), Parameter :: Sid_Day_sec = 86164.09053_dp  !number of seconds in a sidereal day
+
+!  Moon and Gravitation
+    Real(dp), Parameter :: R_moon = 1737.4_dp  ![km] Mean volumetric radius of the moon
+    Real(dp), Parameter :: std_grav_parameter_moon = 4904.8695_dp  ![km^3 / s^2]  standard gravitational parameter of the moon
+    Real(dp), Parameter :: Escape_speed_moon = &  !minimum speed to escape the moon's gravitational influence from the surface
+                               & Sqrt(2._dp * std_grav_parameter_moon / R_moon)  ![km/s]
 
 End Module Global
