@@ -53,10 +53,7 @@ Subroutine Initialize_Satellite_Motion(motion_type,sat)
     Use Global, Only: mu => grav_param
     Use Global, Only: rot_Earth
     Use Global, Only: Z_hat
-<<<<<<< HEAD
-=======
     Use Global, Only: R_earth
->>>>>>> 4d7f69e... Add conditional lunar gravitation. Genearlize astro procedure calls.
     Use Astro_Utilities, Only: Radius_of_Periapsis
     Use Astro_Utilities, Only: Velocity_of_Periapsis
     Use Astro_Utilities, Only: Period
