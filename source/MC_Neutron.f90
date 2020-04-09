@@ -122,7 +122,7 @@ Function Start_Neutron(source,atm,RNG,ScatMod,detector) Result(n)
     Use Utilities, Only: Smaller_Quadratic_Root
     Use Pathlengths, Only: R_close_approach
     Use Astro_Utilities, Only: SME
-    Use Astro_Utilities, Only: Radius_of_Perigee
+    Use Astro_Utilities, Only: Radius_of_Periapsis
     Use Astro_Utilities, Only: Time_since_periapsis
     Use Astro_Utilities, Only: Time_to_R
     Use Astro_Utilities, Only: Kepler_Gooding
@@ -152,7 +152,7 @@ Function Start_Neutron(source,atm,RNG,ScatMod,detector) Result(n)
                 v = s * n%Omega_hat
                 xi = SME(n%r,v)
                 If (zeta.LT.0._dp .OR. xi.LT.0._dp) Then !downward path or return trajectory, the path might intersect the atmo
-                    rp = Radius_of_Perigee(n%r,v)
+                    rp = Radius_of_Periapsis(n%r,v)
                     If (rp .LT. atm%R_top) Then  !this path intersects the atmosphere
                         !find flight time to atmosphere interface
                         dZ = atm%z_top - source%z

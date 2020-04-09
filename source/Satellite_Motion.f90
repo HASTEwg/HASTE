@@ -54,8 +54,8 @@ Subroutine Initialize_Satellite_Motion(motion_type,sat)
     Use Global, Only: rot_Earth
     Use Global, Only: Z_hat
     Use Global, Only: R_earth
-    Use Astro_Utilities, Only: Radius_of_Perigee
-    Use Astro_Utilities, Only: Velocity_of_Perigee
+    Use Astro_Utilities, Only: Radius_of_Periapsis
+    Use Astro_Utilities, Only: Velocity_of_Periapsis
     Use Astro_Utilities, Only: Period
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Unit_Vector
@@ -87,8 +87,8 @@ Subroutine Initialize_Satellite_Motion(motion_type,sat)
             !sat%motion_index = Sat_Motion_conic
             sat%is_stationary = .FALSE.
             sat%is_conic = .TRUE.
-            sat%rp = Radius_of_Perigee(sat%r0,sat%v0)
-            sat%vp = Velocity_of_Perigee(sat%r0,sat%v0)
+            sat%rp = Radius_of_Periapsis(sat%r0,sat%v0)
+            sat%vp = Velocity_of_Periapsis(sat%r0,sat%v0)
             sat%per = Period(sat%r0,sat%v0)
         Case('GeoStat')
             !sat%motion_index = Sat_Motion_conic
@@ -98,7 +98,7 @@ Subroutine Initialize_Satellite_Motion(motion_type,sat)
             sat%r0 = Unit_Vector(sat%r0) * Cube_Root(std_grav_parameter / rot_Earth**2)  !make sure r0 has correct magnitude
             sat%v0 = Unit_Vector(Cross_Product(Z_hat,sat%r0)) * Cube_Root(std_grav_parameter / rot_Earth**2) * rot_Earth  !set v0
             sat%rp = Vector_Length(sat%r0)
-            sat%vp = Velocity_of_Perigee(sat%r0,sat%v0)
+            sat%vp = Velocity_of_Periapsis(sat%r0,sat%v0)
             sat%per = Period(sat%r0,sat%v0)
         Case Default
             Call Output_Message('ERROR:  Satellite_Motion: Initialize_Satellite_Motion:  Unknown motion type.',kill=.TRUE.)

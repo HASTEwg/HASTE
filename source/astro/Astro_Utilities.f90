@@ -16,18 +16,18 @@
 Module Astro_Utilities
     
     Use Kinds, Only: dp
-    Use Global, Only: R_Earth
-    Use Global, Only: std_grav_parameter
+    Use Global, Only: Rc => R_center
+    Use Global, Only: mu => grav_param
     Implicit None
     Private
     Public :: Period
     Public :: FindTOF
-    Public :: Hits_Earth
+    Public :: Hits_Center
     Public :: SAM
     Public :: SME
     Public :: Radius_of_Apogee
-    Public :: Radius_of_Perigee
-    Public :: Velocity_of_Perigee
+    Public :: Radius_of_Periapsis
+    Public :: Velocity_of_Periapsis
     Public :: Time_Since_Periapsis
     Public :: Time_to_R
     Public :: Parabolic_TOF
@@ -45,12 +45,12 @@ Module Astro_Utilities
     End Interface SME
     
     !CANNONICAL UNITS CONVERSIONS
-    Real(dp), Parameter :: ER_per_km = 1._dp / R_Earth ![ER/km]
-    Real(dp), Parameter :: km_per_ER = R_Earth ![km/ER]
-    Real(dp), Parameter :: sec_per_TU = Sqrt(R_Earth**3 / std_grav_parameter) ![s/TU]
-    Real(dp), Parameter :: TU_per_sec = 1._dp / Sqrt(R_Earth**3 / std_grav_parameter) ![TU/s]
-    Real(dp), Parameter :: EpT_per_kps = ER_per_km * sec_per_TU ![ (ER*s) / (km*TU) ]
-    Real(dp), Parameter :: kps_per_EpT = km_per_ER * TU_per_sec ![ (km*TU) / (ER*s) ]
+    Real(dp), Parameter :: Rc_per_km = 1._dp / Rc ![Rc/km]
+    Real(dp), Parameter :: km_per_Rc = Rc ![km/Rc]
+    Real(dp), Parameter :: sec_per_TU = Sqrt(Rc**3 / mu) ![s/TU]
+    Real(dp), Parameter :: TU_per_sec = 1._dp / Sqrt(Rc**3 / mu) ![TU/s]
+    Real(dp), Parameter :: EpT_per_kps = Rc_per_km * sec_per_TU ![ (Rc*s) / (km*TU) ]
+    Real(dp), Parameter :: kps_per_EpT = km_per_Rc * TU_per_sec ![ (km*TU) / (Rc*s) ]
     
 Contains
 
@@ -67,7 +67,7 @@ End Function SAM
 
 Function SME_from_mags(r,v) Result(SME)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Implicit None
     Real(dp) :: SME
     Real(dp), Intent(In) :: r,v
@@ -87,7 +87,7 @@ End Function SME_from_vecs
 
 Function Semilatus_Rectum(r,v) Result(p)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Utilities, Only: Cross_Product
     Use Utilities, Only: Vector_Length
     Implicit None
@@ -99,7 +99,7 @@ End Function Semilatus_Rectum
 
 Function Radius_of_Apogee(r,v) Result(ra)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Converged
     Implicit None
@@ -125,9 +125,9 @@ Function Radius_of_Apogee(r,v) Result(ra)
     End If
 End Function Radius_of_Apogee
 
-Function Radius_of_Perigee(r,v) Result(rp)
+Function Radius_of_Periapsis(r,v) Result(rp)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Converged
     Implicit None
@@ -147,11 +147,11 @@ Function Radius_of_Perigee(r,v) Result(rp)
             rp = 1._dp / Vector_Length(r) - 0.5_dp * Vector_Length(v)**2 / mu
         End If
     End If
-End Function Radius_of_Perigee
+End Function Radius_of_Periapsis
 
-Function Velocity_of_Perigee(r,v) Result(vp)
+Function Velocity_of_Periapsis(r,v) Result(vp)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Converged
     Implicit None
@@ -172,7 +172,7 @@ Function Velocity_of_Perigee(r,v) Result(vp)
             vp = 0._dp
         End If
     End If
-End Function Velocity_of_Perigee
+End Function Velocity_of_Periapsis
 
 Recursive Function Time_to_R(r0,v0,radius,t_min,t_max,t_guess,allow_recursion) Result(t)
     Use Kinds, Only: dp
@@ -244,20 +244,20 @@ Recursive Function Time_to_R(r0,v0,radius,t_min,t_max,t_guess,allow_recursion) R
     t = Time_to_R(r0,v0,radius,t1,t2,t_guess = t)
 End Function Time_to_R
 
-Function Hits_Earth(r1,r2,v1,v2)
+Function Hits_Center(r1,r2,v1,v2)
     Use Kinds, Only: dp
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Implicit None
-    Logical :: Hits_Earth
+    Logical :: Hits_Center
     Real(dp), Intent(In) :: r1(1:3),r2(1:3)
     Real(dp), Intent(In) :: v1(1:3),v2(1:3)
     
-    Hits_Earth = .FALSE.
+    Hits_Center = .FALSE.
     If (Dot_Product(r1,v1).LT.0._dp .AND. Dot_Product(r2,v2).GT.0._dp) Then
         !periapsis occurs between r1 and r2, check for collision
-        If (Radius_of_Perigee(r1,v1) .LT. R_Earth) Hits_Earth = .TRUE.
+        If (Radius_of_Periapsis(r1,v1) .LT. Rc) Hits_Center = .TRUE.
     End If
-End Function Hits_Earth
+End Function Hits_Center
 
 !-------------------------------------------------------------------------------
 !   Orbit Period
@@ -271,7 +271,7 @@ End Function Hits_Earth
 !-------------------------------------------------------------------------------
 Function Period(r,v) Result(p)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Global, Only: TwoPi
     Implicit None
     Real(dp) :: p
@@ -301,7 +301,7 @@ End Function Period
 Function FindTOF(r1_vec,v1_vec,r2_vec) Result(tof)
     Use Kinds, Only: dp
     Use Utilities, Only: Vector_Length
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Implicit None
     Real(dp) :: tof    
     Real(dp), Intent(In) :: r1_vec(1:3)
@@ -361,7 +361,7 @@ End Function FindTOF
 !-------------------------------------------------------------------------------
 Function Time_Since_Periapsis(r_vec,v_vec) Result(t)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Global, Only: TwoPi
     Use Utilities, Only: Vector_Length
     Implicit None
@@ -415,7 +415,7 @@ End Function Time_Since_Periapsis
 !-------------------------------------------------------------------------------
 Function Parabolic_TOF(r1_vec,r2_vec) Result(tof)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Utilities, Only: Vector_Length
     Implicit None
     Real(dp) :: tof
@@ -443,7 +443,7 @@ End Function Parabolic_TOF
 !-------------------------------------------------------------------------------
 Subroutine RV_from_COEs(p,e,i,RAAN,AoP,nu,r,v)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Implicit None
     Real(dp), Intent(In) :: p,e,i,RAAN,AoP,nu  !Classical Orbital Elements
     Real(dp), Intent(Out) :: r(1:3),v(1:3)
@@ -501,16 +501,16 @@ Subroutine Kepler(r0_vec,v0_vec,t,r_vec,v_vec)
     Real(dp), Intent(Out) :: r_vec(1:3)
     Real(dp), Intent(Out) :: v_vec(1:3)
     Real(dp) :: f,g,f_dot,g_dot
-    Real(dp) :: r0_vec_ER(1:3),v0_vec_ER(1:3)
+    Real(dp) :: r0_vec_Rc(1:3),v0_vec_Rc(1:3)
 
     !convert to cannonical units
-    r0_vec_ER = r0_vec * ER_per_km
-    v0_vec_ER = v0_vec * EpT_per_kps
+    r0_vec_Rc = r0_vec * Rc_per_km
+    v0_vec_Rc = v0_vec * EpT_per_kps
     !Find f, g, f_dot, and g_dot
-    Call Kepler_f_g(r0_vec_ER,v0_vec_ER,t*TU_per_sec,f,g,f_dot,g_dot)
+    Call Kepler_f_g(r0_vec_Rc,v0_vec_Rc,t*TU_per_sec,f,g,f_dot,g_dot)
     !Compute new r and v, converting back to km and km/s
-    r_vec = km_per_ER * (f*r0_vec_ER + g*v0_vec_ER)
-    v_vec = kps_per_EpT * (f_dot*r0_vec_ER + g_dot*v0_vec_ER)
+    r_vec = km_per_Rc * (f*r0_vec_Rc + g*v0_vec_Rc)
+    v_vec = kps_per_EpT * (f_dot*r0_vec_Rc + g_dot*v0_vec_Rc)
 End Subroutine Kepler
 
 Function Kepler_R(r0_vec,v0_vec,t) Result(r_vec)
@@ -521,15 +521,15 @@ Function Kepler_R(r0_vec,v0_vec,t) Result(r_vec)
     Real(dp), Intent(In) :: v0_vec(1:3)
     Real(dp), Intent(In) :: t
     Real(dp) :: f,g
-    Real(dp) :: r0_vec_ER(1:3),v0_vec_ER(1:3)
+    Real(dp) :: r0_vec_Rc(1:3),v0_vec_Rc(1:3)
 
     !convert to cannonical units
-    r0_vec_ER = r0_vec * ER_per_km
-    v0_vec_ER = v0_vec * EpT_per_kps
+    r0_vec_Rc = r0_vec * Rc_per_km
+    v0_vec_Rc = v0_vec * EpT_per_kps
     !Find f and g
-    Call Kepler_f_g(r0_vec_ER,v0_vec_ER,t*TU_per_sec,f,g)
+    Call Kepler_f_g(r0_vec_Rc,v0_vec_Rc,t*TU_per_sec,f,g)
     !Compute new r converting back to km
-    r_vec = km_per_ER * (f*r0_vec_ER + g*v0_vec_ER)
+    r_vec = km_per_Rc * (f*r0_vec_Rc + g*v0_vec_Rc)
 End Function Kepler_R
 
 Subroutine Kepler_f_g(r0_vec,v0_vec,t,f,g,f_dot,g_dot)
@@ -599,7 +599,7 @@ End Subroutine Kepler_f_g
 Subroutine Lambert_minV(r1_vec,r2_vec,v1_vec,tof)
     Use Kinds, Only: dp
     Use Global, Only: Pi
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Unit_Vector
     Implicit None
@@ -651,7 +651,7 @@ Subroutine Lambert(r0_vec,r_vec,tof,v0_vec,v_vec,long_way)
     Real(dp), Intent(Out) :: v_vec(1:3)
     Logical, Intent(In), Optional :: long_way
     Real(dp) :: f,g,g_dot
-    Real(dp) :: r0_vec_ER(1:3),r_vec_ER(1:3)
+    Real(dp) :: r0_vec_Rc(1:3),r_vec_Rc(1:3)
     Logical :: tm
 
     If (Present(long_way)) Then
@@ -660,13 +660,13 @@ Subroutine Lambert(r0_vec,r_vec,tof,v0_vec,v_vec,long_way)
         tm = .FALSE.
     End If
     !convert to cannonical units
-    r0_vec_ER = r0_vec * ER_per_km
-    r_vec_ER = r_vec * ER_per_km
+    r0_vec_Rc = r0_vec * Rc_per_km
+    r_vec_Rc = r_vec * Rc_per_km
     !Find f, g, and g_dot
-    Call Lambert_f_g(r0_vec_ER,r_vec_ER,tof*TU_per_sec,tm,f,g,g_dot)
+    Call Lambert_f_g(r0_vec_Rc,r_vec_Rc,tof*TU_per_sec,tm,f,g,g_dot)
     !Compute new v0 and v, converting back to km/s
-    v0_vec = kps_per_EpT * (r_vec_ER - f*r0_vec_ER) / g
-    v_vec = kps_per_EpT * (g_dot*r_vec_ER - r0_vec_ER) / g
+    v0_vec = kps_per_EpT * (r_vec_Rc - f*r0_vec_Rc) / g
+    v_vec = kps_per_EpT * (g_dot*r_vec_Rc - r0_vec_Rc) / g
 End Subroutine Lambert
 
 Subroutine Lambert_f_g(r0_vec,r_vec,t,long_way,f,g,g_dot)
@@ -843,7 +843,7 @@ End Subroutine Lambert_Gooding
 Subroutine vlamb(r1,r2,th,tdelt,vr1,vt1,vr2,vt2)
     Use Kinds, Only: dp
     Use Global, Only: TwoPi
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Implicit None
     Real(dp), Intent(In) :: r1
     Real(dp), Intent(In) :: r2
@@ -1177,7 +1177,7 @@ End Subroutine pv3els
 
 Subroutine pv2els (r, u, vr, vt, al, q, om, tau)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Implicit None
     Real(dp), Intent(In) :: r     !! radial distance [km]
     Real(dp), Intent(In) :: u     !! angle from assumed reference direction [rad]
@@ -1344,7 +1344,7 @@ End Subroutine els3pv
 
 Subroutine els2pv(al, q, om, tau, r, u, vr, vt)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Global, Only: FourPi
     Implicit None
     Real(dp), Intent(In) :: al    !! alpha [km^2/s^2]

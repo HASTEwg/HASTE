@@ -75,13 +75,13 @@ Module Global
 
 !   Conditionally compiled constants to set either the Earth or the moon as the gravitaional body for gravity calculations
 #   if LUNA
-        R_center = R_moon
-        grav_param = grav_parameter_moon
-        Esc_speed = Escape_speed_moon
+        Real(dp), Parameter :: R_center = R_moon
+        Real(dp), Parameter :: grav_param = grav_parameter_moon
+        Real(dp), Parameter :: Esc_speed = Escape_speed_moon
 #   else
-        R_center = R_earth
-        grav_param = std_grav_parameter
-        Esc_speed = Escape_speed
+        Real(dp), Parameter :: R_center = R_earth
+        Real(dp), Parameter :: grav_param = std_grav_parameter
+        Real(dp), Parameter :: Esc_speed = Escape_speed
 #   endif
 
 End Module Global
