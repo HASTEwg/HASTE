@@ -69,8 +69,19 @@ Module Global
 
 !  Moon and Gravitation
     Real(dp), Parameter :: R_moon = 1737.4_dp  ![km] Mean volumetric radius of the moon
-    Real(dp), Parameter :: std_grav_parameter_moon = 4904.8695_dp  ![km^3 / s^2]  standard gravitational parameter of the moon
+    Real(dp), Parameter :: grav_parameter_moon = 4904.8695_dp  ![km^3 / s^2]  gravitational parameter of the moon
     Real(dp), Parameter :: Escape_speed_moon = &  !minimum speed to escape the moon's gravitational influence from the surface
-                               & Sqrt(2._dp * std_grav_parameter_moon / R_moon)  ![km/s]
+                               & Sqrt(2._dp * grav_parameter_moon / R_moon)  ![km/s]
+
+!   Conditionally compiled constants to set either the Earth or the moon as the gravitaional body for gravity calculations
+#   if LUNA
+        R_center = R_moon
+        grav_param = grav_parameter_moon
+        Esc_speed = Escape_speed_moon
+#   else
+        R_center = R_earth
+        grav_param = std_grav_parameter
+        Esc_speed = Escape_speed
+#   endif
 
 End Module Global
