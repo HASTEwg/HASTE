@@ -19,17 +19,18 @@ Module Find_Trajectory
     Private
     Public :: Next_Event_Trajectory
     Public :: Simple_Trajectory
+    Public :: Prev_Event_Trajectory
     
 Contains
 
-Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, tof, v1cm, v2sat, vS2) 
+Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, tof, v1cm, v2sat, vS2)
     Use Kinds, Only: dp
     Use Satellite_Motion, Only: Satellite_Position_Type
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Converged
     Use Astro_Utilities, Only: Lambert => Lambert_Gooding
-    Use Astro_Utilities, Only: Hits_Earth
+    Use Astro_Utilities, Only: Hits_Center
     Implicit None
     Type(Satellite_Position_Type), Intent(In) :: sat
     Logical, Intent(In) :: Gravity
@@ -55,8 +56,8 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
     Integer :: i    !counter for Illinois fixes to false position
     Integer :: i_lim
 
+    Found = .FALSE.
     If (Gravity) Then
-        found = .FALSE.
         u_speed = Vector_Length(u_vec)
         r2 = sat%R(t1)
         !estimate minimum TOF: starting distance to target divided by max possible closing speed
@@ -97,9 +98,9 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
             If ( (Abs(ds).LT.1.E-6_dp .AND. Converged(tof_1,tof_2,rTol=1.E-12_dp,aTol=1.E-6_dp)) & 
                & .OR. ds.EQ.0._dp .OR. tof_1.EQ.tof_2 ) Then  !OR iteration landed on answer or closed interval
                 !check that trajectory does not intersect Earth
-                If (Hits_Earth(r1,v1,r2,v2)) Return
+                If (Hits_Center(r1,v1,r2,v2)) Return
                 !If we get this far, a valid trajectory has been found!
-                found = .TRUE.
+                Found = .TRUE.
                 v2Sat = v2 - vS2
                 Return
             End If
@@ -151,8 +152,6 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
         End Do
     Else  !straight (no gravity) trajectory
         If (sat%is_conic) Then
-            !TODO Evaluate code repetition in the following with above, reduce by breaking into subroutines or something
-            found = .FALSE.
             u_speed = Vector_Length(u_vec)
             r2 = sat%R(t1)
             !estimate minimum TOF: starting distance to target divided by max possible closing speed
@@ -195,7 +194,7 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
                 !w/in 1 cm/s of desired neutron speed (1 micro-eV neutron goes about 14 m/s..) AND w/in 1 microsecond of actual TOF
                 If ( (Abs(ds).LT.1.E-6_dp .AND. Converged(tof_1,tof_2,rTol=1.E-12_dp,aTol=1.E-6_dp)) & 
                    & .OR. ds.EQ.0._dp .OR. tof_1.EQ.tof_2 ) Then  !OR iteration landed on answer or closed interval
-                    found = .TRUE.
+                    Found = .TRUE.
                     vScm = vS2 - u_vec
                     v2Sat = v1cm - vScm
                     Return
@@ -383,5 +382,63 @@ Subroutine Simple_Trajectory(r1, r2, s1cm, vScm, v1cm, dt, Found)
         Found = .TRUE.
     End If
 End Subroutine Simple_Trajectory
+
+Subroutine Prev_Event_Trajectory(sat, Gravity, t2, v2sat, Found, r1, v1, tof)
+    !Given an arrival velocity (speed & direction) to a detector in the 
+    !detector frame of reference, this routine determines the properties of a 
+    !neutron originating in the source region to produce the detection event
+    !UNDONE This routine finds tof to the surface of the central body (adequate for initial intent of this procedure)
+    !UNDONE This routine does not find the loaction of emission in a scattering medium (it puts the emission on a sphere)
+    Use Kinds, Only: dp
+    Use Satellite_Motion, Only: Satellite_Position_Type
+    Use Astro_Utilities, Only: Radius_of_Periapsis
+    Use Astro_Utilities, Only: Period
+    Use Astro_Utilities, Only: Time_to_R
+    Use Astro_Utilities, Only: Kepler_Gooding
+    Use Global, Only: Rc => R_center
+    Use Utilities, Only: Vector_Length
+    Use Utilities, Only: Unit_Vector
+    Implicit None
+    Type(Satellite_Position_Type), Intent(In) :: sat
+    Logical, Intent(In) :: Gravity
+    Real(dp), Intent(In) :: t2  ![s]  time of intercept
+    Real(dp), Intent(In) :: v2sat(1:3)  ! [km/s]  neutron velocity at arrival in rest frame of satellite
+    Logical, Intent(Out) :: Found        ! Whether solution is found (neutron can reach satellite)
+    Real(dp), Intent(Out):: r1(1:3)       ! [km]   Location of emission resulting in intercept
+    Real(dp), Intent(Out):: v1(1:3)       ! [km]   Emission velocity (in intertial frame) resulting in intercept from r1
+    Real(dp), Intent(Out) :: tof          ! [s]    time of flight from emission at r1 with velocity v1 (time BEFORE t2)
+    Real(dp) :: r2(1:3)          ! [km]   location of intercept
+    Real(dp) :: v2(1:3)          ! [km/s] velocity of neutron at satellite (inertial frame)
+    Real(dp) :: r2mag, zeta, r_ca
+
+    Found = .FALSE.
+    !Get detector position and velocity at time of intercept
+    Call sat%R_and_V(t2,r2,v2)
+    !Shift detected neutron into intertial frame, and reflect to define the downward trajectory
+    v2 = -(v2sat + v2)
+    If (Gravity) Then
+        If (Radius_of_Periapsis(r2,v2) .LE. Rc) Then  !there is a possible trajectory from the surface at Rc
+            found = .TRUE.
+            tof = Time_to_R(r2,v2,Rc,0._dp,0.5_dp*Period(r2,v2))
+            Call Kepler_Gooding(r2,v2,tof,r1,v1)
+            v1 = -v1  !emission velocity for intercept is in the opposite direction on this orbit
+        Else  !trajectory does not intersect the central body or the scattering medium
+            Return
+        End If
+    Else  !straight (no gravity) trajectory
+    !UNDONE Straight (no gravity) trajectory calculations not necessary for initial implementation
+        r2mag = Vector_Length(r2)
+        zeta = Dot_Product(r2/r2mag,Unit_Vector(v2))
+        If (zeta .LT. 0._dp) Then !only downward trajectories can hit the surface
+            r_ca = r2mag * Sqrt(1._dp - zeta**2)
+            If (r_ca .LT. Rc) Then !the trajectory intersects the surface
+                !Found = .TRUE.
+                   !UNDONE
+                   !UNDONE
+                   !UNDONE
+            End If
+        End If
+    End If
+End Subroutine Prev_Event_Trajectory
 
 End Module Find_Trajectory
