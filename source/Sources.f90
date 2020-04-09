@@ -80,7 +80,7 @@ Contains
 Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
     Use Kinds, Only: dp
     Use Global, Only: Z_hat,X_hat
-    Use Global, Only: R_earth
+    Use Global, Only: Rc => R_center
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Cross_Product
@@ -121,7 +121,7 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
             Call Output_Message('ERROR:  Sources: Setup_Source:  Unknown position geometry.',kill=.TRUE.)
     End Select
     s%big_r = Vector_Length(s%r)
-    s%z = s%big_r - R_earth
+    s%z = s%big_r - Rc
     !check for exoatmospheric source
     If (s%big_r .LT. R_top_atm) Then
         s%exoatmospheric = .FALSE.
@@ -237,7 +237,7 @@ End Function Setup_Source
 Function Celest_to_XYZ(alt,RA_deg,DEC_deg) Result(r)
     Use Kinds, Only: dp
     Use Global, Only: Pi
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Implicit None
     Real(dp) :: r(1:3)
     Real(dp), Intent(In) :: alt,RA_deg,DEC_deg
@@ -246,9 +246,9 @@ Function Celest_to_XYZ(alt,RA_deg,DEC_deg) Result(r)
     RA = RA_deg * Pi / 180._dp
     DEC = DEC_deg * Pi / 180._dp
     !convert celestial to cartesian soordinates
-    r = (/ (R_Earth + alt) * Cos(RA) * Cos(DEC), &
-         & -(R_Earth + alt) * Sin(RA) * Cos(DEC), &
-         & (R_Earth + alt) * Sin(DEC) /)
+    r = (/  (Rc + alt) * Cos(RA) * Cos(DEC), &
+         & -(Rc + alt) * Sin(RA) * Cos(DEC), &
+         &  (Rc + alt) * Sin(DEC) /)
 End Function Celest_to_XYZ
 
 Subroutine Sample_E_and_D(source,RNG,E,OmegaHat,w)
@@ -340,7 +340,7 @@ End Function Watt235func
 
 Subroutine Write_Source(s,file_name)
     Use Global, Only: Pi
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Use Utilities, Only: Vector_Length
     Use FileIO_Utilities, Only: Output_Message
     Use FileIO_Utilities, Only: half_dash_line
@@ -363,7 +363,7 @@ Subroutine Write_Source(s,file_name)
                                 & Acos(s%r(1)/(Vector_Length(s%r)*Cos(Asin(s%r(3)/Vector_Length(s%r))))) / (Pi/180._dp), & 
                                 & ' deg'
     Write(unit,'(A,ES24.16E3,A)') '    Declination     = ',Asin(s%r(3)/Vector_Length(s%r)) / (Pi/180._dp),' deg'
-    Write(unit,'(A,ES24.16E3,A)') '    Geometric Alt   = ',Vector_Length(s%r)-R_Earth,' km'
+    Write(unit,'(A,ES24.16E3,A)') '    Geometric Alt   = ',Vector_Length(s%r)-Rc,' km'
     If (s%exoatmospheric) Then
         Write(unit,'(A)') '    Source is EXOatmospheric'
     Else

@@ -115,8 +115,8 @@ Function Start_Neutron(source,atm,RNG,ScatMod,detector) Result(n)
     Use Atmospheres, Only: Atmosphere_Type
     Use Random_Numbers, Only: RNG_Type
     Use Global, Only: TwoPi
-    Use Global, Only: R_Earth
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: Rc => R_center
+    Use Global, Only: mu => grav_param
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Smaller_Quadratic_Root
@@ -201,7 +201,7 @@ Function Start_Neutron(source,atm,RNG,ScatMod,detector) Result(n)
     !update z,zeta,big_r for initial position
     n%zeta = Dot_Product(Unit_Vector(n%r),n%Omega_hat)
     n%big_r = Vector_Length(n%r)
-    n%Z = n%big_r - R_Earth
+    n%Z = n%big_r - Rc
 Contains
     Subroutine New_Energy_Direction_in_SF_and_ECI()
         Use Neutron_Utilities, Only: Neutron_Energy
@@ -225,10 +225,9 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     Use Kinds, Only: id
     Use Global, Only: inv_FourPi
     Use Global, Only: mfp_per_barn_per_km_at_seaLevel
-    Use Global, Only: std_grav_parameter
-    Use Global, Only: R_earth
+    Use Global, Only: Rc => R_center
     Use Global, Only: n_lambda
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Detectors, Only: Detector_Type
     Use Sources, Only: Source_Type
     Use Atmospheres, Only: Atmosphere_Type
@@ -279,7 +278,7 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     If (ScatMod%Gravity) Then !check if energy is adequate to reach detector
         If (SME(s%big_r,n%s0ef+s%speed) .LT. 0._dp) Then
         !neutron's max velocity is less than escape velocity, check if satellite altitude is achievable
-            If ( -2._dp * s%big_r * std_grav_parameter / ((n%s0ef + s%speed)**2 * s%big_r - 2._dp * std_grav_parameter) &
+            If ( -2._dp * s%big_r * mu / ((n%s0ef + s%speed)**2 * s%big_r - 2._dp * mu) &
                & .LT. & 
                & d%sat%rp ) &
             & Then !neutron max height is insufficent to reach satellite at its lowest point
@@ -308,7 +307,7 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
                 r_ca = p / (1._dp + e)
                 If (r_ca .LT. atm%R_top) Then !passes through atmosphere
                     !add downward and upward segments
-                    Call EPL_upward(atm,r_ca-R_earth,0._dp,h,xi,p,e,r_ca,xEff_top_atm)
+                    Call EPL_upward(atm,r_ca-Rc,0._dp,h,xi,p,e,r_ca,xEff_top_atm)
                     xEff_top_atm = 2._dp * xEff_top_atm
                 End If
             Else
@@ -317,7 +316,7 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
                     no_LOS = .TRUE.  !set flag
                 Else If (r_ca .LT. atm%R_top) Then !path cuts through atmosphere
                     !add downward and upward segments
-                    Call EPL_upward(atm,r_ca,0._dp,r_ca-R_Earth,xEff_top_atm)
+                    Call EPL_upward(atm,r_ca,0._dp,r_ca-Rc,xEff_top_atm)
                     xEff_top_atm = 2._dp * xEff_top_atm
                 End If
             End If
@@ -389,7 +388,7 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     If (xEff_top_atm .GT. 0._dp) Then
         If (s%exoatmospheric) Then
             If (ScatMod%Doppler_Broaden) Then
-                sigma_T1 = ScatMod%CS%sig_T_broad(Neutron_Energy(v1),atm%T(r_ca-R_earth))
+                sigma_T1 = ScatMod%CS%sig_T_broad(Neutron_Energy(v1),atm%T(r_ca-Rc))
             Else
                 sigma_T1 = ScatMod%CS%sig_T(Neutron_Energy(v1))
             End If
@@ -410,7 +409,7 @@ End Subroutine First_Event_Neutron
 
 Subroutine Move_Neutron(n,ScatMod,atm,RNG,leaked)
     Use Kinds, Only: dp
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Use Global, Only: mfp_per_barn_per_km_at_seaLevel
     Use Neutron_Scatter, Only: Neutron_Type
     Use Neutron_Scatter, Only: Scatter_Model_Type
@@ -418,7 +417,6 @@ Subroutine Move_Neutron(n,ScatMod,atm,RNG,leaked)
     Use Atmospheres, Only: Atmosphere_Type
     Use Atmospheres, Only: rho_SL
     Use Random_Numbers, Only: RNG_Type
-    Use Global, Only: R_Earth
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Vector_Length
     Use Pathlengths, Only: S_and_L_to_edge
@@ -492,7 +490,7 @@ Subroutine Move_Neutron(n,ScatMod,atm,RNG,leaked)
     !update z,zeta,big_r for new location
     n%zeta = Dot_Product(Unit_Vector(n%r),n%Omega_hat)
     n%big_r = Vector_Length(n%r)
-    n%Z = n%big_r - R_Earth
+    n%Z = n%big_r - Rc
 End Subroutine Move_Neutron
 
 Subroutine Next_Event_Neutron(n,ScatMod,d,atm,RNG)
@@ -538,7 +536,7 @@ Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
     Use Kinds, Only: id
     Use Global, Only: inv_TwoPi,inv_FourPi
     Use Global, Only: mfp_per_barn_per_km_at_seaLevel
-    Use Global, Only: std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Global, Only: n_lambda
     Use Detectors, Only: Detector_Type
     Use Atmospheres, Only: Atmosphere_Type
@@ -589,7 +587,7 @@ Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
     If (ScatMod%Gravity) Then !check if energy is adequate to reach detector
         If (SME(n%big_r,scat%s1cm+scat%u_speed) .LT. 0._dp) Then
         !neutron's max velocity is less than escape velocity, check if satellite altitude is achievable
-            If ( -2._dp * n%big_r * std_grav_parameter / ( (scat%s1cm + scat%u_speed)**2 * n%big_r - 2._dp * std_grav_parameter ) & 
+            If ( -2._dp * n%big_r * mu / ( (scat%s1cm + scat%u_speed)**2 * n%big_r - 2._dp * mu ) & 
                & .LT. & 
                & d%sat%rp) & 
             & Then !neutron max height is insufficent to reach satellite at its lowest point

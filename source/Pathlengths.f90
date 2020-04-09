@@ -53,7 +53,7 @@ Contains
 Subroutine S_and_L_to_edge(atm,r0,z0,zeta0,s,L,nb,bb,Lb,db)
     Use Kinds, Only: dp
     Use Atmospheres, Only: Atmosphere_Type
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Implicit None
     Type(Atmosphere_Type), Intent(In) :: atm
     Real(dp), Intent(In) :: r0,z0
@@ -93,8 +93,8 @@ Subroutine S_and_L_to_edge(atm,r0,z0,zeta0,s,L,nb,bb,Lb,db)
         Else  !downward to point of closest approach and then upward to top of atmosphere
             !add downward and upward segments
             s = -zeta0 * r0 + S_upward(r_ca,atm%R_top-r_ca,0._dp)
-            Call EPL_upward(atm,r_ca,0._dp,r_ca-R_Earth,nb1,bb1,Lb1,z0)
-            Call EPL_upward(atm,r_ca,0._dp,r_ca-R_Earth,nb2,bb2,Lb2)
+            Call EPL_upward(atm,r_ca,0._dp,r_ca-Rc,nb1,bb1,Lb1,z0)
+            Call EPL_upward(atm,r_ca,0._dp,r_ca-Rc,nb2,bb2,Lb2)
             nb = nb1 + nb2
             Allocate(bb(1:nb))
             Allocate(Lb(1:nb))
@@ -123,7 +123,7 @@ End Subroutine S_and_L_to_edge
 Function EPL(atm,r0,z0,zeta0,s) Result(L)
     Use Kinds, Only: dp
     Use Atmospheres, Only: Atmosphere_Type
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Implicit None
     Real(dp) :: L
     Type(Atmosphere_Type), Intent(In) :: atm
@@ -139,7 +139,7 @@ Function EPL(atm,r0,z0,zeta0,s) Result(L)
         s_ca = -zeta0 * r0
         r_ca = R_close_approach(r0,zeta0)
         If (s .GT. s_ca) Then !downward to point of closest approach and upward to z1
-            z_ca = r_ca - R_Earth
+            z_ca = r_ca - Rc
             !add downward and upward segments
             Call EPL_upward(atm,r_ca,0._dp,z_ca,L1,z0)
             z1 = z_ca + deltaZ(r_ca,0._dp,s-s_ca)
@@ -148,7 +148,7 @@ Function EPL(atm,r0,z0,zeta0,s) Result(L)
         Else  !just a downward segment
             z1 = z0 + deltaZ(r0,zeta0,s)
             zeta1 = -zeta_downward(r0,r_ca)
-            Call EPL_upward(atm,R_Earth+z1,zeta1,z1,L,z0)
+            Call EPL_upward(atm,Rc+z1,zeta1,z1,L,z0)
         End If
     Else  !direction is upward
         z1 = z0 + deltaZ(r0,zeta0,s)
@@ -159,7 +159,7 @@ End Function EPL
 Function NE_L_to_edge_straight(atm,r0,z0,zeta0,L) Result(path_to_ground)
     Use Kinds, Only: dp
     Use Atmospheres, Only: Atmosphere_Type
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Implicit None
     Logical :: path_to_ground
     Type(Atmosphere_Type), Intent(In) :: atm
@@ -178,8 +178,8 @@ Function NE_L_to_edge_straight(atm,r0,z0,zeta0,L) Result(path_to_ground)
             L = Huge(L)
         Else  !downward to point of closest approach and then upward to top of atmosphere
             !add downward and upward segments
-            Call EPL_straight_upward_full(atm,r_ca,0._dp,r_ca-R_Earth,L1,z0)
-            Call EPL_straight_upward_full(atm,r_ca,0._dp,r_ca-R_Earth,L2)
+            Call EPL_straight_upward_full(atm,r_ca,0._dp,r_ca-Rc,L1,z0)
+            Call EPL_straight_upward_full(atm,r_ca,0._dp,r_ca-Rc,L2)
             L = L1 + L2
         End If
     Else  !direction is upward to top of atmosphere
@@ -190,8 +190,8 @@ End Function NE_L_to_edge_straight
 Function NE_L_to_edge_orbit(atm,big_r,Sn,z0,zeta0,L) Result(path_to_ground)
     Use Kinds, Only: dp
     Use Atmospheres, Only: Atmosphere_Type
-    Use Global, Only: R_Earth
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: Rc => R_center
+    Use Global, Only: mu => grav_param
     Implicit None
     Logical :: path_to_ground
     Type(Atmosphere_Type), Intent(In) :: atm
@@ -214,8 +214,8 @@ Function NE_L_to_edge_orbit(atm,big_r,Sn,z0,zeta0,L) Result(path_to_ground)
     If (zeta0 .LT. 0._dp) Then  !direction is downward
         !downward to pariapsis and then upward to top of atmosphere
         !add downward and upward segments
-        Call EPL_orbit_upward_full(atm,rp-R_Earth,0._dp,h,xi,p,e,rp,L1,z0)
-        Call EPL_orbit_upward_full(atm,rp-R_Earth,0._dp,h,xi,p,e,rp,L2)
+        Call EPL_orbit_upward_full(atm,rp-Rc,0._dp,h,xi,p,e,rp,L1,z0)
+        Call EPL_orbit_upward_full(atm,rp-Rc,0._dp,h,xi,p,e,rp,L2)
         L = L1 + L2
     Else  !direction is upward to top of atmosphere
         Call EPL_orbit_upward_full(atm,z0,zeta0,h,xi,p,e,rp,L)
@@ -235,7 +235,7 @@ Function S_upward(big_R,dZ,zeta) Result(s)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: s
-    Real(dp), Intent(In) :: big_R  !R_Earth plus base altitude
+    Real(dp), Intent(In) :: big_R  !R_center plus base altitude
     Real(dp), Intent(In) :: dZ  !change in altitude from big_R after distance s, must be positive
     Real(dp), Intent(In) :: zeta  !zenith cosine at R
     
@@ -246,7 +246,7 @@ Function zeta_upward(r0,dZ,zeta0) Result(zeta1)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: zeta1
-    Real(dp), Intent(In) :: r0  !R_Earth plus base altitude
+    Real(dp), Intent(In) :: r0  !R_center plus base altitude
     Real(dp), Intent(In) :: dZ  !change in altitude from big_R after distance s, must be positive
     Real(dp), Intent(In) :: zeta0  !zenith cosine at r0
     
@@ -255,7 +255,7 @@ End Function zeta_upward
 
 Function zeta_orbit_upward(rp,vp,p,e,r1) Result(zeta)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Implicit None
     Real(dp) :: zeta
     Real(dp), Intent(In) :: rp,vp,p,e
@@ -299,7 +299,7 @@ Function zeta_downward_r0r1zeta0(r0,r1,zeta0) Result(zeta1)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: zeta1
-    Real(dp), Intent(In) :: r0  !R_Earth plus base altitude
+    Real(dp), Intent(In) :: r0  !R_center plus base altitude
     Real(dp), Intent(In) :: r1  !radius at which new zeta is wanted
     Real(dp), Intent(In) :: zeta0  !zenith cosine at r0
     
@@ -356,7 +356,7 @@ Subroutine Check_EPL(L,z0,z1,zeta0,b,atm)
     !UNSTANDARD: ABORT (GFORT) is an extension
     Use Kinds, Only: dp
     Use Atmospheres, Only: Atmosphere_Type
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Use Quadratures, Only: Romberg_Quad
     Use Utilities, Only: Prec
     Use Utilities, Only: Bisection_Search
@@ -371,7 +371,7 @@ Subroutine Check_EPL(L,z0,z1,zeta0,b,atm)
     Real(dp) :: zeta00
     Real(dp), Parameter :: two_thirds = 2._dp / 3._dp
 
-    r0 = R_Earth + z0
+    r0 = Rc + z0
     dZ = z1 - z0
     Smax = dZ * (2._dp * r0 + dZ) / ( zeta0 * r0 + Sqrt( (zeta0 * r0)**2 + dZ * (2._dp * r0 + dZ) ) )
     L0 = Romberg_Quad(EPL_Integrand,0._dp,Smax,aTol=0._dp,rTol=1.E-9_dp)
@@ -385,9 +385,9 @@ Subroutine Check_EPL(L,z0,z1,zeta0,b,atm)
     Write(*,'(A,ES24.16,A,ES24.16)') '       Zbs = ',atm%zb(b-1),'  ---  ',atm%zb(b)
     Write(*,'(A,ES24.16)')           '     zeta0 = ',zeta0
     dZ = atm%Zb(b) - atm%zb(b-1)
-    r0 = R_Earth + atm%zb(b-1)
+    r0 = Rc + atm%zb(b-1)
     If (z0 .NE. atm%zb(b-1)) Then
-        zeta00 = zeta_upward(R_earth+z0,R_earth+z0-r0,zeta0)
+        zeta00 = zeta_upward(Rc+z0,Rc+z0-r0,zeta0)
     Else
         zeta00 = zeta0
     End If
@@ -529,8 +529,8 @@ End Subroutine EPL_straight_upward_layers
 
 Subroutine EPL_orbit_upward_layers(atm,z0,zeta0,h,xi,p,e,rp,nb,bb,Lb,z1_in)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
-    Use Global, Only: R_earth
+    Use Global, Only: mu => grav_param
+    !Use Global, Only: Rc => R_center
     Use Atmospheres, Only: Atmosphere_Type
     Use Utilities, Only: Bisection_Search
     Implicit None
@@ -591,7 +591,7 @@ Subroutine EPL_orbit_upward_layers(atm,z0,zeta0,h,xi,p,e,rp,nb,bb,Lb,z1_in)
         End If
         !full layers from b0+1 to b1-1
         i = 2
-        !k0 = xi + mu / (R_earth + z0)
+        !k0 = xi + mu / (Rc + z0)
         vp = Sqrt(mu * (2._dp / rp - (1._dp - e**2) / p))
         Do b = b0+1,b1-1
             bb(i) = b
@@ -722,8 +722,8 @@ End Function EPL_Z_full_layer
 
 Function EPL_Tk_partial_layer(z1,z2,p,e,b,n,atm) Result(L)
     Use Kinds, Only: dp
-    Use Global, Only: R_earth
-    Use Global, Only: mu => Std_grav_parameter
+    Use Global, Only: Rc => R_center
+    Use Global, Only: mu => grav_param
     Use Atmospheres, Only: Atmosphere_Type
     Use Atmospheres, Only: inv_rho_SL
     Implicit None
@@ -741,8 +741,8 @@ Function EPL_Tk_partial_layer(z1,z2,p,e,b,n,atm) Result(L)
     
     !UNDONE small delta theta will result in poorly conditioned limits of integration
     !UNDONE need to find well conditioned formulae for limits or change variables
-    r1 = R_earth + z1
-    r2 = R_earth + z2
+    r1 = Rc + z1
+    r2 = Rc + z2
     x1 = (p - r1) / (e * r1)
     If (x1 .LT. 1._dp) Then
         t1 = ACos(x1)
@@ -784,7 +784,7 @@ End Function EPL_Tk_known_layer
 !NEEDSDONE Switch Kepler EPL calculations from p-e-rp formulations to p-xi form to reduce arithmetic and improve conditioning
 Function EPL_Rk_partial_layer(z1,z2,p,e,rp,b1,n,atm) Result(L)
     Use Kinds, Only: dp
-    Use Global, Only: R_earth
+    Use Global, Only: Rc => R_center
     Use Atmospheres, Only: Atmosphere_Type
     Use Atmospheres, Only: inv_rho_SL
     Implicit None
@@ -808,7 +808,7 @@ Function EPL_Rk_partial_layer(z1,z2,p,e,rp,b1,n,atm) Result(L)
     Do i = 1,n
         B(i) = atm%EPL_lay(b1)%wRk(i) * atm%rho(z1 + z(i),b1)
     End Do
-    C = R_earth + z1 + z
+    C = Rc + z1 + z
     L = EPL_Rk_full_layer(p,e,rp,n,A,B,C)
 End Function EPL_Rk_partial_layer
 
@@ -848,7 +848,7 @@ End Function EPL_Rk_full_layer
 Function L_to_S_exact(atm,L,r0,z0,zeta0,nb,bb,Lb,db) Result(S)
     Use Kinds, Only: dp
     Use Atmospheres, Only: Atmosphere_Type
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Implicit None
     Real(dp) :: s
     Type(Atmosphere_Type), Intent(In) :: atm
@@ -887,7 +887,7 @@ Function L_to_S_exact(atm,L,r0,z0,zeta0,nb,bb,Lb,db) Result(S)
             Else
                 !upward looking end of segment is at point of closest approach
                 r1 = R_close_approach(r0,zeta0)
-                z1 = r1 - R_Earth
+                z1 = r1 - Rc
                 zeta1 = 0._dp
             End If
         End If
@@ -929,7 +929,7 @@ Function L_to_S_exact(atm,L,r0,z0,zeta0,nb,bb,Lb,db) Result(S)
             If (db(i-1)) Then  !preceeding segment is downward, down-up condition
                 !upward looking end of segment is at point of closest approach
                 r1 = r_ca
-                z1 = r1 - R_Earth
+                z1 = r1 - Rc
                 zeta1 = 0._dp
             Else  !preceeding segment is also upward, no down-up condition on segement, but still down-up on ray
                 !upward looking end of segment begins at lower layer boundary

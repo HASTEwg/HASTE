@@ -50,10 +50,9 @@ Contains
 
 Subroutine Initialize_Satellite_Motion(motion_type,sat)
     Use Kinds, Only: dp
-    Use Global, Only: std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Global, Only: rot_Earth
     Use Global, Only: Z_hat
-    Use Global, Only: R_earth
     Use Astro_Utilities, Only: Radius_of_Periapsis
     Use Astro_Utilities, Only: Velocity_of_Periapsis
     Use Astro_Utilities, Only: Period
@@ -68,13 +67,11 @@ Subroutine Initialize_Satellite_Motion(motion_type,sat)
     
     Select Case(motion_type)
         Case('Stationary')
-            !sat%motion_index = Sat_Motion_stationary
             sat%is_stationary = .TRUE.
             sat%is_conic = .FALSE.
             sat%rp = Vector_Length(sat%r0)
             sat%vp = 0._dp
         Case('Linear')
-            !sat%motion_index = Sat_Motion_linear
             sat%is_stationary = .FALSE.
             sat%is_conic = .FALSE.
             If (Dot_Product(sat%r0,sat%v0) .LT. 0._dp) Then
@@ -84,22 +81,26 @@ Subroutine Initialize_Satellite_Motion(motion_type,sat)
             End If
             sat%vp = Vector_Length(sat%v0)
         Case('Conic')
-            !sat%motion_index = Sat_Motion_conic
             sat%is_stationary = .FALSE.
             sat%is_conic = .TRUE.
             sat%rp = Radius_of_Periapsis(sat%r0,sat%v0)
             sat%vp = Velocity_of_Periapsis(sat%r0,sat%v0)
             sat%per = Period(sat%r0,sat%v0)
         Case('GeoStat')
-            !sat%motion_index = Sat_Motion_conic
-            sat%is_stationary = .FALSE.
-            sat%is_conic = .TRUE.
-            sat%r0(3) = 0._dp  !make sure r0 is in equatorial plane
-            sat%r0 = Unit_Vector(sat%r0) * Cube_Root(std_grav_parameter / rot_Earth**2)  !make sure r0 has correct magnitude
-            sat%v0 = Unit_Vector(Cross_Product(Z_hat,sat%r0)) * Cube_Root(std_grav_parameter / rot_Earth**2) * rot_Earth  !set v0
-            sat%rp = Vector_Length(sat%r0)
-            sat%vp = Velocity_of_Periapsis(sat%r0,sat%v0)
-            sat%per = Period(sat%r0,sat%v0)
+#           if LUNA
+                !a stationary orbit above the surface of the moon is not feasible (it's outside the moon's sphere of influence)
+                Call Output_Message('ERROR:  Satellite_Motion: Initialize_Satellite_Motion:  Stationary lunar orbit specified.', & 
+                                   & kill=.TRUE.)
+#           else
+                sat%is_stationary = .FALSE.
+                sat%is_conic = .TRUE.
+                sat%r0(3) = 0._dp  !make sure r0 is in equatorial plane
+                sat%r0 = Unit_Vector(sat%r0) * Cube_Root(mu / rot_Earth**2)  !make sure r0 has correct magnitude
+                sat%v0 = Unit_Vector(Cross_Product(Z_hat,sat%r0)) * Cube_Root(mu / rot_Earth**2) * rot_Earth  !set v0
+                sat%rp = Vector_Length(sat%r0)
+                sat%vp = Velocity_of_Periapsis(sat%r0,sat%v0)
+                sat%per = Period(sat%r0,sat%v0)
+#           endif
         Case Default
             Call Output_Message('ERROR:  Satellite_Motion: Initialize_Satellite_Motion:  Unknown motion type.',kill=.TRUE.)
     End Select

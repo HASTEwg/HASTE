@@ -109,7 +109,7 @@ Contains
 
 Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_name) Result(atm)
     Use Kinds, Only: dp
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
     Use FileIO_Utilities, Only: Output_Message
@@ -203,7 +203,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
             Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  Undefined atmosphere model',kill=.TRUE.)
     End Select
     Allocate(atm%Rb(0:Size(atm%Zb)-1))
-    atm%Rb = atm%Zb + R_Earth
+    atm%Rb = atm%Zb + Rc
     Allocate(Character(max_path_len) :: f_name)
     Select Case (composition)
         Case ('All')
@@ -284,8 +284,8 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     atm%isothermal_temp = isothermal_temp
     atm%z_top = Z_top_atm
     atm%z_bot = Z_bot_atm
-    atm%R_top = R_Earth + atm%z_top
-    atm%R_bot = R_Earth + atm%z_bot
+    atm%R_top = Rc + atm%z_top
+    atm%R_bot = Rc + atm%z_bot
     atm%wind_AF = (/ wind_E, & 
                    & wind_N, &
                    & 0._dp /)
@@ -429,7 +429,6 @@ End Function Atm_Density
 Subroutine Define_EPL_Layers(atm,resources_dir)
     Use Kinds, Only: dp
     Use FileIO_Utilities, Only: Output_Message
-    Use Global, Only: R_earth
     Implicit None
     !number of quadrature points for 6, 9 or 12 digits of precision on STRAIGHT paths
     !                                          USSA76 base index: 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 9, 9, 10, 10 /)

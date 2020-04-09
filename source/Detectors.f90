@@ -73,7 +73,7 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
     Use Kinds, Only: dp
     Use Global, Only: Pi
     Use Global, Only: TwoPi
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Use Global, Only: Z_hat
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Vector_Length
@@ -125,9 +125,9 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
             RA = right_ascension_detector * Pi / 180._dp
             DEC = declination_detector * Pi / 180._dp
             !convert celestial to cartesian soordinates
-            d%sat%r0 = (/ (R_Earth + z_detector) * Cos(RA) * Cos(DEC), &
-                       & -(R_Earth + z_detector) * Sin(RA) * Cos(DEC), &
-                       & (R_Earth + z_detector) * Sin(DEC) /)
+            d%sat%r0 = (/ (Rc + z_detector) * Cos(RA) * Cos(DEC), &
+                       & -(Rc + z_detector) * Sin(RA) * Cos(DEC), &
+                       &  (Rc + z_detector) * Sin(DEC) /)
         Case('Cartesian')
             d%sat%r0 = (/ x_detector, y_detector, z_detector /)
         Case Default
@@ -571,7 +571,7 @@ End Subroutine Contribution_Cocktail_Sort_i2
 Subroutine Write_Detector(d,file_name)
     Use Kinds, Only: dp
     Use Global, Only: Pi
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Use Utilities, Only: Vector_Length
     Use FileIO_Utilities, Only: Output_Message
     Use FileIO_Utilities, Only: half_dash_line
@@ -598,7 +598,7 @@ Subroutine Write_Detector(d,file_name)
                                                                & Cos(Asin(d%sat%r0(3)/Vector_Length(d%sat%r0))))) & 
                                                           & / (Pi/180._dp),' deg'
     Write(unit,'(A,ES24.16E3,A)') '    Declination     = ',Asin(d%sat%r0(3)/Vector_Length(d%sat%r0)) / (Pi/180._dp),' deg'
-    Write(unit,'(A,ES24.16E3,A)') '    Altitude        = ',Vector_Length(d%sat%r0)-R_Earth,' km'
+    Write(unit,'(A,ES24.16E3,A)') '    Altitude        = ',Vector_Length(d%sat%r0)-Rc,' km'
     If (d%sat%is_stationary) Then
         Write(unit,'(A)') '  Motion Type:  STATIONARY'
         write_full_position_trace = .FALSE.
