@@ -788,7 +788,7 @@ End Subroutine Find_C_S
 !   Revised for modern Fortran by Whitman Dailey.  Jun 02, 2018.
 !   Air Force Institute of Technology, Department of Engineering Physics
 !-------------------------------------------------------------------------------
-Subroutine Lambert_Gooding(r1_vec,r2_vec,tof,v1,v2,long_way)
+Pure Subroutine Lambert_Gooding(r1_vec,r2_vec,tof,v1,v2,long_way)
     Use Kinds, Only: dp
     Use Global, Only: TwoPi
     Use Utilities, Only: Vector_Length
@@ -840,7 +840,7 @@ Subroutine Lambert_Gooding(r1_vec,r2_vec,tof,v1,v2,long_way)
     v2 = vr2 * r2_hat + vt2 * eta2
 End Subroutine Lambert_Gooding
 
-Subroutine vlamb(r1,r2,th,tdelt,vr1,vt1,vr2,vt2)
+Pure Subroutine vlamb(r1,r2,th,tdelt,vr1,vt1,vr2,vt2)
     Use Kinds, Only: dp
     Use Global, Only: TwoPi
     Use Global, Only: mu => grav_param
@@ -884,7 +884,7 @@ Subroutine vlamb(r1,r2,th,tdelt,vr1,vt1,vr2,vt2)
     vt2 = vt2 / r2
 End Subroutine vLamb
 
-Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
+Pure Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: q
@@ -1008,7 +1008,7 @@ Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
     End If
 End Subroutine tLamb
 
-Subroutine xLamb(q,qsqfm1,tin,x)
+Pure Subroutine xLamb(q,qsqfm1,tin,x)
     Use Kinds, Only: dp
     Use Global, Only: Pi
     Implicit None
@@ -1042,7 +1042,7 @@ Subroutine xLamb(q,qsqfm1,tin,x)
     End Do
 End Subroutine xLamb
 
-Subroutine qzminx_qzplx_zplqx(q,qsqfm1,x,qzminx,qzplx,zplqx)
+Pure Subroutine qzminx_qzplx_zplqx(q,qsqfm1,x,qzminx,qzplx,zplqx)
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: q
@@ -1091,7 +1091,7 @@ End Subroutine qzminx_qzplx_zplqx
 !   Revised for modern Fortran by Whitman Dailey.  Jun 02, 2018.
 !   Air Force Institute of Technology, Department of Engineering Physics
 !-------------------------------------------------------------------------------
-Subroutine Kepler_Gooding(r0,v0,dt,r1,v1)
+Pure Subroutine Kepler_Gooding(r0,v0,dt,r1,v1)
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: r0(1:3)
@@ -1109,7 +1109,7 @@ Subroutine Kepler_Gooding(r0,v0,dt,r1,v1)
     Call els3pv(els,r1,v1)
 End Subroutine Kepler_Gooding
 
-Subroutine pv3els(r0,v0,els)
+Pure Subroutine pv3els(r0,v0,els)
     Use Kinds, Only: dp
     Use Global, Only: HalfPi
     Implicit None
@@ -1175,7 +1175,7 @@ Subroutine pv3els(r0,v0,els)
     els(6) = tau
 End Subroutine pv3els
 
-Subroutine pv2els (r, u, vr, vt, al, q, om, tau)
+Pure Subroutine pv2els (r, u, vr, vt, al, q, om, tau)
     Use Kinds, Only: dp
     Use Global, Only: mu => grav_param
     Implicit None
@@ -1245,7 +1245,7 @@ Subroutine pv2els (r, u, vr, vt, al, q, om, tau)
     om = u - v
 End Subroutine pv2els
 
-Function emkep(e1,ee) Result(x)
+Pure Function emkep(e1,ee) Result(x)
     Use Kinds, Only: dp
     Implicit None
 
@@ -1269,7 +1269,7 @@ Function emkep(e1,ee) Result(x)
     End Do
 End Function emkep
 
-Function shmkep(g1,s)  Result(x)
+Pure Function shmkep(g1,s)  Result(x)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: x
@@ -1294,7 +1294,7 @@ Function shmkep(g1,s)  Result(x)
      End Do
 End Function shmkep
 
-Subroutine els3pv(els,r1,v1)
+Pure Subroutine els3pv(els,r1,v1)
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: els(1:6)    !! [al, q, ei, bom, om, tau]
@@ -1342,7 +1342,7 @@ Subroutine els3pv(els,r1,v1)
     v1(3) = zdot
 End Subroutine els3pv
 
-Subroutine els2pv(al, q, om, tau, r, u, vr, vt)
+Pure Subroutine els2pv(al, q, om, tau, r, u, vr, vt)
     Use Kinds, Only: dp
     Use Global, Only: mu => grav_param
     Use Global, Only: FourPi
@@ -1395,7 +1395,7 @@ Subroutine els2pv(al, q, om, tau, r, u, vr, vt)
     vt = h/r
 End Subroutine els2pv
 
-Function ekepl(em, e1)
+Pure Function ekepl(em, e1)
     Use Kinds, Only: dp
     Use Global, Only: Pi
     Use Global, Only: TwoPi
@@ -1447,7 +1447,7 @@ Function ekepl(em, e1)
     ekepl = ee + (em - emr)
 End Function ekepl
 
-Function dcbsol (a, b, c) result(x)
+Pure Function dcbsol (a, b, c) result(x)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: x
@@ -1464,7 +1464,7 @@ Function dcbsol (a, b, c) result(x)
     End if
 End Function dcbsol
 
-Function dcubrt(x) Result(c)
+Pure Function dcubrt(x) Result(c)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: c
@@ -1482,7 +1482,7 @@ Function dcubrt(x) Result(c)
     End If
 End Function dcubrt
 
-Function shkepl(el, g1) Result(s)
+Pure Function shkepl(el, g1) Result(s)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: s
