@@ -192,7 +192,7 @@ Recursive Function Time_to_R(r0,v0,radius,t_min,t_max,t_guess,allow_recursion) R
     Integer :: i,j
     Real(dp) :: r_mag
     
-    If (Dot_Product(r0,v0) .LT. 1.E-12_dp) Then !initial conditions too close to periapsis, perturb and recurse
+    If (Abs(Dot_Product(r0,v0)) .LT. 1.E-12_dp) Then !initial conditions too close to periapsis, perturb and recurse
         Call Kepler_Gooding(r0,v0,t_min,r,v)
         t = t_min + Time_to_R(r,v,radius,0._dp,t_max-t_min)
         Return
