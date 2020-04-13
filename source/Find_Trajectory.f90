@@ -388,7 +388,7 @@ Subroutine Prev_Event_Trajectory(sat, Gravity, t2, v2sat, Found, r1, v1, tof)
     !detector frame of reference, this routine determines the properties of a 
     !neutron originating in the source region to produce the detection event
     !UNDONE This routine finds tof to the surface of the central body (adequate for initial intent of this procedure)
-    !UNDONE This routine does not find the loaction of emission in a scattering medium (it puts the emission on a sphere)
+    !UNDONE This routine does not find the loaction of emission in a scattering medium (it puts the emission on a sphere with r=Rc)
     Use Kinds, Only: dp
     Use Satellite_Motion, Only: Satellite_Position_Type
     Use Astro_Utilities, Only: Radius_of_Periapsis
@@ -428,6 +428,7 @@ Subroutine Prev_Event_Trajectory(sat, Gravity, t2, v2sat, Found, r1, v1, tof)
         End If
     Else  !straight (no gravity) trajectory
     !UNDONE Straight (no gravity) trajectory calculations not necessary for initial implementation
+
         r2mag = Vector_Length(r2)
         zeta = Dot_Product(r2/r2mag,Unit_Vector(v2))
         If (zeta .LT. 0._dp) Then !only downward trajectories can hit the surface

@@ -26,6 +26,7 @@ FNAME="Neutron_Utilities"; . ./compile_it
 SRC_PATH="../source/"
 FNAME="Satellite_Motion"; . ./compile_it
 FNAME="Find_Trajectory"; . ./compile_it
+FNAME="Diverge_approx"; . ./compile_it
 
 #TEST PROGRAM
 SRC_PATH="../testing/prevTrajectory/"
