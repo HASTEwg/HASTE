@@ -174,7 +174,7 @@ Subroutine Smooth_tabular_conic(s,t,r,v)
     Real(dp), Intent(In) :: t
     Real(dp), Intent(Out) :: r(1:3),v(1:3)
     Integer :: i
-    Real(dp) :: dt,x,w,time_from_last,time_till_next
+    Real(dp) :: dt,w,time_from_last,time_till_next
     Real(dp) :: ra(1:3),va(1:3)
     Real(dp) :: rb(1:3),vb(1:3)
 
@@ -190,12 +190,38 @@ Subroutine Smooth_tabular_conic(s,t,r,v)
         time_till_next = time_from_last - dt  !seconds until the next state vector (negative)
         Call Kepler_Gooding(s%rs_vs(1:3,i-1),s%rs_vs(4:6,i-1),time_from_last,ra,va) !solution from the prev state vector
         Call Kepler_Gooding(s%rs_vs(1:3,i  ),s%rs_vs(4:6,i  ),time_till_next,rb,vb) !solution from the next state vector
-        x = time_from_last / dt  !fractional location in time between state vectors
-        w = x * x * (3._dp - 2._dp * x)  !weight factor for the next state vector's solution (prev state vector weight is 1-w)
+        w = Blend3(time_from_last / dt)  !weight factor for the next state vector's solution (prev state vector weight is 1-w)
         r = w*rb + (1._dp - w)*ra
         v = w*vb + (1._dp - w)*va
     End If
 End Subroutine Smooth_tabular_conic
+
+Pure Function Blend1(x) Result(w)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: w
+    Real(dp), Intent(In) :: x
+
+    w = x
+End Function Blend1
+
+Pure Function Blend3(x) Result(w)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: w
+    Real(dp), Intent(In) :: x
+
+    w = x * x * (3._dp - 2._dp * x)
+End Function Blend3
+
+Pure Function Blend5(x) Result(w)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: w
+    Real(dp), Intent(In) :: x
+
+    w = x * x * (5._dp + 2._dp*x * (x * (5._dp - 2._dp*x) - 5._dp))
+End Function Blend5
 
 Subroutine Cleanup_Satellite_Position(s)
     Use Kinds, Only: dp
