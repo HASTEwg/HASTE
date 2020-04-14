@@ -69,7 +69,7 @@ Module Detectors
     
 Contains
 
-Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm) Result(d)
+Function Setup_Detector(setup_file_name,resources_dir,run_file_name,slice_file_name,R_top_atm) Result(d)
     Use Kinds, Only: dp
     Use Global, Only: Pi
     Use Global, Only: TwoPi
@@ -83,7 +83,10 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
     Use FileIO_Utilities, Only: Worker_Index
     Implicit None
     Type(Detector_Type) :: d
-    Character(*), Intent(In) :: setup_file_name,run_file_name,slice_file_name
+    Character(*), Intent(In) :: setup_file_name
+    Character(*), Intent(In) :: resources_dir
+    Character(*), Intent(In) :: run_file_name
+    Character(*), Intent(In) :: slice_file_name
     Real(dp), Intent(In) :: R_top_atm
     Real(dp) :: x_detector,y_detector,z_detector  ![km]  x,y,z coordinates of detector
     Real(dp) :: declination_detector,right_ascension_detector
@@ -150,7 +153,7 @@ Function Setup_Detector(setup_file_name,run_file_name,slice_file_name,R_top_atm)
     Else
         d%sat%v0 = 0._dp
     End If
-    Call Initialize_Satellite_Motion(detector_motion,d%sat)
+    Call Initialize_Satellite_Motion(resources_dir,detector_motion,d%sat)
     !create time grid
     Select Case(t_grid_spacing)
         Case('Log')
