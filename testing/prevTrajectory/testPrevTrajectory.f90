@@ -30,6 +30,8 @@ Logical :: Found  !flag for whether a trajectory was found
 Real(dp) :: r1(1:3),v1(1:3),tof !position,velocity, time of flight defining flight from the surface of the central body
 Real(dp) :: DFact !divergence factor for the intercepting flight from emission to intercept
 Real(dp) :: r2(1:3),v2(1:3)
+Integer :: trace_unit,stat
+Integer :: i
 
 !epoch (t=0) at 13:13 on 13 Jan 1998
 sat%r0 = (/ -427.81333973957254_dp , &
@@ -38,7 +40,7 @@ sat%r0 = (/ -427.81333973957254_dp , &
 sat%v0 = (/  0.2549511459741853_dp , & 
           &  0.8912224006586242_dp , &
           &  1.3197229103204031_dp   /)
-Call Initialize_Satellite_Motion('Conic     ',sat)
+Call Initialize_Satellite_Motion('','Conic     ',sat)
 Gravity = .TRUE.
 
 t2 = 0._dp
@@ -81,5 +83,22 @@ If (Found) Then
     Print*,DFact
     Print*,Div_Fact_Straight(r1,v1,r2,(/0._dp,0._dp,0._dp/),tof,v_sat)
 End If
+
+Print*
+
+!test the sat_trace functionality
+Call sat%cleanup()
+Call Initialize_Satellite_Motion('','Conic_tab ',sat)
+Open( NEWUNIT = trace_unit , FILE = 'trace_test.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE' ,  IOSTAT = stat )
+t2 = -60._dp
+i = 0
+Do
+    Call sat%r_and_v(t2,r2,v2)
+    Write(trace_unit,'(7ES27.16E3)') t2,r2,v2
+    t2 = t2 + 60._dp
+    i = i + 1
+    If (t2 .GT. sat%ts(sat%nt)+60._dp) Exit
+End Do
+Close(trace_unit)
 
 End Program

@@ -93,11 +93,13 @@ Subroutine Initialize_Satellite_Motion(resources_dir,motion_type,sat)
             sat%is_smooth = .TRUE.
             sat%rp = Radius_of_Periapsis(sat%r0,sat%v0)
             sat%vp = Velocity_of_Periapsis(sat%r0,sat%v0)
-        Case ('Conic_Tab')
+        Case ('Conic_tab')
             sat%is_stationary = .FALSE.
             sat%is_conic = .TRUE.
             sat%is_smooth = .FALSE.
             Call Read_sat_trace(resources_dir,sat%nt,sat%ts,sat%rs_vs)
+            sat%r0 = sat%rs_vs(1:3,1)
+            sat%v0 = sat%rs_vs(4:6,1)
         Case('GeoStat')
 #           if LUNA
                 !a stationary orbit above the surface of the moon is not feasible (it's outside the moon's sphere of influence)
@@ -172,7 +174,7 @@ Subroutine Smooth_tabular_conic(s,t,r,v)
     Real(dp), Intent(In) :: t
     Real(dp), Intent(Out) :: r(1:3),v(1:3)
     Integer :: i
-    Real(dp) :: x,w
+    Real(dp) :: dt,x,w,time_from_last,time_till_next
     Real(dp) :: ra(1:3),va(1:3)
     Real(dp) :: rb(1:3),vb(1:3)
 
@@ -181,14 +183,17 @@ Subroutine Smooth_tabular_conic(s,t,r,v)
         Call Kepler_Gooding(s%rs_vs(1:3,1),s%rs_vs(4:6,1),t,r,v)
     Else If (t .GE. s%ts(s%nt)) Then
         Call Kepler_Gooding(s%rs_vs(1:3,s%nt),s%rs_vs(4:6,s%nt),t-s%ts(s%nt),r,v)
-    Else !Otherwise, smoothly blend solutions from the two nearest state vectors
+    Else !Otherwise, smoothly blend solutions from the two nearest (in time) state vectors
         i = Bisection_Search(t,s%ts,s%nt)
-        x = (t - s%ts(i-1)) / (s%ts(i) - s%ts(i-1))
-        w = x * x * (3._dp - 2._dp * x)
-        Call Kepler_Gooding(s%rs_vs(1:3,i-1),s%rs_vs(4:6,i-1),t-s%ts(i-1),ra,va)
-        Call Kepler_Gooding(s%rs_vs(1:3,i  ),s%rs_vs(4:6,i  ),t-s%ts(i)  ,rb,vb)
-        r = 0.5_dp * (w*rb + (1._dp - w)*ra)
-        v = 0.5_dp * (w*vb + (1._dp - w)*va)
+        dt = s%ts(i) - s%ts(i-1)  !time between state vectors
+        time_from_last = t - s%ts(i-1)  !seconds since the prev state vector (positive)
+        time_till_next = time_from_last - dt  !seconds until the next state vector (negative)
+        Call Kepler_Gooding(s%rs_vs(1:3,i-1),s%rs_vs(4:6,i-1),time_from_last,ra,va) !solution from the prev state vector
+        Call Kepler_Gooding(s%rs_vs(1:3,i  ),s%rs_vs(4:6,i  ),time_till_next,rb,vb) !solution from the next state vector
+        x = time_from_last / dt  !fractional location in time between state vectors
+        w = x * x * (3._dp - 2._dp * x)  !weight factor for the next state vector's solution (prev state vector weight is 1-w)
+        r = w*rb + (1._dp - w)*ra
+        v = w*vb + (1._dp - w)*va
     End If
 End Subroutine Smooth_tabular_conic
 
@@ -202,8 +207,8 @@ Subroutine Cleanup_Satellite_Position(s)
     s%rp = 0._dp
     s%vp = Huge(s%vp)
     s%nt = 0
-    Deallocate(s%ts)
-    Deallocate(s%rs_vs)
+    If (Allocated(s%ts)) Deallocate(s%ts)
+    If (Allocated(s%rs_vs)) Deallocate(s%rs_vs)
 End Subroutine Cleanup_Satellite_Position
 
 Subroutine Read_sat_trace(resources_dir,n,ts,rs_vs)
@@ -226,8 +231,8 @@ Subroutine Read_sat_trace(resources_dir,n,ts,rs_vs)
     n = 0
     Do
         Read(trace_unit,*,IOSTAT=stat)
-        n = n + 1
         If (stat .LT. 0) Exit
+        n = n + 1
     End Do
     Rewind(trace_unit)
     Allocate(ts(1:n))
@@ -237,7 +242,8 @@ Subroutine Read_sat_trace(resources_dir,n,ts,rs_vs)
     Do i = 1,n
         Read(trace_unit,'(7ES27.16E3)') ts(i),rs_vs(1,i),rs_vs(2,i),rs_vs(3,i),rs_vs(4,i),rs_vs(5,i),rs_vs(6,i)
     End Do
-    !Set t(1) to epoch, t=0
+    Close(trace_unit)
+    !Set t(1) as epoch, t=0
     ts = ts - ts(1)
 End Subroutine Read_sat_trace
     
