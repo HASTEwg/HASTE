@@ -62,7 +62,7 @@ Close(unit2)
 !Print timing data
 Write(*,*)
 Write(*,'(A)') 'Real generation rate:'
-Write(*,'(A,ES13.6E2,A)') 'MT19937:    ',1._dp / (t    / Real(n  ,dp)),' rand per sec'
-Write(*,'(A,ES13.6E2,A)') 'MT19937x64: ',1._dp / (t64  / Real(n64,dp)),' rand per sec'
+Write(*,'(A,ES13.6E2,A)') 'MT19937:    ',Real(n  ,dp) / t  ,' rand per sec'
+Write(*,'(A,ES13.6E2,A)') 'MT19937x64: ',Real(n64,dp) / t64,' rand per sec'
 
 End Program testPRNGmt19937
