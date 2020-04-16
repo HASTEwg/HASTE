@@ -28,7 +28,8 @@ Module Setups
 #   endif
     
     Type :: Paths_Files_Type
-        Character(:), Allocatable :: app_title !name and version of program
+        Character(:), Allocatable :: app_title !name of program
+        Character(:), Allocatable :: app_ver !version number of program
         Character(:), Allocatable :: program_exe !path and name of the running executable
         Character(:), Allocatable :: setup_file !specifies setup file, default is 'HASTE_Setup.txt' in the current working directory
         Character(:), Allocatable :: log_file_name !specifies log file, default is 'HASTE_log.txt' in the default results directory
@@ -363,6 +364,8 @@ Subroutine Setup_Info_to_disk(n_histories,abs_n_histories,prompt_for_exit,screen
     !write each element of paths_files to file
     file_name = file_dir//'pf_app_t.tmp'
     Call Var_to_File(paths_files%app_title,file_name)
+    file_name = file_dir//'pf_app_v.tmp'
+    Call Var_to_File(paths_files%app_ver,file_name)
     file_name = file_dir//'pf_prog_exe.tmp'
     Call Var_to_File(paths_files%program_exe,file_name)
     file_name = file_dir//'pf_set_f.tmp'
@@ -440,6 +443,9 @@ Subroutine Setup_Info_from_disk(n_histories,abs_n_histories,prompt_for_exit,scre
     file_name = file_dir//'pf_app_t.tmp'
     Call Var_from_File(C_tmp,file_name)
     paths_files%app_title = Trim(C_tmp)
+    file_name = file_dir//'pf_app_v.tmp'
+    Call Var_from_File(C_tmp,file_name)
+    paths_files%app_ver = Trim(C_tmp)
     file_name = file_dir//'pf_prog_exe.tmp'
     Call Var_from_File(C_tmp,file_name)
     paths_files%program_exe = Trim(C_tmp)
@@ -518,6 +524,8 @@ Subroutine Initialize_Paths_Files(paths_files)
     !allocate character variables with an arbitrary length, each assignment statement then reallocates them to the correct length
     Allocate(Character(max_path_len) :: paths_files%app_title)
     paths_files%app_title = empty_string
+    Allocate(Character(max_path_len) :: paths_files%app_ver)
+    paths_files%app_ver = empty_string
     Allocate(Character(max_path_len) :: paths_files%program_exe)
     paths_files%program_exe = empty_string
     Allocate(Character(max_path_len) :: paths_files%setup_file)
@@ -581,6 +589,7 @@ Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,path
                                         & ', IOSTAT=',stat,kill=.TRUE. )
     Write(unit,'(A)') full_dash_line
     Write(unit,'(A)') paths_files%app_title
+    Write(unit,'(A)') paths_files%app_ver
     Write(unit,'(A)') full_dash_line
     Write(unit,'(A)') '   Copyright (C) 2017  Whitman T. Dailey'
     Write(unit,*)

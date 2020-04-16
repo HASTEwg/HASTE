@@ -80,7 +80,8 @@ Use FileIO_Utilities, Only: Delta_Time
 
 Implicit None
 
-Character(max_line_len), Parameter :: title = 'High-Altitude to Space Transport Estimator for Neutrons (HASTEn) v0.10.02, 31 Mar 2020'
+Character(max_line_len), Parameter :: title = 'High-Altitude to Space Transport Estimator for Neutrons (HASTEn)'
+Character(max_line_len), Parameter :: ver =   'v0.10.02, 31 Mar 2020'
 Integer(id) :: n_histories
 Logical :: absolute_n_histories  !specifies whether number of histories is an absolute limit or a target number of contributions   
 Logical :: prompt_exit  !specifies whether the simulation will wait for user unput before exiting
@@ -110,10 +111,12 @@ i_img = Worker_Index()
 If (i_img .EQ. 1) Then
     Write(*,'(A)') full_dash_line
     Write(*,'(A)') title
+    Write(*,'(A)') ver
     Write(*,'(A)') full_dash_line
     Write(*,'(A)') 'Setting up... '
     Call Setup_HASTE(prompt_exit,screen_progress,paths_files,n_histories,absolute_n_histories)
     paths_files%app_title = title
+    paths_files%app_ver = ver
 #   if CAF
         Write(*,'(I6,A)') n_img,' images sharing histories'
         !Write processed setup info to disk for other images
@@ -310,18 +313,14 @@ If (i_img .EQ. 1) Then
     Write(*,'(A)') 'Done.'
     Write(*,*)
 End If
-# if LIN_OS
-    If (i_img .EQ. 1) Then
-        Call Make_Boom()
-        Write(*,'(A)') full_dash_line
+If (i_img .EQ. 1) Then
+    Call Make_Boom()
+    Write(*,'(A)') full_dash_line
+#   if LIN_OS
         Write(*,*)
-    End If
-# else
-    If (i_img .EQ. 1) Then
-        Call Make_Boom()
-        Write(*,'(A)') full_dash_line
+#   else
         If (prompt_exit) Pause 'Finished.  Press RETURN to exit...'
-    End If
-# endif
+#   endif
+End If
 
 End Program HASTE
