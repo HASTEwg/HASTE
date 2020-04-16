@@ -420,7 +420,7 @@ Subroutine Prev_Event_Trajectory(sat, Gravity, t2, v2sat, Found, r1, v1, tof)
         If (Radius_of_Periapsis(r2,v2) .LE. Rc) Then  !there is a possible trajectory from the surface at Rc
             found = .TRUE.
             !intercept ocurrs between t2 (by definition above the surface) and time of periapsis (by construction below the surface)
-            tof = Time_to_R(r2,v2,Rc,t2,Time_Since_Periapsis(r2,-v2))
+            tof = Time_to_R(r2,v2,Rc,0._dp,Time_Since_Periapsis(r2,-v2))
             Call Kepler_Gooding(r2,v2,tof,r1,v1)
             v1 = -v1  !emission velocity for intercept is in the opposite direction on this orbit
         Else  !trajectory does not intersect the central body or the scattering medium
