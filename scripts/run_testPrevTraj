@@ -13,6 +13,7 @@ FNAME="Kinds"; . ./compile_it
 FNAME="Global"; . ./compile_it
 FNAME="Utilities"; . ./compile_it
 FNAME="FileIO_Utilities"; . ./compile_it
+FNAME="Root_Solvers"; . ./compile_it
 
 # ASTRO MODULES
 SRC_PATH="../source/astro/"

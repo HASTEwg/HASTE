@@ -25,7 +25,7 @@ Module Astro_Utilities
     Public :: Hits_Center
     Public :: SAM
     Public :: SME
-    Public :: Radius_of_Apogee
+    Public :: Radius_of_Apoapsis
     Public :: Radius_of_Periapsis
     Public :: Velocity_of_Periapsis
     Public :: Time_Since_Periapsis
@@ -97,7 +97,7 @@ Function Semilatus_Rectum(r,v) Result(p)
     p = Vector_Length(Cross_Product(r,v))**2 / mu
 End Function Semilatus_Rectum
 
-Function Radius_of_Apogee(r,v) Result(ra)
+Function Radius_of_Apoapsis(r,v) Result(ra)
     Use Kinds, Only: dp
     Use Global, Only: mu => grav_param
     Use Utilities, Only: Vector_Length
@@ -123,7 +123,7 @@ Function Radius_of_Apogee(r,v) Result(ra)
     Else  !no-return trajectory, apogee is at infinty
         ra = Huge(ra)
     End If
-End Function Radius_of_Apogee
+End Function Radius_of_Apoapsis
 
 Function Radius_of_Periapsis(r,v) Result(rp)
     Use Kinds, Only: dp

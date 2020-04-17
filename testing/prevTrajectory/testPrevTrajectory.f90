@@ -10,12 +10,14 @@ Use Find_Trajectory, Only: Prev_Event_Trajectory
 Use Diverge_Approx, Only: Div_Fact_by_shooting
 Use Diverge_Approx, Only: Div_Fact_straight
 
-Use Global, Only: Esc_speed,R_center
+Use Global, Only: Esc_speed,R_center,grav_param
 Use Utilities, Only: Unit_Vector
 Use Utilities, Only: Cross_Product
 Use Utilities, Only: Vector_Length
 
 Use Astro_Utilities, Only: Kepler_Gooding
+
+Use Root_Solvers, Only: RootBisect
 
 Implicit None
 
@@ -24,9 +26,9 @@ Logical :: Gravity  !flag to set gravity on or off
 Real(dp) :: t2  !time relative to epoch of intercept event
 Real(dp) :: r_sat(1:3),v_sat(1:3)  !position and velocity of the satellite at t2
 Real(dp) :: D_hat(1:3),N_hat(1:3),F_hat(1:3)  !basis vectors for satellite frame of reference
-Real(dp) :: Omega_hat2(1:3,1:6) !direction of neutron arrival in satellite frame
-Character(3) :: dir_names(1:6)
-Real(dp) :: En(1:4) ![keV] neutron energy at arrival in satellite frame
+Real(dp) :: Omega_hat2(1:3,1:9) !direction of neutron arrival in satellite frame
+Character(3) :: dir_names(1:9)
+Real(dp) :: En(1:11) ![keV] neutron energy at arrival in satellite frame
 Logical :: Found  !flag for whether a trajectory was found
 Real(dp) :: r1(1:3),v1(1:3),tof !position,velocity, time of flight defining flight from the surface of the central body
 Real(dp) :: DFact !divergence factor for the intercepting flight from emission to intercept
@@ -34,6 +36,8 @@ Real(dp) :: r2(1:3),v2(1:3)
 Integer :: test_unit,trace_unit,stat
 Integer :: i,j
 Logical :: test_sat_trace = .FALSE.
+
+Write(*,*)
 
 Gravity = .TRUE.
 Call Initialize_Satellite_Motion('','Conic_tab ',sat)
@@ -44,8 +48,7 @@ Call sat%R_and_V(t2,r_sat,v_sat)
 D_hat = -Unit_Vector(r_sat)
 N_hat = Unit_Vector(Cross_Product(D_hat,v_sat))
 F_hat = Cross_Product(N_hat,D_hat)
-
-En = (/ 1000._dp,1._dp,1.E-3_dp,0.025E-3_dp /)
+En = (/ 1000._dp,100._dp,10._dp,1._dp,1.E-1_dp,1.E-2_dp,1.E-3_dp,1.E-4_dp,0.025E-3_dp,1.E-5_dp,1.E-6_dp /)
 Omega_hat2 = 0._dp
 Omega_hat2(:,1) = -Unit_Vector(D_hat)  !FROM downward
 Omega_hat2(:,2) = -Unit_Vector(D_hat-F_hat)  !FROM down and backward
@@ -53,19 +56,37 @@ Omega_hat2(:,3) = -Unit_Vector(D_hat+F_hat)  !FROM down and forward
 Omega_hat2(:,4) = -Unit_Vector(N_hat+D_hat)  !FROM off to the side and down
 Omega_hat2(:,5) = -Unit_Vector(N_hat+D_hat-F_hat)  !FROM off to the side and down and backward
 Omega_hat2(:,6) = -Unit_Vector(N_hat+D_hat+F_hat)  !FROM off to the side and down and forward
+Omega_hat2(:,7) = -Unit_Vector(-F_hat)  !FROM off to the side
+Omega_hat2(:,8) = -Unit_Vector(F_hat)  !FROM off to the side
+Omega_hat2(:,9) = -Unit_Vector(N_hat)  !FROM off to the side
 dir_names = (/ 'D  ', & 
              & 'DB ', & 
              & 'DF ', & 
              & 'DN ', & 
              & 'DNB', & 
-             & 'DNF'  /)
+             & 'DNF', & 
+             & 'B  ', & 
+             & 'F  ', & 
+             & 'N  '  /)
+
+Write(*,'(A,ES19.12E2,A)')'Min E for    5km is ',E_to_achieve_alt(5._dp),' keV'
+Write(*,'(A,ES19.12E2,A)')'Min E for  100km is ',E_to_achieve_alt(100._dp),' keV'
+Write(*,'(A,ES19.12E2,A)')'Min E for  500km is ',E_to_achieve_alt(500._dp),' keV'
+Write(*,'(A,ES19.12E2,A)')'Min E for 1000km is ',E_to_achieve_alt(1000._dp),' keV'
+Write(*,'(A,ES19.12E2,A)')'Min E for 5000km is ',E_to_achieve_alt(5000._dp),' keV'
+
+Write(*,*)
+Write(*,'(A,ES19.12E2,A)') '"Energy" of the satellite at this epoch is ',Neutron_Energy(v_sat),' keV'
+
+Write(*,*)
+Write(*,'(A)') 'Running Test cases...'
 
 Open( NEWUNIT = test_unit , FILE = 'prevTraj_test.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE' ,  IOSTAT = stat )
-Do j = 1,6
+Do j = 1,9
     Write(test_unit,'(A)') '--------------------------------------------------------------------------------'
     Write(test_unit,'(A)') 'TEST CASE '//dir_names(j)
     Write(test_unit,'(A)') '--------------------------------------------------------------------------------'
-    Do i = 1,4
+    Do i = 1,11
         Write(test_unit,'(A,ES10.3E3,A)') 'Energy ',En(i),' keV from direction '//dir_names(j)
         Write(*,'(A,ES10.3E3,A)',ADVANCE='NO') 'Energy ',En(i),' keV from direction '//dir_names(j)//'... '
         Call Prev_Event_Trajectory(sat, Gravity, t2, Omega_hat2(:,j)*Neutron_Speed(En(i)), Found, r1, v1, tof)
@@ -119,5 +140,15 @@ If (test_sat_trace) Then !test the sat_trace functionality
     End Do
     Close(trace_unit)
 End If
+
+Contains
+
+Function E_to_achieve_alt(z) Result(energy)
+    Implicit None
+    Real(dp) :: energy
+    Real(dp), Intent(In) :: z
+
+    energy = Neutron_Energy( Sqrt(2._dp*grav_param*z / (R_center*(R_center+z))) )
+End Function E_to_achieve_alt
 
 End Program
