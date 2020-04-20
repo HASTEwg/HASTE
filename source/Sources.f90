@@ -34,6 +34,8 @@ Module Sources
     End Type
     
     Type :: Source_Type
+        Integer :: geom_index
+        Real(dp) :: rad  ![km] Radius of spherical or albedo source
         Real(dp) :: r(1:3)     ![km] cartesian (x,y,z) position of source
         Real(dp) :: v(1:3)     ![km/s] velocity of source
         Real(dp) :: d(1:3)     ![1 km] unit vector in direction of 'front' of source
@@ -48,14 +50,23 @@ Module Sources
         Real(dp) :: E_high   ![keV] energy description
                              !E_high=E_low for 'Point', specifies range for 'Uniform', specifies cutoff energies for 'Watt235'
         Real(dp) :: E_low
+        Logical :: point_time
+        Real(dp) :: t_start
+        Real(dp) :: delta_t
         Real(dp) :: A_hat(1:3),B_hat(1:3),C_hat(1:3)  !basis vectors for distribution of emission angles for direct contributions
         Type(Tab_1d_Type) :: Etab
         Type(Tab_1d_Type) :: Atab
         Type(Tab_2d_Type) :: EAtab
     Contains
-        Procedure, Pass :: sample => Sample_E_and_D
+        Procedure, Pass :: sample => Sample_Source
     End Type
-    
+
+    !Integer designator for source geometry choice, can have value equal to one of the following parameters
+    Integer, Parameter :: source_geom_point = 91
+    Integer, Parameter :: source_geom_Sphere_S = 93
+    Integer, Parameter :: source_geom_Sphere_V = 95
+    Integer, Parameter :: source_geom_Albedo = 97
+
     !Integer designator for source energy distribution choice, can have value equal to one of the following parameters
     Integer, Parameter :: source_E_dist_Line = 71
     Integer, Parameter :: source_E_dist_Unif = 73
@@ -90,28 +101,51 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
     Type(Source_Type) :: s
     Character(*), Intent(In) :: setup_file_name,run_file_name
     Real(dp), Intent(In) :: R_top_atm
+    Real(dp) :: r_source
     Real(dp) :: x_source,y_source,z_source  ![km]  x,y,z coordinates of source
     Real(dp) :: declination_source,right_ascension_source
     Real(dp) :: v_E_source,v_N_source,v_U_source
     Real(dp) :: d_E_source,d_N_source,d_U_source
     Real(dp) :: E_high,E_low
+    Real(dp) :: t_start,t_stop
     Character(10) :: source_E_dist  !Line,Uniform,Watt235,Type03,Type05,Type08,Type13,Egroups,EAgroups
     Character(10) :: source_A_dist  !Iso,Top,Side,Bottom,Agroups,EAgroups
-    Character(9) :: position_geometry
+    Character(10) :: source_geometry,position_geometry
+    Character(10) :: source_t_dist
     Integer :: setup_unit,stat
     Real(dp) :: E_hat(1:3),N_hat(1:3),U_hat(1:3)
     
-    NameList /NeutronSourceList/ position_geometry,x_source,y_source,z_source, &
+    NameList /NeutronSourceList/ source_geometry,r_source, & 
+                                 & position_geometry,x_source,y_source,z_source, &
                                  & declination_source,right_ascension_source, &
                                  & v_E_source,v_N_source,v_U_source, &
                                  & d_E_source,d_N_source,d_U_source, &
-                                 & source_E_dist,E_high,E_low,source_A_dist
+                                 & source_E_dist,E_high,E_low,source_A_dist, &
+                                 & source_t_dist,t_start,t_stop
     
     Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message( 'ERROR:  Neutron_Source: Initialize_Neutron_Source:  File open error, ' & 
                                         & //setup_file_name//', IOSTAT=',stat,kill=.TRUE. )
     Read(setup_unit,NML = NeutronSourceList)
     Close(setup_unit)
+    Select Case(source_geometry)
+        Case('Point')
+            s%geom_index = source_geom_point
+            s%rad = 0._dp
+        Case('Sphere_S')
+            s%geom_index = source_geom_Sphere_S
+            s%rad = r_source
+        Case('Sphere_V')
+            s%geom_index = source_geom_Sphere_V
+            s%rad = r_source
+        Case('Albedo')
+            s%geom_index = source_geom_Albedo
+            If (r_source .LT. Rc) Call Output_Message('ERROR:  Sources: Setup_Source:  Albedo source radius must exceed central &
+                                                     &body radius.',kill=.TRUE.)
+            s%rad = r_source
+        Case Default
+            Call Output_Message('ERROR:  Sources: Setup_Source:  Unknown source geometry.',kill=.TRUE.)
+    End Select
     Select Case(position_geometry)
         Case('Celestial')
             s%r = Celest_to_XYZ(z_source,right_ascension_source,declination_source)
@@ -120,8 +154,14 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
         Case Default
             Call Output_Message('ERROR:  Sources: Setup_Source:  Unknown position geometry.',kill=.TRUE.)
     End Select
-    s%big_r = Vector_Length(s%r)
-    s%z = s%big_r - Rc
+    If (s%geom_index .NE. source_geom_Albedo) Then
+        s%big_r = Vector_Length(s%r)
+        s%z = s%big_r - Rc
+    Else
+        s%r = 0._dp
+        s%big_r = 0._dp
+        s%z = s%rad - Rc
+    End If
     !check for exoatmospheric source
     If (s%big_r .LT. R_top_atm) Then
         s%exoatmospheric = .FALSE.
@@ -175,8 +215,7 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
         s%E_dist_index = source_EA_dist_tab
         s%aniso_dist = .TRUE.
         !UNDONE Coupled 2-d tabulated enegy-angle distribution
-        Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source: Coupled Energy-Angle distribution not yet &
-                           &implemented.',kill=.TRUE.)
+        Call Output_Message('ERROR:  Sources: Setup_Source: Coupled Energy-Angle distribution not yet implemented.',kill=.TRUE.)
     Else  !independednt energy and angle distributions
         s%E_A_dist_coupled = .FALSE.
         Select Case (source_A_dist)
@@ -194,8 +233,7 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
                 s%aniso_dist = .TRUE.
             !UNDONE Tabulated angular source distribution type
             Case Default
-                Call Output_Message( 'ERROR:  Neutron_Source: Initialize_Neutron_Source: Undefined source angular distribution', & 
-                                   & kill=.TRUE. )
+                Call Output_Message( 'ERROR:  Sources: Setup_Source: Undefined source angular distribution',kill=.TRUE. )
         End Select
         Select Case (source_E_dist)
             Case ('Line')
@@ -214,15 +252,26 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
                 s%E_dist_index = source_E_dist_tab
             !UNDONE Source distributions for Type 3, 5, 8, and 13
             Case Default
-                Call Output_Message( 'ERROR:  Neutron_Source: Initialize_Neutron_Source: Undefined source energy distribution', & 
-                                   & kill=.TRUE.)
+                Call Output_Message( 'ERROR:  Sources: Setup_Source: Undefined source energy distribution',kill=.TRUE.)
         End Select
     End If
     If (All(s%d .EQ. 0._dp) .AND. s%aniso_dist) Then  !no source direction is specified, but an anisotropic distribution is selected
         !source direction is needed for anisotropic angular distributions of emitted particles
-        Call Output_Message('ERROR:  Neutron_Source: Initialize_Neutron_Source: Source forward direction must be specified for &
-                           &angular distributions',kill=.TRUE.)
+        Call Output_Message('ERROR:  Sources: Setup_Source: Source forward direction must be specified for angular dist', & 
+                           & kill=.TRUE.)
     End If
+    Select Case (source_t_dist)
+        Case ('Point')
+            s%point_time = .TRUE.
+            s%t_start = t_start
+            s%delta_t = 0._dp
+        Case ('Uniform')
+            s%point_time = .FALSE.
+            s%t_start = t_start
+            s%delta_t = t_stop - t_start
+        Case Default
+            Call Output_Message( 'ERROR:  Sources: Setup Source: Undefined source time distribution',kill=.TRUE.)
+    End Select
     !write out processed source information
     If (Worker_Index() .EQ. 1) Then
         Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
@@ -251,16 +300,19 @@ Function Celest_to_XYZ(alt,RA_deg,DEC_deg) Result(r)
          &  (Rc + alt) * Sin(DEC) /)
 End Function Celest_to_XYZ
 
-Subroutine Sample_E_and_D(source,RNG,E,OmegaHat,w)
+Subroutine Sample_Source(source,RNG,t,r,E,OmegaHat,w)
     Use Kinds, Only: dp
     Use Random_Numbers, Only: RNG_Type
     Use Random_Directions, Only: Isotropic_Omega_hat
     Use Random_Directions, Only: Isotropic_Azimuth
     Use Random_Directions, Only: mu_omega_2_OmegaHat
+    Use Utilities, Only: Cube_Root
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Class(Source_Type), Intent(In) :: source
     Type(RNG_type), Intent(InOut) :: RNG
+    Real(dp), Intent(Out) :: t
+    Real(dp), Intent(Out) :: r(1:3)
     Real(dp), Intent(Out) :: E
     Real(dp), Intent(Out) :: OmegaHat(1:3)
     Real(dp), Intent(Out) :: w
@@ -268,8 +320,28 @@ Subroutine Sample_E_and_D(source,RNG,E,OmegaHat,w)
     Real(dp), Parameter :: one_third = 1._dp / 3._dp
     Real(dp), Parameter :: two_thirds = 2._dp / 3._dp
     
+    !Sample emission time
+    If (source%point_time) Then
+        t = source%t_start
+    Else
+        t = source%t_start + RNG%Get_Random() * source%delta_t
+    End If
+    !Sample location
+    Select Case (source%geom_index)
+        Case (source_geom_point)
+            r = source%r
+        Case (source_geom_Sphere_S)
+            r = source%r + source%rad * Isotropic_Omega_hat(RNG)
+        Case (source_geom_Sphere_V)
+            r = source%r + Cube_root(RNG%Get_Random()) * source%rad * Isotropic_Omega_hat(RNG)
+        Case (source_geom_Albedo)
+            r = source%rad * Isotropic_Omega_hat(RNG)
+        Case Default
+            Call Output_Message( 'ERROR:  Sources: Sample_Source: Undefined source geometry',kill=.TRUE.)
+    End Select
+    !Sample Energy and Direction
     If (source%E_A_dist_coupled) Then  !coupled energy-angle distribution
-
+        Call Output_Message( 'ERROR:  Sources: Sample_Source: Coupled energy-angle dist not yet implemented',kill=.TRUE.)
     Else  !independent energy and angle distributions
         Select Case (source%E_dist_index)
             Case (source_E_dist_Line)
@@ -279,27 +351,29 @@ Subroutine Sample_E_and_D(source,RNG,E,OmegaHat,w)
             Case (source_E_dist_Watt235)
                 E = Sample_Watt235(RNG,source%E_high)
             Case Default
-                Call Output_Message( 'ERROR:  Neutron_Source: Sample_Neutron_Source_Energy: Undefined source energy distribution' & 
-                                   & ,kill=.TRUE.)
+                Call Output_Message( 'ERROR:  Sources: Sample_Source: Undefined source energy distribution',kill=.TRUE.)
         End Select
         Select Case (source%A_dist_index)
             Case (source_A_dist_Iso)
                 OmegaHat = Isotropic_Omega_Hat(RNG)
-                w = 1._dp
             Case (source_A_dist_top)
                 mu = -(one_third + RNG%Get_random() * two_thirds)
                 omega = Isotropic_Azimuth(RNG)
                 OmegaHat = mu_omega_2_OmegaHat(mu,omega)
-                w = 1._dp
-            Case (source_E_dist_Watt235)
-                E = Sample_Watt235(RNG,source%E_high)
-                w = 1._dp
+            Case (source_A_dist_side)
+                mu = -one_third + RNG%Get_random() * two_thirds
+                omega = Isotropic_Azimuth(RNG)
+                OmegaHat = mu_omega_2_OmegaHat(mu,omega)
+            Case (source_A_dist_bot)
+                mu = one_third + RNG%Get_random() * two_thirds
+                omega = Isotropic_Azimuth(RNG)
+                OmegaHat = mu_omega_2_OmegaHat(mu,omega)
             Case Default
-                Call Output_Message( 'ERROR:  Neutron_Source: Sample_Neutron_Source_Energy: Undefined source energy distribution' & 
-                                   & ,kill=.TRUE.)
+                Call Output_Message( 'ERROR:  Sources: Sample_Source: Undefined source angular distribution',kill=.TRUE.)
         End Select
     End If
-End Subroutine Sample_E_and_D
+    w = 1._dp
+End Subroutine Sample_Source
 
 Function Sample_Uniform(RNG,E_min,E_max) Result(E)
     Use Kinds, Only: dp

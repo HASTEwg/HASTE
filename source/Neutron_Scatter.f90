@@ -72,7 +72,7 @@ Module Neutron_Scatter
     End Type
     
     Type Scatter_Model_Type
-        Integer :: n_scatters  !number of scatters to follow for history, scatter is forced to the detector at the final scatter
+        Integer :: n_scatters  !number of scatters to follow for history
         Logical :: direct_contribution
         Logical :: estimate_each_scatter
         Logical :: elastic_only
@@ -111,7 +111,7 @@ Module Neutron_Scatter
     
 Contains
 
-Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,run_file_name) Result(ScatMod)
+Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,run_file_name,atm_model_i) Result(ScatMod)
     Use Kinds, Only: id
     Use n_Cross_Sections, Only: Setup_Cross_Sections
     Use Global, Only: n_kill_weight
@@ -123,6 +123,7 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
     Character(*), Intent(In) :: resources_directory
     Character(*), Intent(In) :: cs_setup_file
     Character(*), Intent(In) :: run_file_name
+    Integer, Intent(In) :: atm_model_i
     Integer :: n_scatters
     Logical :: direct_contribution,estimate_each_scatter,elastic_only
     Logical :: suppress_absorption,suppress_leakage,all_mat_mech
@@ -173,6 +174,12 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
                                &n_scatters.NE.0 or estimate_each_scatter=FALSE ',kill=.TRUE.)
         End If
     End If
+    If (atm_model_i .EQ. -1) Then !scattering should be disabled by no atmosphere model selected
+        If (n_scatters.NE.0 .OR. .NOT.direct_contribution) Then
+            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  With no atmosphere model n_scatters must be 0 &
+                               &and direct_contribution must be TRUE ',kill=.TRUE.)
+        End If
+    End If
     ScatMod%estimate_each_scatter = estimate_each_scatter
     ScatMod%elastic_only = elastic_only
     ScatMod%suppress_absorption = suppress_absorption
@@ -215,7 +222,9 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
     ScatMod%next_events = 0_id
     ScatMod%n_no_tally = 0_id
     ScatMod%n_uncounted = 0_id
-    ScatMod%CS = Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ScatMod%aniso_dist,E_min,E_max)
+    If (atm_model_i .NE. -1) Then !cross sections are not needed if atmosphere is disabled
+        ScatMod%CS = Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ScatMod%aniso_dist,E_min,E_max)
+    End If
     !initialize scatter parameters for sampled scatter, except the lev_cs array (it is not used for the sampled scatter)
     Allocate(ScatMod%scat%a(0:ScatMod%CS%n_a_max))
     ScatMod%scat%a = 0._dp

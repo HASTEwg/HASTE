@@ -611,7 +611,7 @@ Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,path
     Write(unit,'(A,F11.3,A)') '  Min Compute Time:   ',MinVal(t_runs),' sec'
     Write(unit,'(A,F11.3,A)') '  Max Compute Time:   ',MaxVal(t_runs),' sec'
     !spin time is computed as time spent waiting (sources of waiting are different run end times and random number generation)
-    Write(unit,'(A,F7.2,A)') '  Spin Fraction:  ',100._dp*(Sum(t_runs)-Sum(t_waits)-Sum(MaxVal(t_runs)-t_runs)) / Sum(t_runs),'%'
+    Write(unit,'(A,F7.2,A)') '  Spin Fraction:  ',100._dp*(Sum(t_waits)+Sum(MaxVal(t_runs)-t_runs)) / Sum(t_runs),'%'
     hostname = Get_Host_Name()
     If (n_img .GT. 1) Then
         Write(unit,'(A,I0,A)') '  Host: '//Trim(hostname)//', ',n_img,' coarray images'

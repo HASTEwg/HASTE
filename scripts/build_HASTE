@@ -20,8 +20,8 @@ FNAME="PRNGs"; . ./compile_it
 FNAME="Random_Numbers"; . ./compile_it
 FNAME="Statistics"; . ./compile_it
 #FNAME="Root_Solvers"; . ./compile_it
-FNAME="Gauss_Legendre_w_a"; . ./compile_it
-FNAME="Quadratures"; . ./compile_it
+#FNAME="Gauss_Legendre_w_a"; . ./compile_it
+#FNAME="Quadratures"; . ./compile_it
 
 # ASTRO MODULES
 SRC_PATH="../source/astro/"

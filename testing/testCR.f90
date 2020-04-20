@@ -11,5 +11,7 @@ Do i = 1,10
 End Do
 Write(*,'(A)') 'Did it work?          '
 Write(*,*)
+Write(*,'(A)') 'Press a key to exit...'
+Read(*,*)
 
 End Program

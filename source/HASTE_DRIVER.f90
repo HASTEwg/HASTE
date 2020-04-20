@@ -81,7 +81,7 @@ Use FileIO_Utilities, Only: Delta_Time
 Implicit None
 
 Character(max_line_len), Parameter :: title = 'High-Altitude to Space Transport Estimator for Neutrons (HASTEn)'
-Character(max_line_len), Parameter :: ver =   'v0.10.02, 31 Mar 2020'
+Character(max_line_len), Parameter :: ver =   '    v0.10.02, 31 Mar 2020'
 Integer(id) :: n_histories
 Logical :: absolute_n_histories  !specifies whether number of histories is an absolute limit or a target number of contributions   
 Logical :: prompt_exit  !specifies whether the simulation will wait for user unput before exiting
@@ -140,7 +140,8 @@ atmosphere = Setup_Atmosphere( paths_files%setup_file, &
 ScatterModel = Setup_Scatter_Model( paths_files%setup_file, & 
                                   & paths_files%resources_directory, & 
                                   & paths_files%cs_setup_file, & 
-                                  & paths_files%run_file_name)
+                                  & paths_files%run_file_name, & 
+                                  & atmosphere%model_index )
 source = Setup_Source(paths_files%setup_file,paths_files%run_file_name,atmosphere%R_top)
 detector = Setup_Detector( paths_files%setup_file, & 
                          & paths_files%resources_directory, & 
@@ -163,10 +164,10 @@ If (i_img .EQ. 1) Then
     Write(*,'(4A)') '  ',paths_files%results_directory,'...',paths_files%file_suffix
     If (screen_Progress) Then !prep screen for progress updates
         Write(*,'(A)') '    % Comp    ETTC     NE/min      H/min     gMean RSE   % Eff'
-        Write(*,'(A)') '    ------  --------  ---------  ---------  -----------  ------'
+        Write(*,'(A)') '    ------  --------  ---------  ---------  ----------  -------'
         !Initialize progress to screen
-        Write(*,'(F9.2,A11,3ES11.3E2,A2,F7.2,A2,A)',ADVANCE='NO') & 
-              & 0._dp,'%  **:**:**',0._dp,0._dp,100._dp,' %',0._dp,' %',creturn
+        Write(*,'(F9.2,A11,3ES11.3E2,A1,F8.2,A1,A)',ADVANCE='NO') & 
+              & 0._dp,'%  **:**:**',0._dp,0._dp,100._dp,'%',0._dp,'%',creturn
     End If
 End If
 p = 0_id
@@ -183,7 +184,7 @@ Do !run histories, periodically updating progress to the display if required
                 HH = Floor(ETTC/3600._dp)
                 MM = Floor((ETTC - Real(3600*HH,dp))/60._dp)
                 SS = Floor(ETTC - Real(3600*HH,dp) - Real(60*MM,dp))
-                Write(*,'(F9.2,A2,I3.2,A,I2.2,A,I2.2,3ES11.3E2,A2,F7.2,A2,A)',ADVANCE='NO') & 
+                Write(*,'(F9.2,A2,I3.2,A1,I2.2,A1,I2.2,3ES11.3E2,A1,F8.2,A1,A)',ADVANCE='NO') & 
                       & 100._dp * Real(p,dp) / Real(n_p,dp),'% ', & !Percent Complete
                       & HH,':',MM,':',SS, & !ETTC
                       & Real(n_img*ScatterModel%next_events(1),dp) / (dt / 60._dp), & !Next-Events per minute
@@ -192,8 +193,8 @@ Do !run histories, periodically updating progress to the display if required
                                                 & TE_tallies%contribs(1:TE_tallies%index)%f, & 
                                                 & TE_tallies%contribs(1:TE_tallies%index)%f_sq) / & 
                                        & TE_tallies%contribs(1:TE_tallies%index)%f & 
-                                       & ),'% ', & !Geometric Mean Relative Standard Error
-                      & 100._dp * Real(p,dp) / Real(n_done,dp),'% ', & !Percent efficency
+                                       & ),'%', & !Geometric Mean Relative Standard Error
+                      & 100._dp * Real(p,dp) / Real(n_done,dp),'%', & !Percent efficency
                       & creturn
             End If 
         End If
@@ -268,7 +269,7 @@ If (i_img.EQ.1 .AND. detector%shape_data) Call Close_Slice_Files( detector%n_sli
 # endif
 If (i_img .EQ. 1) Then
     If (screen_progress) Then !finalize progress to screen
-        Write(*,'(F9.2,A2,I3.2,A,I2.2,A,I2.2,3ES11.3E2,A2,F7.2,A2)') &
+        Write(*,'(F9.2,A2,I3.2,A1,I2.2,A1,I2.2,3ES11.3E2,A1,F8.2,A1)') &
               & 100._dp,'% ', & !Percent Complete
               & 0,':',0,':',0, & !ETTC
               & Real(ScatterModel%next_events(1),dp) / (Sum(t_runs) / 60._dp), & !Next-Events per minute
@@ -277,8 +278,8 @@ If (i_img .EQ. 1) Then
                                         & TE_tallies%contribs(1:TE_tallies%index)%f, & 
                                         & TE_tallies%contribs(1:TE_tallies%index)%f_sq) /  & 
                                & TE_tallies%contribs(1:TE_tallies%index)%f & 
-                               & ),' %', & !Geometric Mean Relative Standard Error
-              & 100._dp * Real(Sum(n_hist_hit),dp) / Real(Sum(n_hist_run),dp),'% ' !Percent efficency
+                               & ),'%', & !Geometric Mean Relative Standard Error
+              & 100._dp * Real(Sum(n_hist_hit),dp) / Real(Sum(n_hist_run),dp),'%' !Percent efficency
     End If
     !Write results
     Write(*,'(A)', ADVANCE = 'NO') 'Writing output... '
@@ -316,11 +317,10 @@ End If
 If (i_img .EQ. 1) Then
     Call Make_Boom()
     Write(*,'(A)') full_dash_line
-#   if LIN_OS
-        Write(*,*)
-#   else
-        If (prompt_exit) Pause 'Finished.  Press RETURN to exit...'
-#   endif
+    If (prompt_exit) Then
+        Write(*,'(A)',ADVANCE='NO') 'Finished.  Press any key to continue...'
+        Read(*,*)
+    End If
 End If
 
 End Program HASTE

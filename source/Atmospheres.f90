@@ -59,7 +59,7 @@ Module Atmospheres
         Integer, Allocatable :: iso_map(:)  !maps each isotope to an element index, has dim 1:n_isotopes
         Real(dp), Allocatable :: iso_frac(:)  !isotopic fractions, has dim 1:number_of_isotopes
         Logical, Allocatable :: diatomic(:)  !flag indicating whether this isotope forms a diatomic atmospheric constituent, has dim 1:number_of_isotopes
-        Real(dp) :: uniform_density_ratio
+        Real(dp) :: ref_density_ratio
         Real(dp) :: Isothermal_temp  ![K]
         Real(dp) :: z_top  ![km]
         Real(dp) :: z_bot  ![km]
@@ -84,6 +84,7 @@ Module Atmospheres
     !Integer designator for atmosphere model choice, can have value equal to one of the following parameters
     Integer, Parameter :: atm_mod_IsoTherm = 31
     Integer, Parameter :: atm_mod_USstd1976 = 33
+    Integer, Parameter :: atm_mod_None = -1
 
     !Integer designator for atmosphere composition choice, can have value equal to one of the following parameters
     Integer, Parameter :: atm_comp_ALL = 121
@@ -95,6 +96,7 @@ Module Atmospheres
     Integer, Parameter :: atm_comp_O17 = 133
     Integer, Parameter :: atm_comp_O18 = 135
     Integer, Parameter :: atm_comp_Ar40 = 137
+    Integer, Parameter :: atm_comp_None = -1
     
     !Uniform, Isothermal, and shared parameter
     !atmospheric density at seal level on a standard day according to US Standard Atmosphere 1976
@@ -124,7 +126,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     Character(:), Allocatable, Intent(InOut), Optional :: cs_file_name
     Integer :: setup_unit,stat
     Character(15) :: atmosphere_model,composition
-    Real(dp) :: uniform_density,isothermal_temp,Z_top_atm,Z_bot_atm
+    Real(dp) :: ref_density,isothermal_temp,Z_top_atm,Z_bot_atm
     Real(dp) :: wind_N,wind_E
     Integer :: n_elements
     Integer, Allocatable :: n_isotopes(:)
@@ -157,7 +159,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
                                                      & Zb_1976(11)  /)
     Integer, Parameter :: bZb_1976_extended(1:16) = (/ 0,1,2,3,4,5,6,7,8,8,8,8,9,9,10,10 /) !base indexes for each sublayer
     
-    NameList /AtmosphereList/  atmosphere_model,uniform_density,isothermal_temp, & 
+    NameList /AtmosphereList/  atmosphere_model,ref_density,isothermal_temp, & 
                              & Z_top_atm,Z_bot_atm,wind_N,wind_E,composition
     NameList /csSetupList1/ n_elements
     NameList /csSetupList2/ el_fractions,n_isotopes
@@ -199,6 +201,27 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
             Allocate(atm%bZb(0:1))
             atm%bZb = 1
             atm%iZb_map = 1
+        Case ('None')
+            atm%model_index = atm_mod_None
+            atm%discontinuous = .FALSE.
+            atm%iZb = 1
+            Allocate(atm%Zb(0:1))
+            atm%Zb(0) = 0._dp
+            atm%Zb(1) = 0._dp
+            Allocate(atm%bZb(0:1))
+            atm%bZb = 1
+            atm%iZb_map = 1
+            Allocate(atm%Rb(0:Size(atm%Zb)-1))
+            atm%Rb = atm%Zb + Rc
+            atm%comp_index = atm_comp_None
+            atm%ref_density_ratio = 0._dp
+            atm%isothermal_temp = 0._dp
+            atm%z_top = 0._dp
+            atm%z_bot = 0._dp
+            atm%R_top = Rc + atm%z_top
+            atm%R_bot = Rc + atm%z_bot
+            atm%wind_AF = 0._dp
+            Return
         Case Default
             Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  Undefined atmosphere model',kill=.TRUE.)
     End Select
@@ -280,7 +303,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
         atm%iso_frac(j:Sum(n_isotopes(1:i))) = atm%iso_frac(j:Sum(n_isotopes(1:i))) / Sum( atm%iso_frac(j:Sum(n_isotopes(1:i))) )
         j = Sum(n_isotopes(1:i)) + 1
     End Do    
-    atm%uniform_density_ratio = uniform_density / rho_SL
+    atm%ref_density_ratio = ref_density / rho_SL
     atm%isothermal_temp = isothermal_temp
     atm%z_top = Z_top_atm
     atm%z_bot = Z_bot_atm
@@ -322,11 +345,17 @@ Subroutine Write_Atmosphere(a,file_name)
     Write(unit,'(A)') half_dash_line
     Write(unit,'(A,ES24.16E3,A,ES24.16E3,A)') '  Extent: ',a%z_bot,' km to ',a%z_top,' km geometric altitude'
     Select Case (a%model_index)
+        Case (atm_mod_None)
+            Write(unit,'(A)')   '  Atmosphere Model:  NONE' 
+            Write(unit,*)
+            Write(unit,*)
+            Close(unit)
+            Return
         Case (atm_mod_IsoTherm)
             Write(unit,'(A,ES24.16E3,A,ES24.16E3,A,ES24.16E3,A)')   '  Atmosphere Model:  Isothermal, ', & 
-                                                                  & a%Isothermal_temp, & 
+                                                              & a%Isothermal_temp, & 
                                                                   & ' K,', & 
-                                                                  & a%uniform_density_ratio*rho_SL, & 
+                                                                  & a%ref_density_ratio*rho_SL, & 
                                                                   & ' g/m^3 @ sea-level,', & 
                                                                   & scale_Height_conv*a%Isothermal_temp, & 
                                                                   & ' km scale height'
@@ -402,6 +431,8 @@ Function Atm_Temperature(atm,z,lay) Result(T)
             End If
         Case (atm_mod_IsoTherm)
             T = atm%isothermal_temp
+        Case (atm_mod_None)
+            T = 0._dp
     End Select
 End Function Atm_Temperature
 
@@ -422,7 +453,9 @@ Function Atm_Density(atm,z,lay) Result(rho)
                 rho = rho_1976(z,layer_range=atm%iZb_map)
             End If
         Case (atm_mod_IsoTherm)
-            rho = atm%uniform_density_ratio * rho_SL * Exp(-z / (scale_Height_conv * atm%isothermal_temp))
+            rho = atm%ref_density_ratio * rho_SL * Exp(-z / (scale_Height_conv * atm%isothermal_temp))
+        Case (atm_mod_None)
+            rho = 0._dp
     End Select
 End Function Atm_Density
 
