@@ -142,11 +142,11 @@ ScatterModel = Setup_Scatter_Model( paths_files%setup_file, &
                                   & paths_files%cs_setup_file, & 
                                   & paths_files%run_file_name, & 
                                   & atmosphere%model_index )
-source = Setup_Source(paths_files%setup_file,paths_files%run_file_name,atmosphere%R_top)
+source = Setup_Source(paths_files%setup_file,paths_files%run_file_name,paths_files%s_file_name,atmosphere%R_top)
 detector = Setup_Detector( paths_files%setup_file, & 
                          & paths_files%resources_directory, & 
                          & paths_files%run_file_name, & 
-                         & paths_files%s_file_name, & 
+                         & paths_files%ss_file_name, & 
                          & atmosphere%R_top )
 TE_Tallies = Setup_Tallies(detector%TE_grid(1)%n_bins,detector%TE_grid(2)%n_bins)
 Dir_Tallies = Setup_Tallies(detector%Dir_grid(1)%n_bins,detector%Dir_grid(2)%n_bins)
@@ -318,7 +318,7 @@ If (i_img .EQ. 1) Then
     Call Make_Boom()
     Write(*,'(A)') full_dash_line
     If (prompt_exit) Then
-        Write(*,'(A)',ADVANCE='NO') 'Finished.  Press any key to continue...'
+        Write(*,'(A)',ADVANCE='NO') 'Finished.  Press RETURN to continue...'
         Read(*,*)
     End If
 End If

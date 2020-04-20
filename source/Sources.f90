@@ -57,6 +57,10 @@ Module Sources
         Type(Tab_1d_Type) :: Etab
         Type(Tab_1d_Type) :: Atab
         Type(Tab_2d_Type) :: EAtab
+        Logical :: source_data
+        Integer :: max_source_data
+        Integer :: source_data_c
+        Integer :: source_unit
     Contains
         Procedure, Pass :: sample => Sample_Source
     End Type
@@ -88,7 +92,7 @@ Module Sources
 
 Contains
 
-Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
+Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) Result(s)
     Use Kinds, Only: dp
     Use Global, Only: Z_hat,X_hat
     Use Global, Only: Rc => R_center
@@ -99,7 +103,7 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Source_Type) :: s
-    Character(*), Intent(In) :: setup_file_name,run_file_name
+    Character(*), Intent(In) :: setup_file_name,run_file_name,source_file_name
     Real(dp), Intent(In) :: R_top_atm
     Real(dp) :: r_source
     Real(dp) :: x_source,y_source,z_source  ![km]  x,y,z coordinates of source
@@ -112,6 +116,8 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
     Character(10) :: source_A_dist  !Iso,Top,Side,Bottom,Agroups,EAgroups
     Character(10) :: source_geometry,position_geometry
     Character(10) :: source_t_dist
+    Logical :: collect_source_data
+    Integer :: source_data_limit
     Integer :: setup_unit,stat
     Real(dp) :: E_hat(1:3),N_hat(1:3),U_hat(1:3)
     
@@ -121,7 +127,8 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
                                  & v_E_source,v_N_source,v_U_source, &
                                  & d_E_source,d_N_source,d_U_source, &
                                  & source_E_dist,E_high,E_low,source_A_dist, &
-                                 & source_t_dist,t_start,t_stop
+                                 & source_t_dist,t_start,t_stop, & 
+                                 & collect_source_data,source_data_limit
     
     Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message( 'ERROR:  Neutron_Source: Initialize_Neutron_Source:  File open error, ' & 
@@ -272,14 +279,25 @@ Function Setup_Source(setup_file_name,run_file_name,R_top_atm) Result(s)
         Case Default
             Call Output_Message( 'ERROR:  Sources: Setup Source: Undefined source time distribution',kill=.TRUE.)
     End Select
-    !write out processed source information
     If (Worker_Index() .EQ. 1) Then
+        !set up source data collection
+        If (collect_source_data) Then
+            s%source_data = .TRUE.
+            s%max_source_data = source_data_limit
+            s%source_data_c = 0
+            Open( NEWUNIT = S%source_unit , FILE = source_file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , IOSTAT = stat)
+        Else
+            s%source_data = .FALSE.
+        End If
+        !write out processed source information
         Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
         If (stat .NE. 0) Call Output_Message( 'ERROR:  Sources: Setup_Source:  File open error, '//run_file_name// & 
                                             & ', IOSTAT=',stat,kill=.TRUE. )
         Write(setup_unit,NML = NeutronSourceList)
         Write(setup_unit,*)
         Close(setup_unit)
+    Else
+        s%source_data = .FALSE.
     End If
 End Function Setup_Source
 
@@ -300,7 +318,7 @@ Function Celest_to_XYZ(alt,RA_deg,DEC_deg) Result(r)
          &  (Rc + alt) * Sin(DEC) /)
 End Function Celest_to_XYZ
 
-Subroutine Sample_Source(source,RNG,t,r,E,OmegaHat,w)
+Subroutine Sample_Source(s,RNG,t,r,E,OmegaHat,w)
     Use Kinds, Only: dp
     Use Random_Numbers, Only: RNG_Type
     Use Random_Directions, Only: Isotropic_Omega_hat
@@ -309,7 +327,7 @@ Subroutine Sample_Source(source,RNG,t,r,E,OmegaHat,w)
     Use Utilities, Only: Cube_Root
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
-    Class(Source_Type), Intent(In) :: source
+    Class(Source_Type), Intent(InOut) :: s
     Type(RNG_type), Intent(InOut) :: RNG
     Real(dp), Intent(Out) :: t
     Real(dp), Intent(Out) :: r(1:3)
@@ -321,39 +339,39 @@ Subroutine Sample_Source(source,RNG,t,r,E,OmegaHat,w)
     Real(dp), Parameter :: two_thirds = 2._dp / 3._dp
     
     !Sample emission time
-    If (source%point_time) Then
-        t = source%t_start
+    If (s%point_time) Then
+        t = s%t_start
     Else
-        t = source%t_start + RNG%Get_Random() * source%delta_t
+        t = s%t_start + RNG%Get_Random() * s%delta_t
     End If
     !Sample location
-    Select Case (source%geom_index)
+    Select Case (s%geom_index)
         Case (source_geom_point)
-            r = source%r
+            r = s%r
         Case (source_geom_Sphere_S)
-            r = source%r + source%rad * Isotropic_Omega_hat(RNG)
+            r = s%r + s%rad * Isotropic_Omega_hat(RNG)
         Case (source_geom_Sphere_V)
-            r = source%r + Cube_root(RNG%Get_Random()) * source%rad * Isotropic_Omega_hat(RNG)
+            r = s%r + Cube_root(RNG%Get_Random()) * s%rad * Isotropic_Omega_hat(RNG)
         Case (source_geom_Albedo)
-            r = source%rad * Isotropic_Omega_hat(RNG)
+            r = s%rad * Isotropic_Omega_hat(RNG)
         Case Default
             Call Output_Message( 'ERROR:  Sources: Sample_Source: Undefined source geometry',kill=.TRUE.)
     End Select
     !Sample Energy and Direction
-    If (source%E_A_dist_coupled) Then  !coupled energy-angle distribution
+    If (s%E_A_dist_coupled) Then  !coupled energy-angle distribution
         Call Output_Message( 'ERROR:  Sources: Sample_Source: Coupled energy-angle dist not yet implemented',kill=.TRUE.)
     Else  !independent energy and angle distributions
-        Select Case (source%E_dist_index)
+        Select Case (s%E_dist_index)
             Case (source_E_dist_Line)
-                E = source%E_high
+                E = s%E_high
             Case (source_E_dist_Unif)
-                E = Sample_Uniform(RNG,source%E_low,source%E_high)
+                E = Sample_Uniform(RNG,s%E_low,s%E_high)
             Case (source_E_dist_Watt235)
-                E = Sample_Watt235(RNG,source%E_high)
+                E = Sample_Watt235(RNG,s%E_high)
             Case Default
                 Call Output_Message( 'ERROR:  Sources: Sample_Source: Undefined source energy distribution',kill=.TRUE.)
         End Select
-        Select Case (source%A_dist_index)
+        Select Case (s%A_dist_index)
             Case (source_A_dist_Iso)
                 OmegaHat = Isotropic_Omega_Hat(RNG)
             Case (source_A_dist_top)
@@ -373,6 +391,14 @@ Subroutine Sample_Source(source,RNG,t,r,E,OmegaHat,w)
         End Select
     End If
     w = 1._dp
+    If (s%source_data) Then
+        Write(s%source_unit,'(9ES27.16E3)') t,r,E,OmegaHat,w
+        s%source_data_c = s%source_data_c + 1
+        If (s%source_data_c .GE. s%max_source_data) Then
+            Close(s%source_unit)
+            s%source_data = .FALSE.
+        End If
+    End If
 End Subroutine Sample_Source
 
 Function Sample_Uniform(RNG,E_min,E_max) Result(E)

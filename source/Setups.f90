@@ -48,6 +48,7 @@ Module Setups
         Character(:), Allocatable :: d_file_name
         Character(:), Allocatable :: m_file_name
         Character(:), Allocatable :: o_file_name
+        Character(:), Allocatable :: ss_file_name
         Character(:), Allocatable :: s_file_name
     Contains
         Procedure, Pass :: Initialize => Initialize_Paths_Files
@@ -135,6 +136,7 @@ Subroutine Setup_HASTE(prompt_for_exit,screen_progress,paths_files,n_neutron_his
     paths_files%d_file_name = ''
     paths_files%m_file_name = ''
     paths_files%o_file_name = ''
+    paths_files%ss_file_name = ''
     paths_files%s_file_name = ''
     Call Create_Output_File_names( paths_files%results_directory, & 
                                  & paths_files%file_suffix, & 
@@ -146,6 +148,7 @@ Subroutine Setup_HASTE(prompt_for_exit,screen_progress,paths_files,n_neutron_his
                                  & paths_files%d_file_name, & 
                                  & paths_files%m_file_name, & 
                                  & paths_files%o_file_name, & 
+                                 & paths_files%ss_file_name, & 
                                  & paths_files%s_file_name, & 
                                  & paths_files%run_file_name )
     !Create backup setup file in results folder and write namelist
@@ -163,10 +166,10 @@ Subroutine Setup_HASTE(prompt_for_exit,screen_progress,paths_files,n_neutron_his
     Call Setup_Estimator(paths_files%setup_file,paths_files%run_file_name,n_neutron_histories,absolute_n_histories)
 End Subroutine Setup_HASTE
 
-Subroutine Create_Output_File_names(dir,suff,log_name,TE_name,T_name,E_name,F_name,D_name,M_name,O_name,S_name,run_name)
+Subroutine Create_Output_File_names(dir,suff,log_name,TE_name,T_name,E_name,F_name,D_name,M_name,O_name,SS_name,S_name,run_name)
     Implicit None
     Character(*), Intent(In) :: dir,suff
-    Character(:), Allocatable, Intent(InOut) :: log_name,TE_name,T_name,E_name,F_name,D_name,M_name,O_name,S_name
+    Character(:), Allocatable, Intent(InOut) :: log_name,TE_name,T_name,E_name,F_name,D_name,M_name,O_name,SS_name,S_name
     Character(:), Allocatable, Intent(InOut), Optional :: run_name
     
     !Construct file names
@@ -181,7 +184,8 @@ Subroutine Create_Output_File_names(dir,suff,log_name,TE_name,T_name,E_name,F_na
     D_name = dir//'ArrDirs'//suff//'.txt'
     M_name = dir//'ArrDirs_mu'//suff//'.txt'
     O_name = dir//'ArrDirs_omega'//suff//'.txt'
-    S_name = dir//'SliceShape'//suff
+    SS_name = dir//'SliceShape'//suff
+    S_name = dir//'Source'//suff//'.txt'
 End Subroutine Create_Output_File_names
 
 Subroutine Check_files_exist(overwrite,n_cmd_args,paths_files)
@@ -398,6 +402,8 @@ Subroutine Setup_Info_to_disk(n_histories,abs_n_histories,prompt_for_exit,screen
     Call Var_to_File(paths_files%m_file_name,file_name)
     file_name = file_dir//'pf_o_f.tmp'
     Call Var_to_File(paths_files%o_file_name,file_name)
+    file_name = file_dir//'pf_ss_f.tmp'
+    Call Var_to_File(paths_files%ss_file_name,file_name)
     file_name = file_dir//'pf_s_f.tmp'
     Call Var_to_File(paths_files%s_file_name,file_name)
 End Subroutine Setup_Info_to_disk
@@ -494,6 +500,9 @@ Subroutine Setup_Info_from_disk(n_histories,abs_n_histories,prompt_for_exit,scre
     file_name = file_dir//'pf_o_f.tmp'
     Call Var_from_File(C_tmp,file_name)
     paths_files%o_file_name = Trim(C_tmp)
+    file_name = file_dir//'pf_ss_f.tmp'
+    Call Var_from_File(C_tmp,file_name)
+    paths_files%ss_file_name = Trim(C_tmp)
     file_name = file_dir//'pf_s_f.tmp'
     Call Var_from_File(C_tmp,file_name)
     paths_files%s_file_name = Trim(C_tmp)
@@ -558,6 +567,8 @@ Subroutine Initialize_Paths_Files(paths_files)
     paths_files%m_file_name = empty_string
     Allocate(Character(max_path_len) :: paths_files%o_file_name)
     paths_files%o_file_name = empty_string
+    Allocate(Character(max_path_len) :: paths_files%ss_file_name)
+    paths_files%ss_file_name = empty_string
     Allocate(Character(max_path_len) :: paths_files%s_file_name)
     paths_files%s_file_name = empty_string
 End Subroutine Initialize_Paths_Files
@@ -643,7 +654,8 @@ Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,path
     Write(unit,'(2A)') '    Arr Dirs file:        ',paths_files%d_file_name
     Write(unit,'(2A)') '    Arr Dirs mu file:     ',paths_files%m_file_name
     Write(unit,'(2A)') '    Arr Dirs omega file:  ',paths_files%o_file_name
-    Write(unit,'(2A)') '    Slice Shape files:    ',paths_files%s_file_name//'<<...>>.txt'
+    Write(unit,'(2A)') '    Slice Shape files:    ',paths_files%ss_file_name//'<<...>>.txt'
+    Write(unit,'(2A)') '    Source Data file:     ',paths_files%s_file_name
     Write(unit,*)
     Write(unit,'(A,I11)') '  RNG Seed: ',RNG%seed
     Write(unit,'(A,I11)') '  RNG Array Length:    ',RNG%q_size

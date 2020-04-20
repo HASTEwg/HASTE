@@ -143,7 +143,9 @@ source_A_dist = 'Iso'            !<'Iso','Top','Side','Bottom','Agroups','EAgrou
                                  !  'EAgroups' 2-D list of tabulated energy and angle bins
 source_t_dist = 'Point'          !<'Point','Uniform'>
 t_start = 0.                     ![s]  Value for 'Point', min value for 'Uniform'
-t_stop = 0.                       ![s]  Max value for 'Uniform'
+t_stop = 0.                      ![s]  Max value for 'Uniform'
+collect_source_data = .TRUE.     !<.TRUE.,.FALSE.>  TRUE causes raw data to be written to file as it is sampled from the source 
+source_data_limit = 100000       ! Maximum number of raw source samples to write to file
 !-----------------------------------------------------------------------------------------------------------------------------------
 /
 

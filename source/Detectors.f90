@@ -285,7 +285,7 @@ Function Setup_Detector(setup_file_name,resources_dir,run_file_name,slice_file_n
                     End If
                     Open( NEWUNIT = d%TE_grid(i)%slice_unit(j) , FILE = slice_file_name//slice_name_end , STATUS = 'REPLACE' , &
                         & ACTION = 'WRITE' , IOSTAT = stat)
-                    Write(d%TE_grid(i)%slice_unit(j),'(ES30.15E3)') d%TE_grid(i)%Bin_Center(d%TE_grid(i)%slice_bin(j))
+                    Write(d%TE_grid(i)%slice_unit(j),'(ES27.16E3)') d%TE_grid(i)%Bin_Center(d%TE_grid(i)%slice_bin(j))
                 End Do
             End Do
         Else
@@ -334,7 +334,7 @@ Subroutine Tally_Scatter(d,E,Omega_Hat,t,weight)
         Do i = 1,d%n_slices
             If (t_bin .EQ. d%TE_grid(1)%slice_bin(i)) Then
                 If (d%TE_grid(1)%collect_shape(i)) Then
-                    Write(d%TE_grid(1)%slice_unit(i),'(2ES30.15E3)') E,weight
+                    Write(d%TE_grid(1)%slice_unit(i),'(2ES27.16E3)') E,weight
                     d%TE_grid(1)%slice_c(i) = d%TE_grid(1)%slice_c(i) + 1
                     If (d%TE_grid(1)%slice_c(i) .GE. d%max_shape_data) Then
                         Close(d%TE_grid(1)%slice_unit(i))
@@ -344,7 +344,7 @@ Subroutine Tally_Scatter(d,E,Omega_Hat,t,weight)
             End If
             If (E_bin .EQ. d%TE_grid(2)%slice_bin(i)) Then
                 If (d%TE_grid(2)%collect_shape(i)) Then
-                    Write(d%TE_grid(2)%slice_unit(i),'(2ES30.15E3)') t,weight
+                    Write(d%TE_grid(2)%slice_unit(i),'(2ES27.16E3)') t,weight
                     d%TE_grid(2)%slice_c(i) = d%TE_grid(2)%slice_c(i) + 1
                     If (d%TE_grid(2)%slice_c(i) .GE. d%max_shape_data) Then
                         Close(d%TE_grid(2)%slice_unit(i))
