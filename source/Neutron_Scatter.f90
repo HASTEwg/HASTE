@@ -224,16 +224,16 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
     ScatMod%n_uncounted = 0_id
     If (atm_model_i .NE. -1) Then !cross sections are not needed if atmosphere is disabled
         ScatMod%CS = Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ScatMod%aniso_dist,E_min,E_max)
+        !initialize scatter parameters for sampled scatter, except the lev_cs array (it is not used for the sampled scatter)
+        Allocate(ScatMod%scat%a(0:ScatMod%CS%n_a_max))
+        ScatMod%scat%a = 0._dp
+        Allocate(ScatMod%scat%a_tab1(1:2,1:ScatMod%CS%n_a_tab_max))
+        ScatMod%scat%a_tab1 = 0._dp
+        Allocate(ScatMod%scat%a_tab2(1:2,1:ScatMod%CS%n_a_tab_max))
+        ScatMod%scat%a_tab2 = 0._dp
+        Allocate(ScatMod%scat%iso_cs(1:ScatMod%CS%n_iso))
+        ScatMod%scat%iso_cs = 0._dp
     End If
-    !initialize scatter parameters for sampled scatter, except the lev_cs array (it is not used for the sampled scatter)
-    Allocate(ScatMod%scat%a(0:ScatMod%CS%n_a_max))
-    ScatMod%scat%a = 0._dp
-    Allocate(ScatMod%scat%a_tab1(1:2,1:ScatMod%CS%n_a_tab_max))
-    ScatMod%scat%a_tab1 = 0._dp
-    Allocate(ScatMod%scat%a_tab2(1:2,1:ScatMod%CS%n_a_tab_max))
-    ScatMod%scat%a_tab2 = 0._dp
-    Allocate(ScatMod%scat%iso_cs(1:ScatMod%CS%n_iso))
-    ScatMod%scat%iso_cs = 0._dp
     If (Worker_Index() .EQ. 1) Then
         Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
         If (stat .NE. 0) Call Output_Message( 'ERROR:  Neutron_Scatter: Setup_Scatter_Model:  File open error, '//run_file_name// & 
