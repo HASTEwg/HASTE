@@ -294,7 +294,7 @@ Subroutine Check_folders_exist(paths_files)
     !Check if results directories exist
     If (.NOT. Check_Directory(paths_files%results_directory)) Call Create_Directory(paths_files%results_directory)
     If (paths_files%output_folder .NE. '')  Then !output folder is specified
-        If (.NOT. Check_Directory(paths_files%results_directory)) Then
+        If (.NOT. Check_Directory(paths_files%results_directory//paths_files%output_folder)) Then
             Call Create_Directory(paths_files%results_directory//paths_files%output_folder)
         End If
     End if
