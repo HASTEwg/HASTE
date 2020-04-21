@@ -14,6 +14,7 @@ set -e
 
 # The following preprocessor flags are set for my personal development environment
 PREP_FLAGS="-cpp -DLIN_OS -DGFORT"
+EXT=".out"
 # Additional preprocessor flags may be appended to this using the '-p' flag from the command line
 
 # General compiler flags (applies to all builds)
@@ -47,6 +48,7 @@ while getopts 'sdrqwp:ck' flag; do
     q) COMP_FLAGS="${RELEASE_FLAGS_SUPER}"
        ;;
     w) PREP_FLAGS="${PREP_FLAGS} -ULIN_OS"
+       EXT=".exe"
        ;;
     p) PREP_FLAGS="${PREP_FLAGS} ${OPTARG}"
        ;;
