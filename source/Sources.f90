@@ -69,7 +69,8 @@ Module Sources
     Integer, Parameter :: source_geom_point = 91
     Integer, Parameter :: source_geom_Sphere_S = 93
     Integer, Parameter :: source_geom_Sphere_V = 95
-    Integer, Parameter :: source_geom_Albedo = 97
+    Integer, Parameter :: source_geom_Sphere_V_unif = 97
+    Integer, Parameter :: source_geom_Albedo = 99
 
     !Integer designator for source energy distribution choice, can have value equal to one of the following parameters
     Integer, Parameter :: source_E_dist_Line = 71
@@ -145,11 +146,12 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
         Case('Sphere_V')
             s%geom_index = source_geom_Sphere_V
             s%rad = r_source
+        Case('Sphere_Vu')
+            s%geom_index = source_geom_Sphere_V_unif
+            s%rad = r_source
         Case('Albedo')
             s%geom_index = source_geom_Albedo
-            If (r_source .LT. Rc) Call Output_Message('ERROR:  Sources: Setup_Source:  Albedo source radius must exceed central &
-                                                     &body radius.',kill=.TRUE.)
-            s%rad = r_source
+            s%rad = Rc + r_source
         Case Default
             Call Output_Message('ERROR:  Sources: Setup_Source:  Unknown source geometry.',kill=.TRUE.)
     End Select
@@ -164,10 +166,10 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
     If (s%geom_index .NE. source_geom_Albedo) Then
         s%big_r = Vector_Length(s%r)
         s%z = s%big_r - Rc
-    Else
+    Else !albedo source is always centered at the origin
         s%r = 0._dp
         s%big_r = 0._dp
-        s%z = s%rad - Rc
+        s%z = r_source
     End If
     !check for exoatmospheric source
     If (s%big_r .LT. R_top_atm) Then
@@ -179,7 +181,7 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
     s%v = (/ v_E_source, &
            & v_N_source, &
            & v_U_source /)
-    If (Any(s%v .NE. 0._dp)) Then
+    If (Any(s%v .NE. 0._dp) .AND. s%geom_index.NE.source_geom_Albedo) Then
         s%has_velocity = .TRUE.
         U_hat = Unit_Vector(s%r)
         E_hat = Unit_Vector(Cross_Product(Z_hat,U_hat))
@@ -195,8 +197,9 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
             s%B_hat = Unit_Vector(Cross_Product(X_Hat,s%A_hat))
         End If
         s%C_hat = Cross_Product(s%A_hat,s%B_hat)
-    Else
+    Else  !stationary source or albedo source
         s%has_velocity = .FALSE.
+        s%v = 0._dp
         s%speed = 0._dp
         s%A_hat = 0._dp
         s%B_hat = 0._dp
@@ -351,12 +354,16 @@ Subroutine Sample_Source(s,RNG,t,r,E,OmegaHat,w)
         Case (source_geom_Sphere_S)
             r = s%r + s%rad * Isotropic_Omega_hat(RNG)
         Case (source_geom_Sphere_V)
+            r = s%r + RNG%Get_Random() * s%rad * Isotropic_Omega_hat(RNG)
+        Case (source_geom_Sphere_V_unif)
             r = s%r + Cube_root(RNG%Get_Random()) * s%rad * Isotropic_Omega_hat(RNG)
         Case (source_geom_Albedo)
             r = s%rad * Isotropic_Omega_hat(RNG)
-        Case Default
-            Call Output_Message( 'ERROR:  Sources: Sample_Source: Undefined source geometry',kill=.TRUE.)
     End Select
+    If (.NOT.s%point_time .AND. s%has_velocity) Then  !update source position based on source velocity and elapsed time
+        !N2H This implementation assumes linear motion of the source (no other motion types are presently supported)
+        r = r + (t - s%t_start) * s%v
+    End If
     !Sample Energy and Direction
     If (s%E_A_dist_coupled) Then  !coupled energy-angle distribution
         Call Output_Message( 'ERROR:  Sources: Sample_Source: Coupled energy-angle dist not yet implemented',kill=.TRUE.)
@@ -368,8 +375,6 @@ Subroutine Sample_Source(s,RNG,t,r,E,OmegaHat,w)
                 E = Sample_Uniform(RNG,s%E_low,s%E_high)
             Case (source_E_dist_Watt235)
                 E = Sample_Watt235(RNG,s%E_high)
-            Case Default
-                Call Output_Message( 'ERROR:  Sources: Sample_Source: Undefined source energy distribution',kill=.TRUE.)
         End Select
         Select Case (s%A_dist_index)
             Case (source_A_dist_Iso)
@@ -386,8 +391,6 @@ Subroutine Sample_Source(s,RNG,t,r,E,OmegaHat,w)
                 mu = one_third + RNG%Get_random() * two_thirds
                 omega = Isotropic_Azimuth(RNG)
                 OmegaHat = mu_omega_2_OmegaHat(mu,omega)
-            Case Default
-                Call Output_Message( 'ERROR:  Sources: Sample_Source: Undefined source angular distribution',kill=.TRUE.)
         End Select
     End If
     w = 1._dp
