@@ -139,6 +139,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     Integer :: n_absorption_modes,n_inelastic_lev
     Logical :: has_resonance
     Integer :: n_iso
+    Logical :: has_atmosphere
     
     Real(dp), Parameter :: Zb_1976_extended(0:16) = (/  Zb_1976(0), & !adds the sublayers present in USSA76
                                                      &  Zb_1976(1), &
@@ -171,6 +172,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
                                         & ', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = AtmosphereList)
     Close(setup_unit)
+    has_atmosphere = .TRUE.
     Select Case (atmosphere_model)
         Case ('USstd1976')
             atm%model_index = atm_mod_USstd1976
@@ -221,98 +223,102 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
             atm%R_top = Rc + atm%z_top
             atm%R_bot = Rc + atm%z_bot
             atm%wind_AF = 0._dp
-            Return
+            has_atmosphere = .FALSE.
         Case Default
             Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  Undefined atmosphere model',kill=.TRUE.)
     End Select
-    Allocate(atm%Rb(0:Size(atm%Zb)-1))
-    atm%Rb = atm%Zb + Rc
-    Allocate(Character(max_path_len) :: f_name)
-    Select Case (composition)
-        Case ('All')
-            f_name = 'n_CS_setup_All.txt'
-            atm%comp_index = atm_comp_ALL
-        Case ('N14_O16')
-            f_name = 'n_CS_setup_N14_O16.txt'
-            atm%comp_index = atm_comp_N14_O16
-        Case ('N14_O16_Ar40')
-            f_name = 'n_CS_setup_N14_O16_Ar40.txt'
-            atm%comp_index = atm_comp_N14_O16_Ar40
-        Case ('N14')
-            f_name = 'n_CS_setup_N14.txt'
-            atm%comp_index = atm_comp_N14
-        Case ('N15')
-            f_name = 'n_CS_setup_N15.txt'
-            atm%comp_index = atm_comp_N15
-        Case ('O16')
-            f_name = 'n_CS_setup_O16.txt'
-            atm%comp_index = atm_comp_O16
-        Case ('O17')
-            f_name = 'n_CS_setup_O17.txt'
-            atm%comp_index = atm_comp_O17
-        Case ('O18')
-            f_name = 'n_CS_setup_O18.txt'
-            atm%comp_index = atm_comp_O18
-        Case ('Ar40')
-            f_name = 'n_CS_setup_Ar40.txt'
-            atm%comp_index = atm_comp_Ar40
-        Case Default
-            Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  Undefined composition',kill=.TRUE.)
-    End Select
-    If (Present(cs_file_name)) cs_file_name = f_name
-    !read number of elements, isotopes, and fractions from cross sections setup file
-    Open( NEWUNIT = setup_unit , FILE = resources_dir//'cs'//slash//'n_cs'//slash//f_name , STATUS = 'OLD' , ACTION = 'READ' , & 
-        & IOSTAT = stat)
-    If (stat .NE. 0) Call Output_Message( 'ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//resources_dir// & 
-                                        & 'cs'//slash//'n_cs'//slash//f_name//', IOSTAT=',stat,kill=.TRUE.)
-    Read(setup_unit,NML = csSetupList1)
-    atm%n_el = n_elements
-    Allocate(el_fractions(1:n_elements))
-    Allocate(n_isotopes(1:n_elements))
-    Allocate(atm%iso_ind(1:n_elements+1))
-    Read(setup_unit,NML = csSetupList2)
-    n_iso = Sum(n_isotopes)
-    Allocate(isotope_names(1:n_iso))
-    Allocate(diatomic(1:n_iso))
-    Allocate(atm%iso_frac(1:n_iso))
-    Allocate(atm%diatomic(1:n_iso))
-    Allocate(atm%iso_map(1:n_iso))
-    atm%iso_ind = 1
-    Do i = 2,n_elements+1
-        atm%iso_ind(i) = Sum(n_isotopes(1:i-1)) + 1
-    End Do
-    k = 1
-    Do i = 1,n_elements
-        Do j = 1,n_isotopes(i)
-            atm%iso_map(k) = i
-            k = k + 1
+    If (has_atmosphere) Then
+        Allocate(atm%Rb(0:Size(atm%Zb)-1))
+        atm%Rb = atm%Zb + Rc
+        Allocate(Character(max_path_len) :: f_name)
+        Select Case (composition)
+            Case ('All')
+                f_name = 'n_CS_setup_All.txt'
+                atm%comp_index = atm_comp_ALL
+            Case ('N14_O16')
+                f_name = 'n_CS_setup_N14_O16.txt'
+                atm%comp_index = atm_comp_N14_O16
+            Case ('N14_O16_Ar40')
+                f_name = 'n_CS_setup_N14_O16_Ar40.txt'
+                atm%comp_index = atm_comp_N14_O16_Ar40
+            Case ('N14')
+                f_name = 'n_CS_setup_N14.txt'
+                atm%comp_index = atm_comp_N14
+            Case ('N15')
+                f_name = 'n_CS_setup_N15.txt'
+                atm%comp_index = atm_comp_N15
+            Case ('O16')
+                f_name = 'n_CS_setup_O16.txt'
+                atm%comp_index = atm_comp_O16
+            Case ('O17')
+                f_name = 'n_CS_setup_O17.txt'
+                atm%comp_index = atm_comp_O17
+            Case ('O18')
+                f_name = 'n_CS_setup_O18.txt'
+                atm%comp_index = atm_comp_O18
+            Case ('Ar40')
+                f_name = 'n_CS_setup_Ar40.txt'
+                atm%comp_index = atm_comp_Ar40
+            Case Default
+                Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  Undefined composition',kill=.TRUE.)
+        End Select
+        If (Present(cs_file_name)) cs_file_name = f_name
+        !read number of elements, isotopes, and fractions from cross sections setup file
+        Open( NEWUNIT = setup_unit , FILE = resources_dir//'cs'//slash//'n_cs'//slash//f_name , STATUS = 'OLD' , & 
+            & ACTION = 'READ' , IOSTAT = stat)
+        If (stat .NE. 0) Call Output_Message( 'ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//resources_dir// & 
+                                            & 'cs'//slash//'n_cs'//slash//f_name//', IOSTAT=',stat,kill=.TRUE.)
+        Read(setup_unit,NML = csSetupList1)
+        atm%n_el = n_elements
+        Allocate(el_fractions(1:n_elements))
+        Allocate(n_isotopes(1:n_elements))
+        Allocate(atm%iso_ind(1:n_elements+1))
+        Read(setup_unit,NML = csSetupList2)
+        n_iso = Sum(n_isotopes)
+        Allocate(isotope_names(1:n_iso))
+        Allocate(diatomic(1:n_iso))
+        Allocate(atm%iso_frac(1:n_iso))
+        Allocate(atm%diatomic(1:n_iso))
+        Allocate(atm%iso_map(1:n_iso))
+        atm%iso_ind = 1
+        Do i = 2,n_elements+1
+            atm%iso_ind(i) = Sum(n_isotopes(1:i-1)) + 1
         End Do
-    End Do
-    Read(setup_unit,NML = csSetupList3)
-    atm%diatomic = diatomic
-    Close(setup_unit)
-    Do i = 1,n_iso
-        f_name = resources_dir//'cs'//slash//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))//'_iso_setup.txt'
-        Open(NEWUNIT = setup_unit , FILE = f_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
-        Read(setup_unit,NML = isoSetupList1)
-        atm%iso_frac(i) = iso_fraction
+        k = 1
+        Do i = 1,n_elements
+            Do j = 1,n_isotopes(i)
+                atm%iso_map(k) = i
+                k = k + 1
+            End Do
+        End Do
+        Read(setup_unit,NML = csSetupList3)
+        atm%diatomic = diatomic
         Close(setup_unit)
-    End Do
-    j = 1
-    Do i = 1,n_elements
-        atm%iso_frac(j:Sum(n_isotopes(1:i))) = atm%iso_frac(j:Sum(n_isotopes(1:i))) / Sum( atm%iso_frac(j:Sum(n_isotopes(1:i))) )
-        j = Sum(n_isotopes(1:i)) + 1
-    End Do    
-    atm%ref_density_ratio = ref_density / rho_SL
-    atm%isothermal_temp = isothermal_temp
-    atm%z_top = Z_top_atm
-    atm%z_bot = Z_bot_atm
-    atm%R_top = Rc + atm%z_top
-    atm%R_bot = Rc + atm%z_bot
-    atm%wind_AF = (/ wind_E, & 
-                   & wind_N, &
-                   & 0._dp /)
-    Call Define_EPL_Layers(atm,resources_dir)
+        Do i = 1,n_iso
+            f_name = resources_dir//'cs'//slash//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))// & 
+                     & '_iso_setup.txt'
+            Open(NEWUNIT = setup_unit , FILE = f_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+            Read(setup_unit,NML = isoSetupList1)
+            atm%iso_frac(i) = iso_fraction
+            Close(setup_unit)
+        End Do
+        j = 1
+        Do i = 1,n_elements
+            atm%iso_frac(j:Sum(n_isotopes(1:i))) = atm%iso_frac(j:Sum(n_isotopes(1:i))) / & 
+                                                 & Sum( atm%iso_frac(j:Sum(n_isotopes(1:i))) )
+            j = Sum(n_isotopes(1:i)) + 1
+        End Do    
+        atm%ref_density_ratio = ref_density / rho_SL
+        atm%isothermal_temp = isothermal_temp
+        atm%z_top = Z_top_atm
+        atm%z_bot = Z_bot_atm
+        atm%R_top = Rc + atm%z_top
+        atm%R_bot = Rc + atm%z_bot
+        atm%wind_AF = (/ wind_E, & 
+                    & wind_N, &
+                    & 0._dp /)
+        Call Define_EPL_Layers(atm,resources_dir)
+    End If
     If (Worker_Index() .EQ. 1) Then
         If (Present(run_file_name)) Then
             Open( NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , & 

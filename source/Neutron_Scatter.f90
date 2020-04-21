@@ -100,6 +100,7 @@ Module Neutron_Scatter
             Logical :: Diatomic_Atm
             Logical :: Rotating_Earth
             Logical :: Wind
+        Logical :: cs_loaded
     Contains
         Procedure, Pass :: Sample_Scatter
         Procedure, Pass :: Set_Scatter_prep
@@ -223,6 +224,7 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
     ScatMod%n_no_tally = 0_id
     ScatMod%n_uncounted = 0_id
     If (atm_model_i .NE. -1) Then !cross sections are not needed if atmosphere is disabled
+        ScatMod%cs_loaded = .TRUE.
         ScatMod%CS = Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ScatMod%aniso_dist,E_min,E_max)
         !initialize scatter parameters for sampled scatter, except the lev_cs array (it is not used for the sampled scatter)
         Allocate(ScatMod%scat%a(0:ScatMod%CS%n_a_max))
@@ -233,6 +235,8 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
         ScatMod%scat%a_tab2 = 0._dp
         Allocate(ScatMod%scat%iso_cs(1:ScatMod%CS%n_iso))
         ScatMod%scat%iso_cs = 0._dp
+    Else
+        ScatMod%cs_loaded = .FALSE.
     End If
     If (Worker_Index() .EQ. 1) Then
         Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
@@ -797,8 +801,18 @@ Subroutine Write_Scatter_Model(s,file_name)
     Write(unit,'(A,I15)') '  Histories implicitly leaked due to EXO source:  ',s%n_uncounted
     Write(unit,*)
     Write(unit,*)
-    Close(unit)
-    Call Write_Cross_Sections(s%CS,s%doppler_broaden,file_name)
+    If (s%cs_loaded) Then
+        Close(unit)
+        Call Write_Cross_Sections(s%CS,s%doppler_broaden,file_name)
+    Else
+        Write(unit,'(A)') half_dash_line
+        Write(unit,'(A)') 'CROSS SECTIONS INFORMATION'
+        Write(unit,'(A)') half_dash_line
+        Write(unit,'(A)') '  Cross sections not loaded for atmosphere=NONE.'
+        Write(unit,*)
+        Write(unit,*)
+        Close(unit)
+    End If    
 End Subroutine Write_Scatter_Model
 
 End Module Neutron_Scatter

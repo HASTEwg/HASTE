@@ -455,6 +455,17 @@ Subroutine Write_Source(s,file_name)
     Write(unit,'(A)') half_dash_line
     Write(unit,'(A)') 'SOURCE INFORMATION'
     Write(unit,'(A)') half_dash_line
+    Write(unit,'(A)') '  Geometry:'
+    Select Case (s%geom_index)
+        Case (source_geom_point)
+            Write(unit,'(A)')             '    Point'
+        Case (source_geom_Sphere_S)
+            Write(unit,'(A,ES24.16E3,A)') '    Sphere-Surface w/ r = ',s%rad,' km'
+        Case (source_geom_Sphere_V)
+            Write(unit,'(A,ES24.16E3,A)') '    Sphere-Volume w/ r = ',s%rad,' km'
+        Case (source_geom_Albedo)
+            Write(unit,'(A,ES24.16E3,A)') '    Albedo w/ r = ',s%rad,' km'
+    End Select
     Write(unit,'(A)') '  Position:'
     Write(unit,'(A,ES24.16E3,A)') '    x = ',s%r(1),' km'
     Write(unit,'(A,ES24.16E3,A)') '    y = ',s%r(2),' km'
@@ -491,9 +502,31 @@ Subroutine Write_Source(s,file_name)
         Case (source_E_dist_Type13)
             Write(unit,'(A)') '    Type 13, thermonuclear, enhanced radiation'
         Case Default
-            Print *,'ERROR:  Sources: Write_Source: Undefined source energy distribution'
-            ERROR STOP
+            Call Output_Message( 'ERROR:  Sources: Write_Source:  Undefined source energy distribution',kill=.TRUE.)
     End Select
+    Write(unit,*)
+    Write(unit,'(A)') '  Angular Distribution:'
+    Select Case (s%A_dist_index)
+        Case (source_A_dist_iso)
+            Write(unit,'(A)') '    Isotropic'
+        Case (source_A_dist_top)
+            Write(unit,'(A)') '    Upward 1/3'
+        Case (source_A_dist_side)
+            Write(unit,'(A)') '    Lateral 1/3'
+        Case (source_A_dist_bot)
+            Write(unit,'(A)') '    Downward 1/3'
+        Case (source_A_dist_tab)
+            Write(unit,'(A)') '    Tabular'
+        Case Default
+            Call Output_Message( 'ERROR:  Sources: Write_Source:  Undefined source angular distribution',kill=.TRUE.)
+    End Select
+    Write(unit,*)
+    Write(unit,'(A)') '  Time Distribution:'
+    If (s%point_time) Then
+        Write(unit,'(A)') '    Point'
+    Else
+        Write(unit,'(A,ES24.16E3,A,ES24.16E3,A)') '    Uniform from ',s%t_start,' to ',s%t_start+s%delta_t,' sec'
+    End If
     Write(unit,*)
     Write(unit,*)
     Close(unit)

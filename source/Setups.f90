@@ -107,9 +107,6 @@ Subroutine Setup_HASTE(prompt_for_exit,screen_progress,paths_files,n_neutron_his
                                         & ', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = ProgramSetupList)
     Close(setup_unit)
-#   if LIN_OS
-        prompt_for_exit = .FALSE.
-#   endif
     !Trim output folder and file suffix character strings
     output_folder = Trim(output_folder)
     file_suffix = Trim(file_suffix)
