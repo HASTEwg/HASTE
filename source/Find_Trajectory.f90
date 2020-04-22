@@ -98,7 +98,7 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
             If ( (Abs(ds).LT.1.E-6_dp .AND. Converged(tof_1,tof_2,rTol=1.E-12_dp,aTol=1.E-6_dp)) & 
                & .OR. ds.EQ.0._dp .OR. tof_1.EQ.tof_2 ) Then  !OR iteration landed on answer or closed interval
                 !check that trajectory does not intersect Earth
-                If (Hits_Center(r1,v1,r2,v2)) Return
+                If (Hits_Center(r1,r2,v1,v2)) Return
                 !If we get this far, a valid trajectory has been found!
                 Found = .TRUE.
                 v2Sat = v2 - vS2

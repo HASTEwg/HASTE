@@ -95,7 +95,7 @@ Contains
 
 Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) Result(s)
     Use Kinds, Only: dp
-    Use Global, Only: Z_hat,X_hat
+    Use Global, Only: Z_hat,X_hat,Y_hat
     Use Global, Only: Rc => R_center
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Vector_Length
@@ -172,10 +172,18 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
         s%z = r_source
     End If
     !check for exoatmospheric source
-    If (s%big_r .LT. R_top_atm) Then
-        s%exoatmospheric = .FALSE.
-    Else
-        s%exoatmospheric = .TRUE.
+    If (s%geom_index .NE. source_geom_Albedo) Then
+        If (s%big_r .LT. R_top_atm) Then
+            s%exoatmospheric = .FALSE.
+        Else
+            s%exoatmospheric = .TRUE.
+        End If
+    Else  !special criteria for Albedo source geometry
+        If (s%rad .LT. R_top_atm) Then
+            s%exoatmospheric = .FALSE.
+        Else
+            s%exoatmospheric = .TRUE.
+        End If
     End If
     !Set source velocity
     s%v = (/ v_E_source, &
@@ -201,22 +209,23 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
         s%has_velocity = .FALSE.
         s%v = 0._dp
         s%speed = 0._dp
-        s%A_hat = 0._dp
-        s%B_hat = 0._dp
-        s%C_hat = 0._dp
+        s%A_hat = Z_hat
+        s%B_hat = X_hat
+        s%C_hat = Y_hat
     End If
     !Set source direction
     s%d = (/ d_E_source, &
            & d_N_source, &
            & d_U_source /)
-    If (Any(s%d .NE. 0._dp)) Then
-        s%d = Unit_Vector(s%d)
+    If (Any(s%d .NE. 0._dp) .AND. s%geom_index.NE.source_geom_Albedo) Then
         U_hat = Unit_Vector(s%r)
         E_hat = Unit_Vector(Cross_Product(Z_hat,U_hat))
         N_hat = Cross_Product(U_hat,E_hat)
         s%d = E_hat * Dot_Product(s%d,E_hat) + &
             & N_hat * Dot_Product(s%d,N_hat) + &
             & U_hat * Dot_Product(s%d,U_hat)
+    Else
+        s%d = Z_hat
     End If
     !Set energy and angle distribution properties
     If (source_A_dist.EQ.'EAgroups' .OR. source_E_dist.EQ.'EAgroups') Then  !Coupled energy-angle distribution
@@ -321,48 +330,51 @@ Function Celest_to_XYZ(alt,RA_deg,DEC_deg) Result(r)
          &  (Rc + alt) * Sin(DEC) /)
 End Function Celest_to_XYZ
 
-Subroutine Sample_Source(s,RNG,t,r,E,OmegaHat,w)
+Subroutine Sample_Source(s,RNG,n)
     Use Kinds, Only: dp
+    Use Global, Only: R_center
     Use Random_Numbers, Only: RNG_Type
+    Use Neutron_Scatter, Only: Neutron_Type
     Use Random_Directions, Only: Isotropic_Omega_hat
     Use Random_Directions, Only: Isotropic_Azimuth
     Use Random_Directions, Only: mu_omega_2_OmegaHat
     Use Utilities, Only: Cube_Root
+    Use Utilities, Only: Unit_Vector
+    Use Utilities, Only: Vector_Length
+    Use Neutron_Utilities, Only: Neutron_Speed
+    Use Neutron_Utilities, Only: Neutron_Energy
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Class(Source_Type), Intent(InOut) :: s
     Type(RNG_type), Intent(InOut) :: RNG
-    Real(dp), Intent(Out) :: t
-    Real(dp), Intent(Out) :: r(1:3)
-    Real(dp), Intent(Out) :: E
-    Real(dp), Intent(Out) :: OmegaHat(1:3)
-    Real(dp), Intent(Out) :: w
+    Type(Neutron_Type), Intent(InOut) :: n
     Real(dp) :: mu,omega
+    Real(dp) :: v(1:3)
     Real(dp), Parameter :: one_third = 1._dp / 3._dp
     Real(dp), Parameter :: two_thirds = 2._dp / 3._dp
     
     !Sample emission time
     If (s%point_time) Then
-        t = s%t_start
+        n%t = s%t_start
     Else
-        t = s%t_start + RNG%Get_Random() * s%delta_t
+        n%t = s%t_start + RNG%Get_Random() * s%delta_t
     End If
     !Sample location
     Select Case (s%geom_index)
         Case (source_geom_point)
-            r = s%r
+            n%r = s%r
         Case (source_geom_Sphere_S)
-            r = s%r + s%rad * Isotropic_Omega_hat(RNG)
+            n%r = s%r + s%rad * Isotropic_Omega_hat(RNG)
         Case (source_geom_Sphere_V)
-            r = s%r + RNG%Get_Random() * s%rad * Isotropic_Omega_hat(RNG)
+            n%r = s%r + RNG%Get_Random() * s%rad * Isotropic_Omega_hat(RNG)
         Case (source_geom_Sphere_V_unif)
-            r = s%r + Cube_root(RNG%Get_Random()) * s%rad * Isotropic_Omega_hat(RNG)
+            n%r = s%r + Cube_root(RNG%Get_Random()) * s%rad * Isotropic_Omega_hat(RNG)
         Case (source_geom_Albedo)
-            r = s%rad * Isotropic_Omega_hat(RNG)
+            n%r = s%rad * Isotropic_Omega_hat(RNG)
     End Select
     If (.NOT.s%point_time .AND. s%has_velocity) Then  !update source position based on source velocity and elapsed time
         !N2H This implementation assumes linear motion of the source (no other motion types are presently supported)
-        r = r + (t - s%t_start) * s%v
+        n%r = n%r + n%t * s%v
     End If
     !Sample Energy and Direction
     If (s%E_A_dist_coupled) Then  !coupled energy-angle distribution
@@ -370,38 +382,50 @@ Subroutine Sample_Source(s,RNG,t,r,E,OmegaHat,w)
     Else  !independent energy and angle distributions
         Select Case (s%E_dist_index)
             Case (source_E_dist_Line)
-                E = s%E_high
+                n%E0ef = s%E_high
             Case (source_E_dist_Unif)
-                E = Sample_Uniform(RNG,s%E_low,s%E_high)
+                n%E0ef = Sample_Uniform(RNG,s%E_low,s%E_high)
             Case (source_E_dist_Watt235)
-                E = Sample_Watt235(RNG,s%E_high)
+                n%E0ef = Sample_Watt235(RNG,s%E_high)
         End Select
         Select Case (s%A_dist_index)
             Case (source_A_dist_Iso)
-                OmegaHat = Isotropic_Omega_Hat(RNG)
+                n%Omega_hat = Isotropic_Omega_Hat(RNG)
             Case (source_A_dist_top)
                 mu = -(one_third + RNG%Get_random() * two_thirds)
                 omega = Isotropic_Azimuth(RNG)
-                OmegaHat = mu_omega_2_OmegaHat(mu,omega)
+                n%Omega_hat = mu_omega_2_OmegaHat(mu,omega)
             Case (source_A_dist_side)
                 mu = -one_third + RNG%Get_random() * two_thirds
                 omega = Isotropic_Azimuth(RNG)
-                OmegaHat = mu_omega_2_OmegaHat(mu,omega)
+                n%Omega_hat = mu_omega_2_OmegaHat(mu,omega)
             Case (source_A_dist_bot)
                 mu = one_third + RNG%Get_random() * two_thirds
                 omega = Isotropic_Azimuth(RNG)
-                OmegaHat = mu_omega_2_OmegaHat(mu,omega)
+                n%Omega_hat = mu_omega_2_OmegaHat(mu,omega)
         End Select
     End If
-    w = 1._dp
+    n%weight = 1._dp
     If (s%source_data) Then
-        Write(s%source_unit,'(9ES27.16E3)') t,r,E,OmegaHat,w
+        Write(s%source_unit,'(9ES27.16E3)') n%t,n%r,n%E0ef,n%Omega_hat,n%weight
         s%source_data_c = s%source_data_c + 1
         If (s%source_data_c .GE. s%max_source_data) Then
             Close(s%source_unit)
             s%source_data = .FALSE.
         End If
     End If
+    !Populate derived neutron properties
+    n%s0ef = Neutron_Speed(n%E0ef)
+    If (s%has_velocity) Then  !move energy & direction into ECI frame
+        v = n%Omega_hat * n%s0ef + s%v
+        n%E = Neutron_Energy(v)
+        n%Omega_hat = Unit_Vector(v)
+    Else  !otherwise, emission frame is ECI frame
+        n%E = n%E0ef
+    End If
+    n%zeta = Dot_Product(Unit_Vector(n%r),n%Omega_hat)
+    n%big_r = Vector_Length(n%r)
+    n%Z = n%big_r - R_center
 End Subroutine Sample_Source
 
 Function Sample_Uniform(RNG,E_min,E_max) Result(E)
@@ -466,6 +490,8 @@ Subroutine Write_Source(s,file_name)
             Write(unit,'(A,ES24.16E3,A)') '    Sphere-Surface w/ r = ',s%rad,' km'
         Case (source_geom_Sphere_V)
             Write(unit,'(A,ES24.16E3,A)') '    Sphere-Volume w/ r = ',s%rad,' km'
+        Case (source_geom_Sphere_V_unif)
+            Write(unit,'(A,ES24.16E3,A)') '    Sphere-Uniform Volume w/ r = ',s%rad,' km'
         Case (source_geom_Albedo)
             Write(unit,'(A,ES24.16E3,A)') '    Albedo w/ r = ',s%rad,' km'
     End Select
@@ -473,11 +499,16 @@ Subroutine Write_Source(s,file_name)
     Write(unit,'(A,ES24.16E3,A)') '    x = ',s%r(1),' km'
     Write(unit,'(A,ES24.16E3,A)') '    y = ',s%r(2),' km'
     Write(unit,'(A,ES24.16E3,A)') '    z = ',s%r(3),' km'
-    Write(unit,'(A,ES24.16E3,A)') '    Right Ascension = ', & 
-                                & Acos(s%r(1)/(Vector_Length(s%r)*Cos(Asin(s%r(3)/Vector_Length(s%r))))) / (Pi/180._dp), & 
-                                & ' deg'
-    Write(unit,'(A,ES24.16E3,A)') '    Declination     = ',Asin(s%r(3)/Vector_Length(s%r)) / (Pi/180._dp),' deg'
-    Write(unit,'(A,ES24.16E3,A)') '    Geometric Alt   = ',Vector_Length(s%r)-Rc,' km'
+    If (s%geom_index .NE. source_geom_Albedo) Then
+        Write(unit,'(A,ES24.16E3,A)') '    Right Ascension = ', & 
+                                    & Acos(s%r(1)/(Vector_Length(s%r)*Cos(Asin(s%r(3)/Vector_Length(s%r))))) / (Pi/180._dp), & 
+                                    & ' deg'
+        Write(unit,'(A,ES24.16E3,A)') '    Declination     = ',Asin(s%r(3)/Vector_Length(s%r)) / (Pi/180._dp),' deg'
+    Else
+        Write(unit,'(A,ES24.16E3,A)') '    Right Ascension = ',0._dp,' deg'
+        Write(unit,'(A,ES24.16E3,A)') '    Declination     = ',0._dp,' deg'
+    End If
+    Write(unit,'(A,ES24.16E3,A)') '    Geometric Alt   = ',s%Z,' km'
     If (s%exoatmospheric) Then
         Write(unit,'(A)') '    Source is EXOatmospheric'
     Else
