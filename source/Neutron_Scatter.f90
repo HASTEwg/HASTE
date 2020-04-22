@@ -106,8 +106,6 @@ Module Neutron_Scatter
         Procedure, Pass :: Set_Scatter_prep
         Procedure, Pass :: Set_Scatter_iso
         Procedure, Pass :: Set_Scatter_lev
-        Procedure, Pass :: Save_ScatMod_counts
-        Procedure, Pass :: Load_ScatMod_counts
     End Type
     
 Contains
@@ -666,67 +664,6 @@ Subroutine Scattered_Angles(Omega_hat0,Omega_hat1,mu,omega,B_hat,C_hat)
     mu = Dot_Product(Omega_hat0,Omega_hat1)
     omega = Atan2( Dot_Product(Omega_hat1,B_hat) , Dot_Product(Omega_hat1,C_hat) )
 End Subroutine Scattered_Angles
-
-!TODO Are these two routines (save counds and load counts) used anywhere in the project?  
-Subroutine Save_ScatMod_counts(ScatMod,dir,ext_in)
-    Use FileIO_Utilities, Only: Worker_Index
-    Use FileIO_Utilities, Only: max_path_len
-    Use FileIO_Utilities, Only: Var_to_file
-    Implicit None
-    Class(Scatter_Model_Type), Intent(In) :: ScatMod
-    Character(*), Intent(In) :: dir
-    Character(3), Intent(In), Optional :: ext_in
-    Character(4) :: i_char
-    Character(:), Allocatable :: fname
-    Character(4) :: ext
-    
-    If (Present(ext_in)) Then  !use the specified file extension
-        ext = '.'//ext_in
-    Else  !default file extension is .BIN for unformatted binary files
-        ext = '.bin'
-    End If
-    Write(i_char,'(I4.4)') Worker_Index()
-    Allocate(Character(max_path_len) :: fname)
-    !write couter arrays and values to files
-    fname = dir//'ScatMod_'//i_char//'_nk'//ext
-    Call Var_to_File(ScatMod%n_kills,fname)
-    fname = dir//'ScatMod_'//i_char//'_ne'//ext
-    Call Var_to_File(ScatMod%next_events,fname)
-    fname = dir//'ScatMod_'//i_char//'_nnt'//ext
-    Call Var_to_File(ScatMod%n_no_tally,fname)
-    fname = dir//'ScatMod_'//i_char//'_nu'//ext
-    Call Var_to_File(ScatMod%n_uncounted,fname)
-End Subroutine Save_ScatMod_counts
-
-Subroutine Load_ScatMod_counts(ScatMod,dir,ext_in)
-    Use FileIO_Utilities, Only: Worker_Index
-    Use FileIO_Utilities, Only: max_path_len
-    Use FileIO_Utilities, Only: Var_from_file
-    Implicit None
-    Class(Scatter_Model_Type), Intent(InOut) :: ScatMod
-    Character(*), Intent(In) :: dir
-    Character(3), Intent(In), Optional :: ext_in
-    Character(4) :: i_char
-    Character(:), Allocatable :: fname
-    Character(4) :: ext
-    
-    If (Present(ext_in)) Then  !use the specified file extension
-        ext = '.'//ext_in
-    Else  !default file extension is .BIN for unformatted binary files
-        ext = '.bin'
-    End If
-    Write(i_char,'(I4.4)') Worker_Index()
-    Allocate(Character(max_path_len) :: fname)
-    !write couter arrays and values to files
-    fname = dir//'ScatMod_'//i_char//'_nk'//ext
-    Call Var_from_File(ScatMod%n_kills,fname)
-    fname = dir//'ScatMod_'//i_char//'_ne'//ext
-    Call Var_from_File(ScatMod%next_events,fname)
-    fname = dir//'ScatMod_'//i_char//'_nnt'//ext
-    Call Var_from_File(ScatMod%n_no_tally,fname)
-    fname = dir//'ScatMod_'//i_char//'_nu'//ext
-    Call Var_from_File(ScatMod%n_uncounted,fname)
-End Subroutine Load_ScatMod_counts
 
 Subroutine Write_Scatter_Model(s,file_name)
     Use n_Cross_Sections, Only: Write_Cross_Sections

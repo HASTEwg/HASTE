@@ -45,6 +45,7 @@ Subroutine Do_Neutron(s,d,atm,ScatMod,RNG,contributed)
     n = Start_Neutron(s,atm,RNG,ScatMod,d)
     If (ScatMod%direct_contribution) Then
         Call First_Event_Neutron(n,ScatMod,s,d,atm)
+        Print*,1
         If (ScatMod%n_scatters .EQ. 0) Then
             If (d%TE_contrib_index.GT.0 .OR. d%Dir_contrib_index.GT.0) Then
                 contributed = .TRUE.
@@ -228,7 +229,7 @@ Subroutine Energy_Direction_SF_2_ECI(n,s)
     End If
 End Subroutine Energy_Direction_SF_2_ECI
 
-
+!TODO Procedures First_Event_Neutron and Attempt_Next_Event are similar... they can likely be combined with some generalization
 Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     Use Kinds, Only: dp
     Use Kinds, Only: id
@@ -285,9 +286,9 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
         
     ScatMod%next_events(1) = ScatMod%next_events(1) + 1_id
     If (ScatMod%Gravity) Then !check if energy is adequate to reach detector
-        If (SME(s%big_r,n%s0ef+s%speed) .LT. 0._dp) Then
+        If (SME(n%big_r,n%s0ef+s%speed) .LT. 0._dp) Then
             !neutron's max velocity is less than escape velocity, check if satellite altitude is achievable
-            If ( -2._dp * s%big_r * mu / ((n%s0ef + s%speed)**2 * s%big_r - 2._dp * mu) &
+            If ( -2._dp * n%big_r * mu / ((n%s0ef + s%speed)**2 * n%big_r - 2._dp * mu) &
                & .LT. & 
                & d%sat%rp ) &
             & Then !neutron max height is insufficent to reach satellite at its lowest point
@@ -297,20 +298,20 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
             End If
         End If
     End If
-    Call Next_Event_Trajectory(d%sat,ScatMod%Gravity,s%r,n%t,n%s0ef,s%v,path_found,rS2,dt,v1ef,v2sat,vS2)
+    Call Next_Event_Trajectory(d%sat,ScatMod%Gravity,n%r,n%t,n%s0ef,s%v,path_found,rS2,dt,v1ef,v2sat,vS2)
     If (.NOT. path_found) Return
     !Check for line of sight, compute EPL to detector as side effect
     v1 = v1ef + s%v
     s1 = Vector_Length(v1)
-    zeta1 = Dot_Product(Unit_Vector(s%r),Unit_Vector(v1))
+    zeta1 = Dot_Product(Unit_Vector(n%r),Unit_Vector(v1))
     If (s%exoatmospheric) Then  !emission point is above the atmosphere
         !check for LOS above atm and through atm, if through atm compute distance along the path as a side-effect
         xEff_top_atm = 0._dp
         no_LOS = .FALSE.
         If (zeta1 .LT. 0._dp) Then  !direction is downward
             If (ScatMod%Gravity) Then
-                h = s%big_r * s1 * Sqrt(1._dp - zeta1**2)
-                xi = 0.5_dp * s1**2 - mu / s%big_r
+                h = n%big_r * s1 * Sqrt(1._dp - zeta1**2)
+                xi = 0.5_dp * s1**2 - mu / n%big_r
                 p = h*h / mu
                 e = Sqrt(1._dp + 2._dp * xi * p / mu)
                 r_ca = p / (1._dp + e)
@@ -320,7 +321,7 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
                     xEff_top_atm = 2._dp * xEff_top_atm
                 End If
             Else
-                r_ca = R_close_approach(s%big_r,zeta1)
+                r_ca = R_close_approach(n%big_r,zeta1)
                 If (r_ca .LT. atm%R_bot) Then  !downward to earth, no LOS for contribution
                     Return
                 Else If (r_ca .LT. atm%R_top) Then !path cuts through atmosphere, but has attenuated LOS
@@ -333,9 +334,9 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     Else  !emission point is in the atmosphere
         !check for LOS, compute distance along the path as a side-effect
         If (ScatMod%Gravity) Then  !LOS need not be checked in the gravity case, the solver does not return trajectories w/o LOS
-            no_LOS = Next_Event_L_to_edge(atm,s%big_r,s1,s%Z,zeta1,xEff_top_atm)
+            no_LOS = Next_Event_L_to_edge(atm,n%big_r,s1,n%Z,zeta1,xEff_top_atm)
         Else
-            no_LOS = Next_Event_L_to_edge(atm,s%big_r,s%Z,zeta1,xEff_top_atm)
+            no_LOS = Next_Event_L_to_edge(atm,n%big_r,n%Z,zeta1,xEff_top_atm)
             If (no_LOS) Return
         End If
     End If
@@ -388,9 +389,9 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     End If
     !Adjust for divergence
     If (ScatMod%Gravity) Then
-        divEF = Div_Fact_by_shooting(s%r,Omega_hat1_ef,n%s0ef,s%v,tof,vS2,v2sat+vS2)
+        divEF = Div_Fact_by_shooting(n%r,Omega_hat1_ef,n%s0ef,s%v,tof,vS2,v2sat+vS2)
     Else
-        divEF = Div_Fact_Straight(s%r,v1,rS2,s%v,tof,vS2)
+        divEF = Div_Fact_Straight(n%r,v1,rS2,s%v,tof,vS2)
     End If
     w2 = w2 * divEF
     !Adjust for interaction suppression on the path out of the atmosphere
@@ -403,7 +404,7 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
             End If
         Else
             If (ScatMod%Doppler_Broaden) Then
-                sigma_T1 = ScatMod%CS%sig_T_broad(Neutron_Energy(v1),atm%T(s%Z))
+                sigma_T1 = ScatMod%CS%sig_T_broad(Neutron_Energy(v1),atm%T(n%Z))
             Else
                 sigma_T1 = ScatMod%CS%sig_T(Neutron_Energy(v1))
             End If

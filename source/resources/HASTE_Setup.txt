@@ -16,11 +16,11 @@
 
 &ProgramSetupList
 !-----------------------------------------------------------------------------------------------------------------------------------
-prompt_for_exit = .TRUE.   !<.TRUE.,.FALSE.> 
+prompt_for_exit = .FALSE.   !<.TRUE.,.FALSE.> 
 screen_progress = .TRUE.   !<.TRUE.,.FALSE.>  Sets whether run progress and percent complete should be printed to screen
-output_folder = ''         ! Default output goes to 'Results' directory, you may add up to one more folder to this tree, do not 
+output_folder = 'tests'         ! Default output goes to 'Results' directory, you may add up to one more folder to this tree, do not 
                            ! include 'Results\', do not include trailing slash
-file_suffix = ''           ! Appended to end of results filenames, do not include file extension
+file_suffix = '-sa'           ! Appended to end of results filenames, do not include file extension
 force_overwrite = .TRUE.   !<.TRUE.,.FALSE.>  Sets default file overwrite behavior, FALSE will prompt user for confirmation or new 
                            !                  filenames before overwriting files
 interim_outputs = .TRUE.   !<.TRUE.,.FALSE.>  TRUE indicates that periodic output of interim results from which a simulation run 
@@ -34,7 +34,7 @@ interim_period = 300       ! Number of interim_units between interim outputs.
 
 &EstimatorSetupList
 !-----------------------------------------------------------------------------------------------------------------------------------
-n_neutron_histories = 1000000  !number of neutron histories to run
+n_neutron_histories = 100000  !number of neutron histories to run
 absolute_n_histories = .TRUE.     !<.TRUE.,.FALSE.>  TRUE sets number of histories to exactly the number specified above, FALSE 
                                   !                  will cause the simulation to run until the number of histories WITH 
                                   !                  CONTRIBUTIONS reaches the number above
@@ -106,7 +106,7 @@ Wind = .FALSE.                   !<.TRUE.,.FALSE.>  TRUE adds a global wind comp
 
 &NeutronSourceList
 !-----------------------------------------------------------------------------------------------------------------------------------
-source_geometry = 'Point'        !<'Point','Sphere_V','Sphere_S','Albedo'>
+source_geometry = 'Albedo'        !<'Point','Sphere_V','Sphere_S','Albedo'>
 r_source = 0.                    ![km]  Radius of the source sphere. Must be greater than radius of the earth for 'Albedo'.
 position_geometry = 'Celestial'  !<'Celestial','Cartesian'>  Specifies the coodinate system in which source position is provided 
 x_source = 0.                    ![km]  Used only for 'Cartesian' geometry
@@ -145,7 +145,7 @@ source_t_dist = 'Point'          !<'Point','Uniform'>
 t_start = 0.                     ![s]  Value for 'Point', min value for 'Uniform'
 t_stop = 0.                      ![s]  Max value for 'Uniform'
 collect_source_data = .TRUE.     !<.TRUE.,.FALSE.>  TRUE causes raw data to be written to file as it is sampled from the source 
-source_data_limit = 100000       ! Maximum number of raw source samples to write to file
+source_data_limit = 1000       ! Maximum number of raw source samples to write to file
 !-----------------------------------------------------------------------------------------------------------------------------------
 /
 
@@ -181,7 +181,7 @@ t_res = 0.01                     ![s]  Time grid resolution, Only used for 'Line
 t_bins_per_decade = 100          ! Only used for 'Log' spacing
 n_mu_bins = 2000                 ! Number of steps in polar angle cosine for angle of arrival grid
 n_omega_bins = 180               ! Number of steps in rotation angle for angle of arrival grid
-collect_shape_data = .TRUE.      !<.TRUE.,.FALSE.>  TRUE causes raw data to be written to file characterizing shape of neutron flux 
+collect_shape_data = .FALSE.      !<.TRUE.,.FALSE.>  TRUE causes raw data to be written to file characterizing shape of neutron flux 
                                  !                  peaks at various cross sections on the TE grid
 shape_data_n_slices = 10         ! Number of slices at which to collect shape data, slices will be uniformly spaced over the grid 
                                  ! in time and energy (2x slices are collected, one in time and one in energy), MAXIMUM 999

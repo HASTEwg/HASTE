@@ -309,7 +309,6 @@ End Function zeta_downward_r0r1zeta0
 Subroutine EPL_straight_upward_full(atm,r0,zeta0,z0,L,z1_in)
     Use Kinds, Only: dp
     Use Atmospheres, Only: Atmosphere_Type
-    Use Utilities, Only: Bisection_Search
     Implicit None
     Type(Atmosphere_Type), Intent(In) :: atm
     Real(dp), Intent(In) :: r0
@@ -332,7 +331,6 @@ End Subroutine EPL_straight_upward_full
 Subroutine EPL_orbit_upward_full(atm,z0,zeta0,h,xi,p,e,rp,L,z1_in)
     Use Kinds, Only: dp
     Use Atmospheres, Only: Atmosphere_Type
-    Use Utilities, Only: Bisection_Search
     Implicit None
     Type(Atmosphere_Type), Intent(In) :: atm
     Real(dp), Intent(In) :: z0,zeta0
@@ -359,7 +357,6 @@ Subroutine Check_EPL(L,z0,z1,zeta0,b,atm)
     Use Global, Only: Rc => R_center
     Use Quadratures, Only: Romberg_Quad
     Use Utilities, Only: Prec
-    Use Utilities, Only: Bisection_Search
     Implicit None
     Real(dp), Intent(In) :: L
     Real(dp), Intent(In) :: z0,z1,zeta0
