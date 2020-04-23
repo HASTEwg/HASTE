@@ -842,7 +842,6 @@ End Subroutine Lambert_Gooding
 
 Pure Subroutine vlamb(r1,r2,th,tdelt,vr1,vt1,vr2,vt2)
     Use Kinds, Only: dp
-    Use Global, Only: TwoPi
     Use Global, Only: mu => grav_param
     Implicit None
     Real(dp), Intent(In) :: r1
@@ -876,7 +875,7 @@ Pure Subroutine vlamb(r1,r2,th,tdelt,vr1,vt1,vr2,vt2)
     End If
     t = 4._dp * gms * tdelt / s**2
     Call xLamb(q,qsqfm1,t,x)
-    Call qzminx_qzplx_zplqx(q,qsqfm1,x,qzminx,qzplx,zplqx)
+    Call tLamb_from_vLamb(q,qsqfm1,x,qzminx,qzplx,zplqx)
     vt2 = gms * zplqx * Sqrt(sig)
     vr1 = gms * (qzminx - qzplx * rho) / r1
     vt1 = vt2 / r1
@@ -884,14 +883,98 @@ Pure Subroutine vlamb(r1,r2,th,tdelt,vr1,vt1,vr2,vt2)
     vt2 = vt2 / r2
 End Subroutine vLamb
 
-Pure Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
+Pure Subroutine xLamb(q,qsqfm1,tin,x)
+    Use Kinds, Only: dp
+    Use Global, Only: Pi
+    Implicit None
+    Real(dp), Intent(In)  :: q
+    Real(dp), Intent(In)  :: qsqfm1
+    Real(dp), Intent(In)  :: tin
+    Real(dp), Intent(Out) :: x
+    Integer  :: i
+    Real(dp) :: thr2,t0,dt,d2t
+    Real(dp) :: tdiff,w,t
+
+    thr2 = Atan2(qsqfm1 , 2._dp * q) / Pi
+    !single-rev starter from t (at x = 0) & bilinear (usually)
+    Call tLamb_from_xLamb1(q,qsqfm1,t0)
+    tdiff = tin - t0
+    If (tdiff .LE. 0._dp) Then
+        x = t0 * tdiff / (-4._dp * tin)
+        !(-4 is the value of dt, for x = 0)
+    Else
+        x = -tdiff / (tdiff + 4._dp)
+        w = x + 1.7_dp * Sqrt(2._dp * (1._dp - thr2))
+        If (w .LT. 0._dp) x = x - Sqrt(Sqrt(Sqrt(Sqrt(-w)))) * (x + Sqrt(tdiff / (tdiff + 1.5_dp * t0)))
+        w = 4._dp / (4._dp + tdiff)
+        x = x * (1._dp + x * (0.5_dp * w - 0.03_dp * x * Sqrt(w)))
+    End If
+    !(now have a starter, so proceed by halley)
+    Do i = 1,3
+        Call tLamb_from_xLamb2(q,qsqfm1,x,t,dt,d2t)
+        t = tin - t
+        If (dt .NE. 0._dp) x = x + t * dt / (dt * dt + 0.5_dp * t * d2t)
+    End Do
+End Subroutine xLamb
+
+Pure Subroutine tLamb_from_vLamb(q,qsqfm1,x,dt,d2t,d3t)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp), Intent(In) :: q
+    Real(dp), Intent(In) :: qsqfm1
+    Real(dp), Intent(In) :: x
+    Real(dp), Intent(Out) :: dt
+    Real(dp), Intent(Out) :: d2t
+    Real(dp), Intent(Out) :: d3t
+    Real(dp) :: qsq,xsq,u,z,qx,a,b,aa,bb
+
+    qsq = q * q
+    xsq = x * x
+    u = (1._dp - x) * (1._dp + x)
+    z = Sqrt(qsqfm1 + qsq * xsq)
+    qx = q * x
+    If (qx .LE. 0._dp) Then
+        a = z - qx
+        b = q * z - x
+        If (qx .LT. 0._dp) then
+            aa = qsqfm1 / a
+            bb = qsqfm1 * (qsq * u - xsq) / b
+        End If
+    End If
+    If (qx .GE. 0._dp) Then
+        aa = z + qx
+        bb = q * z + x
+        If (qx .GT. 0._dp) Then
+            a = qsqfm1 / aa
+            b = qsqfm1 * (qsq * u - xsq) / bb
+        End If
+    End If
+    dt = b
+    d2t = bb
+    d3t = aa
+End Subroutine tLamb_from_vLamb
+
+Pure Subroutine tLamb_from_xLamb1(q,qsqfm1,t)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp), Intent(In) :: q
+    Real(dp), Intent(In) :: qsqfm1
+    Real(dp), Intent(Out) :: t
+    Real(dp) :: z
+
+    z = Sqrt(qsqfm1 + q*q)
+    t = Atan2(z, q)
+    t = 2._dp * (t + q*z)
+End Subroutine tLamb_from_xLamb1
+
+Pure Subroutine tLamb_from_xLamb2(q,qsqfm1,x,t,dt,d2t)!,d3t)
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: q
     Real(dp), Intent(In) :: qsqfm1
     Real(dp), Intent(In) :: x
     Real(dp), Intent(Out) :: t
-    Real(dp), Intent(Out), Optional :: dt,d2t
+    Real(dp), Intent(Out) :: dt,d2t
     Integer :: i
     Real(dp) :: qsq,xsq,u,y,z
     Real(dp) :: qx,a,b,aa,bb,g,f,fg1,term,fg1sq,twoi1
@@ -903,10 +986,8 @@ Pure Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
     qsq = q * q
     xsq = x * x
     u = (1._dp - x) * (1._dp + x)
-    If (Present(dt)) Then
-        dt = 0._dp
-        d2t = 0._dp
-    End If
+    dt = 0._dp
+    d2t = 0._dp
     If (x.LT.0._dp .OR. Abs(u).GT.sw) Then  !direct computation (not series)
         y = Sqrt(Abs(u))
         z = Sqrt(qsqfm1 + qsq * xsq)
@@ -914,16 +995,9 @@ Pure Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
         If (qx .LE. 0._dp) Then
             a = z - qx
             b = q * z - x
-        End If
-        If (qx .LT. 0._dp) then
-            aa = qsqfm1 / a
-            bb = qsqfm1 * (qsq * u - xsq) / b
-        End If
-        If (qx .GE. 0._dp) Then
+        Else !(qx .GT. 0._dp)
             aa = z + qx
             bb = q * z + x
-        End If
-        If (qx .GT. 0._dp) Then
             a = qsqfm1 / aa
             b = qsqfm1 * (qsq * u - xsq) / bb
         End If
@@ -954,19 +1028,15 @@ Pure Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
             End If
         End If
         t = 2._dp * (t / y + b) / u
-        If (Present(dt)) Then
-            If (z .NE. 0._dp) Then
-                dt = (3._dp * x * t - 4._dp * (a + qx * qsqfm1) / z) / u
-                qz3 = (q / z)**3
-                d2t = (3._dp * t + 5._dp * x * dt + 4._dp * qz3 * qsqfm1) / u
-            End If
+        If (z .NE. 0._dp) Then
+            dt = (3._dp * x * t - 4._dp * (a + qx * qsqfm1) / z) / u
+            qz3 = (q / z)**3
+            d2t = (3._dp * t + 5._dp * x * dt + 4._dp * qz3 * qsqfm1) / u
         End If
     Else  !compute by series
         u0i = 1._dp
-        If (Present(dt)) Then
-            u1i = 1._dp
-            u2i = 1._dp
-        End If
+        u1i = 1._dp
+        u2i = 1._dp
         term = 4._dp
         tq = q * qsqfm1
         i = 0
@@ -981,10 +1051,8 @@ Pure Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
             i = i + 1
             p = Real(i,dp)
             u0i = u0i * u
-            If (Present(dt)) Then
-                If (i .GT. 1) u1i = u1i * u
-                If (i .GT. 2) u2i = u2i * u
-            End If
+            If (i .GT. 1) u1i = u1i * u
+            If (i .GT. 2) u2i = u2i * u
             term = term * (p - 0.5_dp) / p
             tq = tq * qsq
             tqsum = tqsum + tq
@@ -994,90 +1062,15 @@ Pure Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
             t = t + deltat
             ttmold = tterm
             tqterm = tqterm * p
-            If (Present(dt)) Then
-                dt = dt + tqterm * u1i
-                d2t = d2t + tqterm * u2i * (p - 1._dp)
-            End If
+            dt = dt + tqterm * u1i
+            d2t = d2t + tqterm * u2i * (p - 1._dp)
             If (i.GE.2 .AND. Abs(deltat).LT.1.E-16*t) Exit
         End Do
-        If (Present(dt)) Then
-            d2t = 2._dp * (2._dp * xsq * d2t - dt)
-            dt = -2._dp * x * dt
-        End If
+        d2t = 2._dp * (2._dp * xsq * d2t - dt)
+        dt = -2._dp * x * dt
         t = t / xsq
     End If
-End Subroutine tLamb
-
-Pure Subroutine xLamb(q,qsqfm1,tin,x)
-    Use Kinds, Only: dp
-    Use Global, Only: Pi
-    Implicit None
-    Real(dp), Intent(In)  :: q
-    Real(dp), Intent(In)  :: qsqfm1
-    Real(dp), Intent(In)  :: tin
-    Real(dp), Intent(Out) :: x
-    Integer  :: i
-    Real(dp) :: thr2,t0,dt,d2t!,d3t
-    Real(dp) :: tdiff,w,t
-
-    thr2 = Atan2(qsqfm1 , 2._dp * q) / Pi
-    !single-rev starter from t (at x = 0) & bilinear (usually)
-    Call tLamb(q,qsqfm1,0._dp,t0)
-    tdiff = tin - t0
-    If (tdiff .LE. 0._dp) Then
-        x = t0 * tdiff / (-4._dp * tin)
-        !(-4 is the value of dt, for x = 0)
-    Else
-        x = -tdiff / (tdiff + 4._dp)
-        w = x + 1.7_dp * Sqrt(2._dp * (1._dp - thr2))
-        If (w .LT. 0._dp) x = x - Sqrt(Sqrt(Sqrt(Sqrt(-w)))) * (x + Sqrt(tdiff / (tdiff + 1.5_dp * t0)))
-        w = 4._dp / (4._dp + tdiff)
-        x = x * (1._dp + x * (0.5_dp * w - 0.03_dp * x * Sqrt(w)))
-    End If
-    !(now have a starter, so proceed by halley)
-    Do i = 1,3
-        Call tLamb(q,qsqfm1,x,t,dt,d2t)
-        t = tin - t
-        If (dt .NE. 0._dp) x = x + t * dt / (dt * dt + 0.5_dp * t * d2t)
-    End Do
-End Subroutine xLamb
-
-Pure Subroutine qzminx_qzplx_zplqx(q,qsqfm1,x,qzminx,qzplx,zplqx)
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp), Intent(In) :: q
-    Real(dp), Intent(In) :: qsqfm1
-    Real(dp), Intent(In) :: x
-    Real(dp), Intent(Out) :: qzminx
-    Real(dp), Intent(Out) :: qzplx
-    Real(dp), Intent(Out) :: zplqx
-    Real(dp) :: qsq,xsq,u,z,qx,a,b,aa,bb
-
-    qsq = q * q
-    xsq = x * x
-    u = (1._dp - x) * (1._dp + x)
-    z = Sqrt(qsqfm1 + qsq * xsq)
-    qx = q * x
-    If (qx .LE. 0._dp) Then
-        a = z - qx
-        b = q * z - x
-    End If
-    If (qx.LT.0._dp) then
-        aa = qsqfm1 / a
-        bb = qsqfm1 * (qsq * u - xsq) / b
-    End If
-    If (qx .GE. 0._dp) Then
-        aa = z + qx
-        bb = q * z + x
-    End If
-    If (qx .GT. 0._dp) Then
-        a = qsqfm1 / aa
-        b = qsqfm1 * (qsq * u - xsq) / bb
-    End If
-    qzminx = b
-    qzplx = bb
-    zplqx = aa
-End Subroutine qzminx_qzplx_zplqx
+End Subroutine tLamb_from_xLamb2
 
 !-------------------------------------------------------------------------------
 !   Gooding's Method for Kepler's Problem
