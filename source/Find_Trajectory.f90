@@ -392,7 +392,8 @@ Subroutine Prev_Event_Trajectory(sat, Gravity, t2, v2sat, Found, r1, v1, tof)
     Use Kinds, Only: dp
     Use Satellite_Motion, Only: Satellite_Position_Type
     Use Astro_Utilities, Only: Radius_of_Periapsis
-    Use Astro_Utilities, Only: Time_Since_Periapsis
+    Use Astro_Utilities, Only: Time_Since_Periapsis,period
+    Use Astro_Utilities, Only: SME
     Use Astro_Utilities, Only: Time_to_R
     Use Astro_Utilities, Only: Kepler_Gooding
     Use Global, Only: Rc => R_center
@@ -410,17 +411,34 @@ Subroutine Prev_Event_Trajectory(sat, Gravity, t2, v2sat, Found, r1, v1, tof)
     Real(dp) :: r2(1:3)          ! [km]   location of intercept
     Real(dp) :: v2(1:3)          ! [km/s] velocity of neutron at satellite (inertial frame)
     Real(dp) :: r2mag, zeta, r_ca
+    Real(dp) :: t_min,t_max
 
     Found = .FALSE.
     !Get detector position and velocity at time of intercept
     Call sat%R_and_V(t2,r2,v2)
-    !Shift detected neutron into intertial frame, and reflect to define the downward trajectory
-    v2 = -(v2sat + v2)
+    !Shift detected neutron into intertial frame
+    v2 = v2sat + v2
     If (Gravity) Then
+        If (Dot_Product(r2,v2) .LE. 0._dp) Then !this is an INBOUND trajectory
+            If (SME(r2,v2).GE.0._dp) Then
+            !The neutron required for this intercept comes from the INBOUND portion of an escape trajectory...
+            !That means the intercept is not possible since the neutron must originate from the surface BELOW
+                Return
+            Else
+            !the search needs to be along the 'long' way around the orbit
+                t_min = 0.5_dp*Period(r2,v2) + Time_Since_Periapsis(r2,v2)
+                t_max = t_min + 0.5_dp*Period(r2,v2)
+            End If
+        Else
+            t_min = 0._dp
+            t_max = Time_Since_Periapsis(r2,v2)
+        End If
         If (Radius_of_Periapsis(r2,v2) .LE. Rc) Then  !there is a possible trajectory from the surface at Rc
             found = .TRUE.
+            !Reflect the velocity vector to change orbit direction so we're searching "forward"
+            v2 = -v2
             !intercept ocurrs between t2 (by definition above the surface) and time of periapsis (by construction below the surface)
-            tof = Time_to_R(r2,v2,Rc,0._dp,Time_Since_Periapsis(r2,-v2))
+            tof = Time_to_R(r2,v2,Rc,t_min,t_max)
             Call Kepler_Gooding(r2,v2,tof,r1,v1)
             v1 = -v1  !emission velocity for intercept is in the opposite direction on this orbit
         Else  !trajectory does not intersect the central body or the scattering medium

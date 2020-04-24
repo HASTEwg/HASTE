@@ -210,6 +210,7 @@ Recursive Function Time_to_R(r0,v0,radius,t_min,t_max,t_guess,allow_recursion) R
         r_mag = Vector_Length(r)
         t = t_old - (r_mag - radius) / Dot_Product(r/r_mag,v)
         If (Converged(t,t_old,rTol=1.E-12_dp,aTol=1.E-9_dp)) Return  !normal exit
+        If (Present(t_guess)) Cycle  !ignore bounds for a recursive call, the starter may wander, but should... be good enough
         If (t.LT.t1 .OR. t.GT.t2) Exit  !Newton's method has diverged from known bounds, use bisection for a better start
     End Do
     If (Present(allow_recursion)) Then  !check if recursion is allowed
@@ -222,6 +223,7 @@ Recursive Function Time_to_R(r0,v0,radius,t_min,t_max,t_guess,allow_recursion) R
         Print *,'ERROR:  Astro_Utilities: Time_to_R:  Failed to converge on a root for t after recursion.'
         ERROR STOP
     End If
+    t_old = t2
     Do j = 1,1000
         t = 0.5_dp * (t1 + t2)
         If (Converged(t,t_old,rTol=1.E-3_dp,aTol=1.E-3_dp)) Exit
@@ -389,6 +391,7 @@ Function Time_Since_Periapsis(r_vec,v_vec) Result(t)
     If (alpha .GT. tolerance) Then !elliptical
         CosE = (e + CosNu) / (1._dp + e * CosNu)
         t = (ACos(CosE) - e * Sqrt(1-CosE**2)) / Sqrt(mu * alpha**3)
+        t = SIGN(t,Dot_Product(r_vec,v_vec))
     Else If (alpha .LT. -tolerance) Then !hyperbolic
         CoshF = (e + CosNu) / (1._dp + e * CosNu)
         F = Log(CoshF + Sqrt(CoshF**2 - 1._dp))
@@ -967,7 +970,7 @@ Pure Subroutine tLamb_from_xLamb1(q,qsqfm1,t)
     t = 2._dp * (t + q*z)
 End Subroutine tLamb_from_xLamb1
 
-Pure Subroutine tLamb_from_xLamb2(q,qsqfm1,x,t,dt,d2t)!,d3t)
+Pure Subroutine tLamb_from_xLamb2(q,qsqfm1,x,t,dt,d2t)
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: q
