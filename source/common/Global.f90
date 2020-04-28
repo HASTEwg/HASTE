@@ -40,7 +40,16 @@ Module Global
     Real(dp), Parameter :: nA = 6.022140857E23_dp  ![1/mol] Avagadro's number
     Real(dp), Parameter :: h_Planck = 6.62607015E-34_dp  ![J*s] Planck constant
     Real(dp), Parameter :: h_bar_Planck = h_Planck / TwoPi  ![J*s] reduced Planck constant
-    
+
+!  Sun and Gravitation
+    Real(dp), Parameter :: R_sun = 695700._dp     ![km] Mean volumetric radius of the sun
+    Real(dp), Parameter :: grav_parameter_sun = 132712.440018E6_dp  ![km^3 / s^2]  standard gravitational parameter of Earth
+    Real(dp), Parameter :: Escape_speed_sun = &  !minimum speed to escape the sun's gravitational influence from the surface
+                               & Sqrt(2._dp * grav_parameter_sun / R_sun)  ![km/s]
+    Real(dp), Parameter :: g0_sun = grav_parameter_sun / R_sun  ![km/s^2] solar acceleration due to gravity
+    Real(dp), Parameter :: Sun_mass = 1988500.E24_dp  ![kg]
+    Real(dp), Parameter :: Sun_SOI = HUGE(Sun_SOI)  ![km]
+
 !  Earth and Gravitation
     Real(dp), Parameter :: R_Earth = 6371.00079_dp     ![km] Mean volumetric radius of earth
     Real(dp), Parameter :: std_grav_parameter = 398600.4418_dp  ![km^3 / s^2]  standard gravitational parameter of Earth
@@ -49,6 +58,10 @@ Module Global
     Real(dp), Parameter :: rot_Earth = 7.292115E-5_dp  ![rad/s] Mean rotational speed of the Earth (radians per SIDEREAL second)
     Real(dp), Parameter :: Sid_Day_sec = 86164.09053_dp  !number of seconds in a sidereal day
     Real(dp), Parameter :: g0_earth = 9.80665E-3_dp  ![km/s^2] standard acceleration due to gravity !std_grav_parameter / R_earth
+    Real(dp), Parameter :: Earth_mass = 5.9724E24_dp  ![kg]
+    Real(dp), Parameter :: Earth_orbit_a = 149.6E6_dp ![km]
+    Real(dp), Parameter :: Earth_SOI = Earth_orbit_a * (Earth_mass / Sun_mass)**0.4_dp  ![km]
+
 
 !  Moon and Gravitation
     Real(dp), Parameter :: R_moon = 1737.4_dp  ![km] Mean volumetric radius of the moon
@@ -56,6 +69,9 @@ Module Global
     Real(dp), Parameter :: Escape_speed_moon = &  !minimum speed to escape the moon's gravitational influence from the surface
                                & Sqrt(2._dp * grav_parameter_moon / R_moon)  ![km/s]
     Real(dp), Parameter :: g0_moon = grav_parameter_moon / R_moon  ![km/s^2] lunar acceleration due to gravity
+    Real(dp), Parameter :: Moon_mass = 0.07346E24_dp  ![kg]
+    Real(dp), Parameter :: Moon_orbit_a = 0.3844E6_dp ![km]
+    Real(dp), Parameter :: Moon_SOI = Moon_orbit_a * (Moon_mass / Earth_mass)**0.4_dp  ![km]
 
 !   Conditionally compiled constants to set either the Earth or the moon as the gravitaional body for gravity calculations
 #   if LUNA
@@ -63,11 +79,19 @@ Module Global
         Real(dp), Parameter :: grav_param = grav_parameter_moon
         Real(dp), Parameter :: Esc_speed = Escape_speed_moon
         Real(dp), Parameter :: g0 = g0_moon
+        Real(dp), Parameter :: SOI_center = Moon_SOI
+#   elif SOL
+        Real(dp), Parameter :: R_center = R_sun
+        Real(dp), Parameter :: grav_param = grav_parameter_sun
+        Real(dp), Parameter :: Esc_speed = Escape_speed_sun
+        Real(dp), Parameter :: g0 = g0_sun
+        Real(dp), Parameter :: SOI_center = Sun_SOI
 #   else
         Real(dp), Parameter :: R_center = R_earth
         Real(dp), Parameter :: grav_param = std_grav_parameter
         Real(dp), Parameter :: Esc_speed = Escape_speed
         Real(dp), Parameter :: g0 = g0_earth
+        Real(dp), Parameter :: SOI_center = Earth_SOI
 #   endif
 
 ! NEUTRON constants

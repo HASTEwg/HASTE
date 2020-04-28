@@ -391,12 +391,15 @@ Subroutine Prev_Event_Trajectory(sat, Gravity, t2, v2sat, Found, r1, v1, tof)
     !UNDONE This routine does not find the loaction of emission in a scattering medium (it puts the emission on a sphere with r=Rc)
     Use Kinds, Only: dp
     Use Satellite_Motion, Only: Satellite_Position_Type
+    Use Astro_Utilities, Only: Radius_of_Apoapsis
     Use Astro_Utilities, Only: Radius_of_Periapsis
-    Use Astro_Utilities, Only: Time_Since_Periapsis,period
+    Use Astro_Utilities, Only: Time_Since_Periapsis
+    Use Astro_Utilities, Only: Period
     Use Astro_Utilities, Only: SME
     Use Astro_Utilities, Only: Time_to_R
     Use Astro_Utilities, Only: Kepler_Gooding
     Use Global, Only: Rc => R_center
+    Use Global, Only: SOIc => SOI_center
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Unit_Vector
     Implicit None
@@ -411,7 +414,7 @@ Subroutine Prev_Event_Trajectory(sat, Gravity, t2, v2sat, Found, r1, v1, tof)
     Real(dp) :: r2(1:3)          ! [km]   location of intercept
     Real(dp) :: v2(1:3)          ! [km/s] velocity of neutron at satellite (inertial frame)
     Real(dp) :: r2mag, zeta, r_ca
-    Real(dp) :: t_min,t_max
+    Real(dp) :: t_min,t_max,half_P
 
     Found = .FALSE.
     !Get detector position and velocity at time of intercept
@@ -419,17 +422,23 @@ Subroutine Prev_Event_Trajectory(sat, Gravity, t2, v2sat, Found, r1, v1, tof)
     !Shift detected neutron into intertial frame
     v2 = v2sat + v2
     If (Gravity) Then
-        If (Dot_Product(r2,v2) .LE. 0._dp) Then !this is an INBOUND trajectory
+        If (Dot_Product(r2,v2) .LE. 0._dp) Then !the neutron is on the INBOUND or RETURN portion of the trajectory
             If (SME(r2,v2).GE.0._dp) Then
-            !The neutron required for this intercept comes from the INBOUND portion of an escape trajectory...
-            !That means the intercept is not possible since the neutron must originate from the surface BELOW
+                !The neutron required for this intercept comes from the INBOUND portion of an escape trajectory...
+                !The intercept is not possible since the neutron must originate from the surface BELOW
                 Return
-            Else
-            !the search needs to be along the 'long' way around the orbit
-                t_min = 0.5_dp*Period(r2,v2) + Time_Since_Periapsis(r2,v2)
-                t_max = t_min + 0.5_dp*Period(r2,v2)
+            Else  !this neutron is on the return portion of a closed trajectory
+                If (Radius_of_Apoapsis(r2,v2) .GT. SOIc) Then
+                    !this trajectory departs the gravitational SOI of the attracting body
+                    !the two-body approximation is no good, and the tof is stupid long
+                    Return
+                End If
+                !the search needs to be along the 'long' way around the orbit
+                half_P = 0.5_dp*Period(r2,v2)
+                t_min = half_P + Time_Since_Periapsis(r2,v2)
+                t_max = t_min + half_P
             End If
-        Else
+        Else  !the neutron in on the OUTBOUND or DEPARTING portion of the trajectory
             t_min = 0._dp
             t_max = Time_Since_Periapsis(r2,v2)
         End If
