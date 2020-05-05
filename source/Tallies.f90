@@ -22,6 +22,7 @@ Module Tallies
     Public :: Contrib_quadruplet
     Public :: Contrib_array
     Public :: Setup_Tallies
+    Public :: Clear_Tallies
     
     Type :: Contrib_triplet
         Integer :: i1
@@ -50,11 +51,12 @@ Module Tallies
     
 Contains
 
-Function Setup_Tallies(n_1_bins,n_2_bins) Result(t)
+Pure Function Setup_Tallies(n_1_bins,n_2_bins) Result(t)
     Use Kinds, Only: dp
     Implicit None
     Type(Contrib_array) :: t
-    Integer :: n_1_bins,n_2_bins
+    Integer, Intent(In) :: n_1_bins
+    Integer, Intent(In) :: n_2_bins
     
     t%tot_f_sq = 0._dp
     Allocate(t%f_sq_1(1:n_1_bins))
@@ -66,6 +68,19 @@ Function Setup_Tallies(n_1_bins,n_2_bins) Result(t)
     t%size = Min(n_1_bins,n_2_bins)
     Allocate(t%contribs(1:t%size))
 End Function Setup_Tallies
+
+Pure Subroutine Clear_Tallies(t)
+    Use Kinds, Only: dp
+    Implicit None
+    Type(Contrib_array), Intent(InOut) :: t
+
+    t%tot_f_sq = 0._dp
+    If (Allocated(t%f_sq_1)) Deallocate(t%f_sq_1)
+    If (Allocated(t%f_sq_2)) Deallocate(t%f_sq_2)
+    t%index = -1
+    t%size = -1
+    If (Allocated(t%contribs)) Deallocate(t%contribs)
+End Subroutine Clear_Tallies
 
 Subroutine Tally_History(t,n,contribs,n1,contribs1,n2,contribs2)
     Use Kinds, Only: dp

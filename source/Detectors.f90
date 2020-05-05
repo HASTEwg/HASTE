@@ -22,6 +22,7 @@ Module Detectors
     Private
     Public :: Detector_Type
     Public :: Grid_Info_Type
+    Public :: Define_Grid_Info
     Public :: Setup_Detector
     Public :: Write_Detector
     Public :: Close_Slice_files
