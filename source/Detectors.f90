@@ -96,8 +96,7 @@ Function Setup_Detector(setup_file_name,resources_dir,run_file_name,slice_file_n
     Real(dp) :: E_res,t_res  !resolution of time and energy grids
     Integer :: E_bins_per_decade  !number of energy bins per decade, used for 'log' grid spacing 
     Integer :: t_bins_per_decade  !number of time bins per decade, used for 'log' grid spacing
-    Integer :: log_max,log_min
-    Integer :: n_decades,n_bins
+    Logical :: log_sp
     Real(dp) :: RA,DEC
     Character(10) :: E_grid_spacing,t_grid_spacing  !specifies 'Log' or 'Linear' for grid spacing
     Integer :: n_mu_bins,n_omega_bins
@@ -157,87 +156,27 @@ Function Setup_Detector(setup_file_name,resources_dir,run_file_name,slice_file_n
     !create time grid
     Select Case(t_grid_spacing)
         Case('Log')
-            d%TE_grid(1)%log_spacing = .TRUE.
-            !adjust t_min, t_max to enclose a set of complete regular decades
-            log_min = Floor(log10(t_min))
-            t_min = 10._dp**log_min
-            log_max = Ceiling(log10(t_max))
-            t_max = 10._dp**log_max
-            n_decades = log_max - log_min
-            n_bins = n_decades * t_bins_per_decade
-            Allocate(d%TE_grid(1)%bounds(0:n_bins))
-            Do CONCURRENT (i = 0:n_bins)
-                d%TE_grid(1)%bounds(i) = 10._dp**(Real(log_min,dp) + Real(i,dp) / Real(t_bins_per_decade,dp))
-            End Do
-            d%TE_grid(1)%log_min = log_min
-            d%TE_grid(1)%log_max = log_max
-            d%TE_grid(1)%n_decades = n_decades
+            log_sp = .TRUE.
         Case('Linear')
-            d%TE_grid(1)%log_spacing = .FALSE.
-            n_bins = Ceiling((t_max - t_min) / t_res)
-            Allocate(d%TE_grid(1)%bounds(0:n_bins))
-            Do CONCURRENT (i = 0:n_bins)
-                d%TE_grid(1)%bounds(i) = t_min + Real(i,dp) * t_res
-            End Do
-            d%TE_grid(1)%res = t_res
+            log_sp = .FALSE.
         Case Default
             Call Output_Message('ERROR:  Detectors: Setup_Detector:  Undefined t grid spacing',kill=.TRUE.)
     End Select
-    d%TE_grid(1)%min = t_min
-    d%TE_grid(1)%max = t_max
-    d%TE_grid(1)%n_bins = n_bins
+    d%TE_grid(1) = Define_Grid_Info(log_sp,t_min,t_max,t_res,t_bins_per_decade)
     !Create energy grid
     Select Case(E_grid_spacing)
         Case('Log')
-            d%TE_grid(2)%log_spacing = .TRUE.
-            !adjust E_min, E_max to enclose a set of complete regular decades
-            log_min = Floor(log10(E_min))
-            E_min = 10._dp**log_min
-            log_max = Ceiling(log10(E_max))
-            E_max = 10._dp**log_max
-            n_decades = log_max - log_min
-            n_bins = n_decades * E_bins_per_decade
-            Allocate(d%TE_grid(2)%bounds(0:n_bins))
-            Do CONCURRENT (i = 0:n_bins)
-                d%TE_grid(2)%bounds(i) = 10._dp**(Real(log_min,dp) + Real(i,dp) / Real(E_bins_per_decade,dp))
-            End Do
-            d%TE_grid(2)%log_min = log_min
-            d%TE_grid(2)%log_max = log_max
-            d%TE_grid(2)%n_decades = n_decades
+            log_sp = .TRUE.
         Case('Linear')
-            d%TE_grid(2)%log_spacing = .FALSE.
-            n_bins = Ceiling((E_max - E_min) / E_res)
-            Allocate(d%TE_grid(2)%bounds(0:n_bins))
-            Do CONCURRENT (i = 0:n_bins)
-                d%TE_grid(2)%bounds(i) = E_min + Real(i,dp) * E_res
-            End Do
-            d%TE_grid(2)%res = E_res
+            log_sp = .FALSE.
         Case Default
             Call Output_Message('ERROR:  Detectors: Setup_Detector:  Undefined E grid spacing',kill=.TRUE.)
     End Select
-    d%TE_grid(2)%min = E_min
-    d%TE_grid(2)%max = E_max
-    d%TE_grid(2)%n_bins = n_bins
+    d%TE_grid(2) = Define_Grid_Info(log_sp,E_min,E_max,E_res,E_bins_per_decade)
     !create mu grid
-    d%Dir_grid(1)%min = -1._dp
-    d%Dir_grid(1)%max = 1._dp
-    d%Dir_grid(1)%res = 2._dp / Real(n_mu_bins,dp)
-    d%Dir_grid(1)%n_bins = n_mu_bins
-    d%Dir_grid(1)%log_spacing = .FALSE.
-    Allocate(d%Dir_grid(1)%bounds(0:n_mu_bins))
-    Do CONCURRENT (i = 0:n_mu_bins)
-        d%Dir_grid(1)%bounds(i) = -1._dp + Real(i,dp) * d%Dir_grid(1)%res
-    End Do
+    d%Dir_grid(1) = Define_Grid_Info(.FALSE.,-1._dp,1._dp,2._dp / Real(n_mu_bins,dp),1)
     !create omega grid
-    d%Dir_grid(2)%min = -Pi
-    d%Dir_grid(2)%max = Pi
-    d%Dir_grid(2)%res = TwoPi / Real(n_omega_bins,dp)
-    d%Dir_grid(2)%n_bins = n_omega_bins
-    d%Dir_grid(2)%log_spacing = .FALSE.
-    Allocate(d%Dir_grid(2)%bounds(0:n_omega_bins))
-    Do CONCURRENT (i = 0:n_omega_bins)
-        d%Dir_grid(2)%bounds(i) = -Pi + Real(i,dp) * d%Dir_grid(2)%res
-    End Do
+    d%Dir_grid(2) = Define_Grid_Info(.FALSE.,-Pi,Pi,TwoPi / Real(n_omega_bins,dp),1)
     !Initialize contribution lists
     d%TE_contrib_index = 0
     d%Contrib_size = 2**8
@@ -302,6 +241,42 @@ Function Setup_Detector(setup_file_name,resources_dir,run_file_name,slice_file_n
         d%shape_data = .FALSE.
     End If
 End Function Setup_Detector
+
+Function Define_Grid_Info(log_sp,x_min,x_max,x_res,ipd) Result(g)
+    Use Kinds, Only : dp
+    Implicit None
+    Type(Grid_Info_Type) :: g
+    Logical, Intent(In) :: log_sp
+    Real(dp), Intent(In) :: x_min
+    Real(dp), Intent(In) :: x_max
+    Real(dp), Intent(In) :: x_res
+    Integer, Intent(In) :: ipd
+    Integer :: i
+
+    g%log_spacing = log_sp
+    If (log_sp) Then !logarithmic spacing
+        !adjust x_min, x_max to enclose a set of complete regular decades
+        g%log_min = Floor(log10(x_min))
+        g%min = 10._dp**g%log_min
+        g%log_max = Ceiling(log10(x_max))
+        g%max = 10._dp**g%log_max
+        g%n_decades = g%log_max - g%log_min
+        g%n_bins = g%n_decades * ipd
+        Allocate(g%bounds(0:g%n_bins))
+        Do CONCURRENT (i = 0:g%n_bins)
+            g%bounds(i) = 10._dp**(Real(g%log_min,dp) + Real(i,dp) / Real(ipd,dp))
+        End Do
+    Else !linear spacing
+        g%min = x_min
+        g%max = x_max
+        g%n_bins = Ceiling((x_max - x_min) / x_res)
+        Allocate(g%bounds(0:g%n_bins))
+        Do CONCURRENT (i = 0:g%n_bins)
+            g%bounds(i) = x_min + Real(i,dp) * x_res
+        End Do
+        g%res = x_res
+    End If
+End Function Define_Grid_Info
 
 Subroutine Tally_Scatter(d,E,Omega_Hat,t,weight)
     Use Kinds, Only: dp
