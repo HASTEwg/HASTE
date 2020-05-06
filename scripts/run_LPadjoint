@@ -18,6 +18,7 @@ FNAME="Legendre_Utilities"; . ./compile_it
 FNAME="Sorting"; . ./compile_it
 FNAME="PRNGs"; . ./compile_it
 FNAME="Random_Numbers"; . ./compile_it
+FNAME="Statistics"; . ./compile_it
 
 # ATMOSPHERE MODULES
 SRC_PATH="../source/atmo/"

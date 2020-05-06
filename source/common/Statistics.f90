@@ -47,7 +47,7 @@ Elemental Function Std_Err_real_N(N,mu,mu_sq) Result(s_mu)
     Real(dp) :: x
     
     x = mu_sq - (mu**2 / N)
-    If (x .GE. 0._dp) Then
+    If (N.GT.1._dp .AND. x.GT.0._dp) Then
         s_mu = Sqrt( x / (N * (N - 1._dp)) )
     Else
         s_mu = -mu / N  !default to a 100% rel std err, but make negative to flag
