@@ -32,7 +32,9 @@ Module Global
     Real(dp), Parameter :: Z_Hat(1:3) = (/ 0._dp , 0._dp , 1._dp /)
     Complex(dp), Parameter :: imag_i = ( 0._dp , 1._dp )
 
-! Physical Constants
+! Physical Constants and Unit Conversions
+    Real(dp), Parameter :: r2deg = 180._dp / Pi
+    Real(dp), Parameter :: deg2r = Pi / 180._dp
     Real(dp), Parameter :: m0c2 = 510.998928_dp  ![keV] Rest mass energy of an electron
     Real(dp), Parameter :: speed_of_light = 299792.458_dp ![km/s]
     Real(dp), Parameter :: keV_per_Joule = 6.241509126E15_dp  ![keV/J]
