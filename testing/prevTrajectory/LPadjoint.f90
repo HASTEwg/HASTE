@@ -18,7 +18,7 @@ Use Random_Directions, Only: Isotropic_Omega_Hat
 Use Global, Only: Pi,TwoPi,halfPi
 Use Global, Only: r2deg,deg2r
 Use Global, Only: R_center
-Use Global, Only: Z_hat
+Use Global, Only: Z_hat,X_hat,Y_hat
 Use Utilities, Only: Unit_Vector
 Use Utilities, Only: Cross_Product
 Use Utilities, Only: Vector_Length
@@ -32,7 +32,7 @@ Type(Satellite_Position_Type) :: sat
 Type(RNG_Type) :: RNG
 Type(Grid_info_type) :: TE_grid(1:2)
 Type(Grid_info_type) :: Dir_grid(1:2)
-Integer, Parameter :: n_trials = 10000000
+Integer, Parameter :: n_trials = 100000000
 Integer, Parameter :: n_lat_bins = 36 , n_lon_bins = 72
 Type(Contrib_array) :: TE_tallies(1:n_lat_bins,1:n_lon_bins)
 Type(Contrib_array) :: Dir_tallies(1:n_lat_bins,1:n_lon_bins)
@@ -69,7 +69,7 @@ Real(dp) :: lat_N,lat_S
 Real(dp) :: lon_W,lon_E
 Real(dp) :: f,Ee
 Logical, Parameter :: verbose = .FALSE.
-Real(dp) :: DFact_err,tof_err,Ee_err
+Real(dp) :: DFact_err,tof_err,Ee_err,f_err
 
 Write(*,*)
 
@@ -149,12 +149,13 @@ Do e = 1,15
             DFact = Div_Fact_by_shooting(r1,Unit_Vector(v1),Vector_Length(v1),(/0._dp,0._dp,0._dp/),tof,v_sat,v2)
             !compute the declination and right-ascension indexes for this emission point
             U_hat = Unit_Vector(r1)
-            DEC = ACOS(U_hat(3))
+            Call Scattered_Angles(Z_hat,Unit_Vector(r1),DEC,RA,X_hat,Y_hat)
+            DEC = ACOS(DEC)
+            RA = RA + Pi
             dec_bin = 1 + Floor(Real(n_lat_bins,dp) * DEC / Pi)
             If (dec_bin.EQ.1 .OR. dec_bin.EQ.n_lat_bins) Then
                 ra_bin = 1
             Else
-                RA = ACOS(U_hat(1) / Sqrt(1._dp - U_hat(3)**2))
                 ra_bin = 1 + Floor(Real(n_lon_bins,dp) * RA / TwoPi)
             End If
             !compute the TE and direction indexes for the contribution
@@ -171,12 +172,12 @@ Do e = 1,15
             !tally the contribution to this DEC-RA bin
             Call TE_tallies(dec_bin,ra_bin)%Tally_1_History(contrib(1))
             Call Dir_tallies(dec_bin,ra_bin)%Tally_1_History(contrib(2))
-            tof_tallies(dec_bin,ra_bin,1) = tof_tallies(dec_bin,ra_bin,1) + f*tof
-            tof_tallies(dec_bin,ra_bin,2) = tof_tallies(dec_bin,ra_bin,2) + (f*tof)**2
+            tof_tallies(dec_bin,ra_bin,1) = tof_tallies(dec_bin,ra_bin,1) + tof
+            tof_tallies(dec_bin,ra_bin,2) = tof_tallies(dec_bin,ra_bin,2) + tof**2
             D_tallies(dec_bin,ra_bin,1) = D_tallies(dec_bin,ra_bin,1) + DFact
             D_tallies(dec_bin,ra_bin,2) = D_tallies(dec_bin,ra_bin,2) + DFact**2
-            E_tallies(dec_bin,ra_bin,1) = E_tallies(dec_bin,ra_bin,1) + f*Ee
-            E_tallies(dec_bin,ra_bin,2) = E_tallies(dec_bin,ra_bin,2) + (f*Ee)**2
+            E_tallies(dec_bin,ra_bin,1) = E_tallies(dec_bin,ra_bin,1) + Ee
+            E_tallies(dec_bin,ra_bin,2) = E_tallies(dec_bin,ra_bin,2) + Ee**2
             tally_ct(dec_bin,ra_bin) = tally_ct(dec_bin,ra_bin) + 1
         End If
     End Do
@@ -201,11 +202,17 @@ Do e = 1,15
             If (tally_ct(i,j) .GT. 0) Then
                 DFact = D_tallies(i,j,1) / Real(tally_ct(i,j),dp)
                 DFact_err = Std_err(tally_ct(i,j),D_tallies(i,j,1),D_tallies(i,j,2))
-                f = wt / DFact
-                tof = (tof_tallies(i,j,1) / f) / Real(tally_ct(i,j),dp)
-                Ee = (E_tallies(i,j,1) / f) / Real(tally_ct(i,j),dp)
-                Write(map_unit,'(4F6.0,3ES25.16E3,F8.2,A,I0)') lat_N*r2deg,lat_S*r2deg,lon_W*r2deg,lon_E*r2deg, & 
-                                                        & tof,Ee,DFact,100._dp*DFact_err/DFact,'% ',tally_ct(i,j)
+                tof = tof_tallies(i,j,1) / Real(tally_ct(i,j),dp)
+                tof_err = Std_err(tally_ct(i,j),tof_tallies(i,j,1),tof_tallies(i,j,2))
+                Ee = E_tallies(i,j,1) / Real(tally_ct(i,j),dp)
+                Ee_err = Std_err(tally_ct(i,j),E_tallies(i,j,1),E_tallies(i,j,2))
+                f = Sum(TE_tallies(i,j)%contribs(:)%f) / Real(n_trials,dp)
+                f_err = Std_err(n_trials,Sum(TE_tallies(i,j)%contribs(:)%f),TE_tallies(i,j)%tot_f_sq)
+                Write(map_unit,'(4F6.0,4(ES25.16E3,F8.2,A),I0)') lat_N*r2deg,lat_S*r2deg,lon_W*r2deg,lon_E*r2deg, & 
+                                                               & f,100._dp*f_err/f,'% ', & 
+                                                               & tof,100._dp*tof_err/tof,'% ', & 
+                                                               & Ee,100._dp*Ee_err/Ee,'% ', & 
+                                                               & DFact,100._dp*DFact_err/DFact,'% ',tally_ct(i,j)
             Else If (verbose) Then
                 Write(map_unit,'(4F6.0,3A25)') lat_N*r2deg,lat_S*r2deg,lon_W*r2deg,lon_E*r2deg,'---','---','---'
             End If

@@ -111,6 +111,6 @@ Real(dp), Parameter :: mfp_per_barn_per_km_at_seaLevel = 5.07_dp
 !   that has the same optical thickness as the actual path
 Real(dp), Parameter :: n_lambda = Log(2._dp) / 611._dp  ![1/s] ln(2) divided by neutron half-life
 Real(dp), Parameter :: n_kill_weight = &  !weight of 1 particular neutron having chance to exist from a 1MT source
-                           & 1._dp / (0.35_dp * nA * 1000._dp)
+                           & 1._dp / (0.35_dp * nA * 1000._dp)  !based on rule-of-thumb of 0.35 mol of neutrons per kT yield
 
 End Module Global
