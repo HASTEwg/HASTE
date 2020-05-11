@@ -1,4 +1,5 @@
 #!/bin/sh
+gfortran --version
 echo "Preprocessor Flags:"
 echo "  $PREP_FLAGS"
 echo "Compiler Flags:"
