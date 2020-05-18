@@ -37,7 +37,7 @@ COMP_FLAGS="${DEBUG_FLAGS}"
 # Default to no libraries
 LIB_FLAGS=""
 # LINKER Flags
-LINK_FLAGS=""
+LINK_FLAGS="-static-libgcc -static-libgfortran"
 # Adjust based on command line flag(s)
 while getopts 'sdrqwp:ckvf:' flag; do
   case "${flag}" in
@@ -56,10 +56,7 @@ while getopts 'sdrqwp:ckvf:' flag; do
        ;;
     p) PREP_FLAGS="${PREP_FLAGS} ${OPTARG}"
        ;;
-    c) 
-       PREP_FLAGS="${PREP_FLAGS} -DCAF"
-       #COMP_FLAGS="${COMP_FLAGS} -fcoarray=single"
-       #LIB_FLAGS="${COMP_FLAGS} -lcaf_single"
+    c) PREP_FLAGS="${PREP_FLAGS} -DCAF"
        COMP_FLAGS="${COMP_FLAGS} -fcoarray=lib"
        LIB_FLAGS="${LIB_FLAGS} -lcaf_mpi"
        ;;

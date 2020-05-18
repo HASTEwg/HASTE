@@ -21,9 +21,9 @@ SRC_PATH="../testing/Quadratures/"
 BLD_PATH="../build/"
 FNAME="testQuadratures"
 echo "Compiling and linking testQuadratures..."
-gfortran $GFORT_FLAGS -o ${SRC_PATH}${FNAME}.out ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
+gfortran $GFORT_FLAGS -o ${SRC_PATH}${FNAME}${EXT} ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
 
 #RUN THE TEST PROGRAM
 echo "Running..."
 cd ${SRC_PATH}
-./${FNAME}.out
+./${FNAME}${EXT}
