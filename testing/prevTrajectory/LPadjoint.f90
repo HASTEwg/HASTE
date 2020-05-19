@@ -41,6 +41,7 @@ Real(dp) :: tof_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
 Real(dp) :: D_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
 Real(dp) :: fD_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
 Real(dp) :: fDt_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
+Real(dp) :: zeta_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
 Integer :: tally_ct(1:n_lat_bins,1:n_lon_bins)
 Type(Contrib_triplet) :: contrib(1:2)
 
@@ -68,9 +69,9 @@ Integer :: i,i_miss
 Integer :: e,j,k
 Real(dp) :: wt
 Character(2) :: e_char
-Real(dp) :: f,Ee,fD,fDt
+Real(dp) :: f,Ee,fD,fDt,zeta
 Logical, Parameter :: detailed_tallies = .FALSE.
-Real(dp) :: DFact_err,tof_err,Ee_err,fD_err,fDt_err
+Real(dp) :: DFact_err,tof_err,Ee_err,fD_err,fDt_err,zeta_err
 Real(dp) :: lat,lon
 
 Write(*,*)
@@ -134,6 +135,7 @@ Do e = 1,15
     tof_tallies = 0._dp
     D_tallies = 0._dp
     E_tallies = 0._dp
+    zeta_tallies = 0._dp
     If (detailed_tallies) Then
         Do CONCURRENT (i=1:n_lat_bins , j=1:n_lon_bins)
             Call Clear_Tallies(TE_tallies(i,j))
@@ -166,6 +168,7 @@ Do e = 1,15
             ha_bin = 1 + Floor(Real(n_lon_bins,dp) * HA / TwoPi)
             f = wt / DFact
             Ee = Neutron_Energy(v1)
+            zeta = Dot_Product(Unit_Vector(r1),Unit_Vector(v1))
             If (detailed_tallies) Then
                 !compute the TE and direction indexes for the contribution
                 contrib(1)%i1 = TE_grid(1)%Bin_Number(tof)
@@ -190,6 +193,8 @@ Do e = 1,15
             D_tallies(dec_bin,ha_bin,2) = D_tallies(dec_bin,ha_bin,2) + DFact**2
             E_tallies(dec_bin,ha_bin,1) = E_tallies(dec_bin,ha_bin,1) + Ee
             E_tallies(dec_bin,ha_bin,2) = E_tallies(dec_bin,ha_bin,2) + Ee**2
+            zeta_tallies(dec_bin,ha_bin,1) = zeta_tallies(dec_bin,ha_bin,1) + zeta
+            zeta_tallies(dec_bin,ha_bin,2) = zeta_tallies(dec_bin,ha_bin,2) + zeta**2
             tally_ct(dec_bin,ha_bin) = tally_ct(dec_bin,ha_bin) + 1
         Else
             i_miss = i_miss + 1
@@ -212,6 +217,8 @@ Do e = 1,15
                 tof_err = Std_err(tally_ct(i,j),tof_tallies(i,j,1),tof_tallies(i,j,2))
                 Ee = E_tallies(i,j,1) / Real(tally_ct(i,j),dp)
                 Ee_err = Std_err(tally_ct(i,j),E_tallies(i,j,1),E_tallies(i,j,2))
+                zeta = zeta_tallies(i,j,1) / Real(tally_ct(i,j),dp)
+                zeta_err = Std_err(tally_ct(i,j),zeta_tallies(i,j,1),zeta_tallies(i,j,2))
                 fD = fD_tallies(i,j,1) / Real(i+i_miss,dp)
                 fD_err = Std_err(i+i_miss,fD_tallies(i,j,1),fD_tallies(i,j,2))
                 fDt = fDt_tallies(i,j,1) / Real(i+i_miss,dp)
@@ -219,12 +226,13 @@ Do e = 1,15
                 lat = halfPi - DEC
                 lon = -(HA - Pi) - halfPi
                 If (Abs(lon) .GT. Pi) lon = lon + SIGN(TwoPi,-lon)
-                Write(map_unit,'(2F8.2,13ES25.16E3,I12)') lat*r2deg,lon*r2deg, & 
+                Write(map_unit,'(2F8.2,15ES25.16E3,I12)') lat*r2deg,lon*r2deg, & 
                                                         & r1, & 
                                                         & fD,fD_err, & 
                                                         & fDt,fDt_err, & 
                                                         & tof,tof_err, & 
                                                         & Ee,Ee_err, & 
+                                                        & zeta,zeta_err, & 
                                                         & DFact,DFact_err,tally_ct(i,j)
             End If
             !Do k = 1,TE_tallies(i,j)%index
