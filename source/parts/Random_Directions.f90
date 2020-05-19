@@ -22,6 +22,8 @@ Module Random_Directions
     Public :: Isotropic_Omega_hat
     Public :: Neutron_Anisotropic_mu0cm
     Public :: mu_omega_2_OmegaHat
+    Public :: mu_from_power_cosine
+    Public :: mu_from_power_cosine125
 
     Interface Neutron_Anisotropic_mu0cm
         Module Procedure Neutron_Anisotropic_mu0cm_Legendre
@@ -63,44 +65,14 @@ Function mu_from_power_cosine(RNG,x) Result(mu)
     Type(RNG_Type), Intent(InOut) :: RNG
     Real(dp), Intent(In) :: x
     Real(dp) :: theta
-    Real(dp) :: g
-    Real(dp) :: g_max
 
     Do
         theta = halfPi * (1._dp - Sqrt(RNG%Get_Random()))
-        g_max = (x**(1._dp-0.5_dp*x)) * ((x-1._dp)**(0.5_dp*(x-1._dp)))
-        g =  g_max * (halfPi - theta) * RNG%Get_Random()
-        If (g .GT. Cos(theta)**x) Cycle
+        If ((halfPi - theta) * RNG%Get_Random() .GT. Cos(theta)**x) Cycle
         Exit
     End Do
     mu = Cos(theta)
 End Function mu_from_power_cosine
-
-Function mu_from_power_cosine_high(RNG,x) Result(mu)
-    !Use for x > ~17.1, also works for smaller x, by calling mu_from_power_cosine (which is more efficient)
-    !Returns mu, cosine of the polar scattering angle (theta) distributed on angles [0,pi/2) with density function Cos(theta)^x
-    Use Kinds, Only: dp
-    Use Global, Only: halfPi
-    Use Random_Numbers, Only: RNG_Type
-    Implicit None
-    Real(dp) :: mu
-    Type(RNG_Type), Intent(InOut) :: RNG
-    Real(dp), Intent(In) :: x
-    Real(dp) :: theta
-    Real(dp) :: g
-    Real(dp) :: g_max
-
-    If (x .LT. 17.1091352124352245_dp) Then
-        mu = mu_from_power_cosine(RNG,x)
-    Else
-        Do
-           theta = halfPi * RNG%Get_Random()
-           If (RNG%Get_Random() .GT. Cos(theta)**x) Cycle
-           Exit
-        End Do
-        mu = Cos(theta)
-    End If
-End Function mu_from_power_cosine_high
 
 Function mu_from_power_cosine125(RNG) Result(mu)
     !Returns mu, cosine of the polar scattering angle (theta) distributed on angles [0,pi/2) with density function Cos(theta)^1.25
