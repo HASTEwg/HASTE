@@ -1,5 +1,5 @@
 #!/bin/sh
-gfortran --version
+$COMP_NAME --version
 echo "Preprocessor Flags:"
 echo "  $PREP_FLAGS"
 echo "Compiler Flags:"

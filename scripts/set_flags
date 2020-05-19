@@ -32,8 +32,9 @@ RELEASE_FLAGS="-Ofast ${ALWAYS_FLAGS}"
 RELEASE_FLAGS_SUPER="-Ofast -mcpu=native -mtune=native -march=native ${ALWAYS_FLAGS}"
 
 # Set preprocessor/compiler/library flags based on command line flag(s)
-# Default to debugging settings
+# Default to debugging settings and ordinary gfortran compiler
 COMP_FLAGS="${DEBUG_FLAGS}"
+COMP_NAME="gfortran"
 # Default to no libraries
 LIB_FLAGS=""
 # LINKER Flags
@@ -56,7 +57,8 @@ while getopts 'sdrqwp:ckvf:' flag; do
        ;;
     p) PREP_FLAGS="${PREP_FLAGS} ${OPTARG}"
        ;;
-    c) PREP_FLAGS="${PREP_FLAGS} -DCAF"
+    c) COMP_NAME="caf"
+       PREP_FLAGS="${PREP_FLAGS} -DCAF"
        COMP_FLAGS="${COMP_FLAGS} -fcoarray=lib"
        LIB_FLAGS="${LIB_FLAGS} -lcaf_mpi"
        ;;

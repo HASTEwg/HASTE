@@ -16,7 +16,7 @@ SRC_PATH="../testing/Kinds/"
 BLD_PATH="../build/"
 FNAME="testKinds"
 echo "Compiling and linking testKinds..."
-gfortran $GFORT_FLAGS -o ${SRC_PATH}${FNAME}${EXT} ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
+$COMP_NAME $GFORT_FLAGS -o ${SRC_PATH}${FNAME}${EXT} ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
 
 #RUN THE TEST PROGRAM
 echo "Running..."

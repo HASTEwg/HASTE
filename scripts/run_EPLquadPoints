@@ -25,7 +25,7 @@ SRC_PATH="../testing/EPLquads/"
 BLD_PATH="../build/"
 FNAME="EPLquadpoints"
 echo "Compiling and linking EPLquadpoints..."
-gfortran $GFORT_FLAGS -o ${SRC_PATH}${FNAME}${EXT} ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
+$COMP_NAME $GFORT_FLAGS -o ${SRC_PATH}${FNAME}${EXT} ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
 
 #RUN THE TEST PROGRAM
 echo "Running..."
