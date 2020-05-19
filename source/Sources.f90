@@ -465,6 +465,40 @@ Function Watt235func(E) Result(w)
     w = Exp(-0.001036_dp * E) * Sinh(0.047853944456021595545_dp * Sqrt(E))
 End Function Watt235func
 
+Function Sample_LunarAlbedo(RNG) Result(E)
+    Use Kinds, Only: dp
+    Use Random_Numbers, Only: RNG_Type
+    Implicit None
+    Real(dp) :: E  ![keV]
+    Type(RNG_Type), Intent(InOut) :: RNG  !random number generator
+    Real(dp), Parameter :: a = -9._dp !log10 bottom end of energy scale [log10(MeV)]
+    Real(dp), Parameter :: b = -2._dp !log10 top end of energy scale [log10(MeV)]
+    Real(dp), Parameter :: c = -5._dp !log10 bottom end of density scale [log10()]
+    Real(dp), Parameter :: d =  0._dp !log10 bottom end of density scale [log10()]
+    Real(dp), Parameter :: p0 =  4.4598E6_dp
+    Real(dp), Parameter :: p1 =  3.6840E-9_dp
+    Real(dp), Parameter :: p2 =  4.4183E5_dp
+    Real(dp), Parameter :: p3 =  0.9181_dp
+    Real(dp), Parameter :: p4 =  1.4567E-7_dp
+    Real(dp), Parameter :: p5 =  5.0338_dp
+    Real(dp), Parameter :: dNorm =  1.64222121644247757E-6_dp
+    Real(dp) :: s
+    Real(dp) :: g
+
+    Do
+        !select an energy uniformly distributed (in log10 space) between 10^a and 10^b
+        E = 10._dp**(a-(b-a)*RNG%Get_Random())
+        !evaluate the distribution function at the sampled energy
+        s = p0 * E * Exp(-E/p1) / p1 + p2 * ((E / p4)**p5) * ((p4 / E)**p3) / (1._dp + (E / p4)**p5)
+        !select a testing value uniformly distributed (in log10 space) between 10^c and 10^d
+        g = 10._dp**(c-(d-c)*RNG%Get_Random())
+        !test for acceptance of the value
+        If (g .GT. dNorm * s) Cycle
+        Exit
+    End Do
+    E = E * 1000._dp  !convert to keV
+End Function Sample_LunarAlbedo
+
 Subroutine Write_Source(s,file_name)
     Use Global, Only: Pi
     Use Global, Only: Rc => R_center
