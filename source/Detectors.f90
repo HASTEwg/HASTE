@@ -74,11 +74,13 @@ Function Setup_Detector(setup_file_name,resources_dir,run_file_name,slice_file_n
     Use Kinds, Only: dp
     Use Global, Only: Pi
     Use Global, Only: TwoPi
+    Use Global, Only: deg2r
     Use Global, Only: Rc => R_center
     Use Global, Only: Z_hat
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Cross_Product
+    Use Utilities, Only: Celest_to_XYZ
     Use Satellite_Motion, Only: Initialize_Satellite_Motion
     Use FileIO_Utilities, Only: Output_Message
     Use FileIO_Utilities, Only: Worker_Index
@@ -90,15 +92,16 @@ Function Setup_Detector(setup_file_name,resources_dir,run_file_name,slice_file_n
     Character(*), Intent(In) :: slice_file_name
     Real(dp), Intent(In) :: R_top_atm
     Real(dp) :: x_detector,y_detector,z_detector  ![km]  x,y,z coordinates of detector
-    Real(dp) :: declination_detector,right_ascension_detector
-    Real(dp) :: v_E_detector,v_N_detector,v_U_detector
+    Character(3) :: velocity_frame
+    Real(dp) :: declination_detector,hour_angle_detector
+    Real(dp) :: v_A_detector,v_B_detector,v_C_detector
     Real(dp) :: E_max,E_min  !specifies min and max energies for detector grid
     Real(dp) :: t_max,t_min  !specifies min and max times for detector grid
     Real(dp) :: E_res,t_res  !resolution of time and energy grids
     Integer :: E_bins_per_decade  !number of energy bins per decade, used for 'log' grid spacing 
     Integer :: t_bins_per_decade  !number of time bins per decade, used for 'log' grid spacing
     Logical :: log_sp
-    Real(dp) :: RA,DEC
+    Real(dp) :: HA,DEC
     Character(10) :: E_grid_spacing,t_grid_spacing  !specifies 'Log' or 'Linear' for grid spacing
     Integer :: n_mu_bins,n_omega_bins
     Integer :: setup_unit,stat,i
@@ -111,8 +114,9 @@ Function Setup_Detector(setup_file_name,resources_dir,run_file_name,slice_file_n
     Character(3) :: j_char
     Character(9) :: slice_name_end
     NameList /NeutronDetectorList/ position_geometry,x_detector,y_detector,z_detector, &
-                                   & declination_detector,right_ascension_detector, &
-                                   & v_E_detector,v_N_detector,v_U_detector, detector_motion, &
+                                   & declination_detector,hour_angle_detector, &
+                                   & velocity_frame,v_A_detector,v_B_detector,v_C_detector, &
+                                   & detector_motion, &
                                    & E_max,E_min,E_grid_spacing,E_res,E_bins_per_decade, &
                                    & t_max,t_min,t_grid_spacing,t_res,t_bins_per_decade, &
                                    & n_mu_bins,n_omega_bins,collect_shape_data,shape_data_n_slices, &
@@ -125,14 +129,9 @@ Function Setup_Detector(setup_file_name,resources_dir,run_file_name,slice_file_n
     Close(setup_unit)
     Select Case(position_geometry)
         Case('Celestial')
-            RA = right_ascension_detector * Pi / 180._dp
-            DEC = declination_detector * Pi / 180._dp
-            !convert celestial to cartesian soordinates
-            d%sat%r0 = (/ (Rc + z_detector) * Cos(RA) * Cos(DEC), &
-                       & -(Rc + z_detector) * Sin(RA) * Cos(DEC), &
-                       &  (Rc + z_detector) * Sin(DEC) /)
+            d%sat%r0 = Celest_to_XYZ(Rc+z_detector,hour_angle_detector*deg2r,declination_detector*deg2r)
         Case('Cartesian')
-            d%sat%r0 = (/ x_detector, y_detector, z_detector /)
+            d%sat%r0 = (/ x_detector , y_detector , z_detector /)
         Case Default
             Call Output_Message('ERROR:  Detectors: Setup_Detector:  Unknown position geometry.',kill=.TRUE.)
     End Select
@@ -143,13 +142,20 @@ Function Setup_Detector(setup_file_name,resources_dir,run_file_name,slice_file_n
     Else
         d%exoatmospheric = .TRUE.
     End If
-    If (Any( (/v_E_detector,v_N_detector,v_U_detector/)  .NE. 0._dp)) Then
-        U_hat = Unit_Vector(d%sat%r0)
-        E_hat = Unit_Vector(Cross_Product(Z_hat,U_hat))
-        N_hat = Cross_Product(U_hat,E_hat)
-        d%sat%v0 = E_hat * v_E_detector + &
-                 & N_hat * v_N_detector + &
-                 & U_hat * v_U_detector
+    If (Any( (/v_A_detector,v_B_detector,v_C_detector/)  .NE. 0._dp)) Then
+        Select Case(velocity_frame)
+            Case('XYZ')
+                d%sat%v0 = (/ v_A_detector , v_B_detector , v_C_detector /)
+            Case('ENU')
+                U_hat = Unit_Vector(d%sat%r0)
+                E_hat = Unit_Vector(Cross_Product(Z_hat,U_hat))
+                N_hat = Cross_Product(U_hat,E_hat)
+                d%sat%v0 = E_hat * v_A_detector + &
+                         & N_hat * v_B_detector + &
+                         & U_hat * v_C_detector
+            Case Default
+                Call Output_Message('ERROR:  Detectors: Setup_Detector:  Unknown velocity frame.',kill=.TRUE.)
+        End Select
     Else
         d%sat%v0 = 0._dp
     End If

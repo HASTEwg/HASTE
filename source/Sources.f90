@@ -20,7 +20,6 @@ Module Sources
     Private
     Public :: Source_Type
     Public :: Setup_Source
-    Public :: Celest_to_XYZ
     Public :: Write_Source
     
     Type :: Tab_1d_Type  !stores a 1-d tabulated distribution
@@ -50,6 +49,7 @@ Module Sources
         Real(dp) :: E_high   ![keV] energy description
                              !E_high=E_low for 'Point', specifies range for 'Uniform', specifies cutoff energies for 'Watt235'
         Real(dp) :: E_low
+        Real(dp) :: A_param
         Logical :: point_time
         Real(dp) :: t_start
         Real(dp) :: delta_t
@@ -63,6 +63,7 @@ Module Sources
         Integer :: source_unit
     Contains
         Procedure, Pass :: sample => Sample_Source
+        Procedure, Pass :: A_PDF
     End Type
 
     !Integer designator for source geometry choice, can have value equal to one of the following parameters
@@ -81,13 +82,16 @@ Module Sources
     Integer, Parameter :: source_E_dist_Type8 = 81
     Integer, Parameter :: source_E_dist_Type13 = 83
     Integer, Parameter :: source_E_dist_tab = 85
+    Integer, Parameter :: source_E_dist_LunarAlbedo = 87
 
     !Integer designator for source angular distribution choice, can have value equal to one of the following parameters
     Integer, Parameter :: source_A_dist_iso = 72
     Integer, Parameter :: source_A_dist_top = 74
     Integer, Parameter :: source_A_dist_side = 76
     Integer, Parameter :: source_A_dist_bot = 78
-    Integer, Parameter :: source_A_dist_tab = 80    
+    Integer, Parameter :: source_A_dist_tab = 80
+    Integer, Parameter :: source_A_dist_pCos = 82
+    Integer, Parameter :: source_A_dist_pCos125 = 84
 
     Integer, Parameter :: source_EA_dist_tab = 70
 
@@ -97,6 +101,8 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
     Use Kinds, Only: dp
     Use Global, Only: Z_hat,X_hat,Y_hat
     Use Global, Only: Rc => R_center
+    Use Global, Only: deg2r
+    Use Utilities, Only: Celest_to_XYZ
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Cross_Product
@@ -108,10 +114,11 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
     Real(dp), Intent(In) :: R_top_atm
     Real(dp) :: r_source
     Real(dp) :: x_source,y_source,z_source  ![km]  x,y,z coordinates of source
-    Real(dp) :: declination_source,right_ascension_source
+    Real(dp) :: declination_source,hour_angle_source
     Real(dp) :: v_E_source,v_N_source,v_U_source
     Real(dp) :: d_E_source,d_N_source,d_U_source
     Real(dp) :: E_high,E_low
+    Real(dp) :: A_param
     Real(dp) :: t_start,t_stop
     Character(10) :: source_E_dist  !Line,Uniform,Watt235,Type03,Type05,Type08,Type13,Egroups,EAgroups
     Character(10) :: source_A_dist  !Iso,Top,Side,Bottom,Agroups,EAgroups
@@ -124,10 +131,11 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
     
     NameList /NeutronSourceList/ source_geometry,r_source, & 
                                  & position_geometry,x_source,y_source,z_source, &
-                                 & declination_source,right_ascension_source, &
+                                 & declination_source,hour_angle_source, &
                                  & v_E_source,v_N_source,v_U_source, &
                                  & d_E_source,d_N_source,d_U_source, &
-                                 & source_E_dist,E_high,E_low,source_A_dist, &
+                                 & source_E_dist,E_high,E_low, & 
+                                 & source_A_dist,A_param, &
                                  & source_t_dist,t_start,t_stop, & 
                                  & collect_source_data,source_data_limit
     
@@ -157,7 +165,7 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
     End Select
     Select Case(position_geometry)
         Case('Celestial')
-            s%r = Celest_to_XYZ(z_source,right_ascension_source,declination_source)
+            s%r = Celest_to_XYZ(Rc+z_source,hour_angle_source*deg2r,declination_source*deg2r)
         Case('Cartesian')
             s%r = (/ x_source, y_source, z_source /)
         Case Default
@@ -250,9 +258,17 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
             Case ('Bottom')
                 s%A_dist_index = source_A_dist_Bot
                 s%aniso_dist = .TRUE.
+            Case ('powCos')
+                s%A_dist_index = source_A_dist_pCos
+                s%aniso_dist = .TRUE.
+                s%A_param = A_param
+            Case ('powCos125')
+                s%A_dist_index = source_A_dist_pCos125
+                s%aniso_dist = .TRUE.
+                s%A_param = 1.25_dp
             !UNDONE Tabulated angular source distribution type
             Case Default
-                Call Output_Message( 'ERROR:  Sources: Setup_Source: Undefined source angular distribution',kill=.TRUE. )
+                Call Output_Message('ERROR:  Sources: Setup_Source: Undefined source angular distribution',kill=.TRUE.)
         End Select
         Select Case (source_E_dist)
             Case ('Line')
@@ -269,15 +285,17 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
                 s%E_low = 0._dp
             Case ('Egroups')
                 s%E_dist_index = source_E_dist_tab
+            Case ('LunarAlb')
+                s%E_dist_index = source_E_dist_LunarAlbedo
             !UNDONE Source distributions for Type 3, 5, 8, and 13
             Case Default
-                Call Output_Message( 'ERROR:  Sources: Setup_Source: Undefined source energy distribution',kill=.TRUE.)
+                Call Output_Message('ERROR:  Sources: Setup_Source: Undefined source energy distribution',kill=.TRUE.)
         End Select
     End If
     If (All(s%d .EQ. 0._dp) .AND. s%aniso_dist) Then  !no source direction is specified, but an anisotropic distribution is selected
         !source direction is needed for anisotropic angular distributions of emitted particles
-        Call Output_Message('ERROR:  Sources: Setup_Source: Source forward direction must be specified for angular dist', & 
-                           & kill=.TRUE.)
+        Call Output_Message( 'ERROR:  Sources: Setup_Source: Source forward direction must be specified for angular dist', & 
+                           & kill=.TRUE. )
     End If
     Select Case (source_t_dist)
         Case ('Point')
@@ -289,7 +307,7 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
             s%t_start = t_start
             s%delta_t = t_stop - t_start
         Case Default
-            Call Output_Message( 'ERROR:  Sources: Setup Source: Undefined source time distribution',kill=.TRUE.)
+            Call Output_Message('ERROR:  Sources: Setup Source: Undefined source time distribution',kill=.TRUE.)
     End Select
     If (Worker_Index() .EQ. 1) Then
         !set up source data collection
@@ -297,7 +315,7 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
             s%source_data = .TRUE.
             s%max_source_data = source_data_limit
             s%source_data_c = 0
-            Open( NEWUNIT = S%source_unit , FILE = source_file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , IOSTAT = stat)
+            Open(NEWUNIT = S%source_unit , FILE = source_file_name , STATUS = 'REPLACE' , ACTION = 'WRITE' , IOSTAT = stat)
         Else
             s%source_data = .FALSE.
         End If
@@ -313,34 +331,23 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
     End If
 End Function Setup_Source
 
-Function Celest_to_XYZ(alt,RA_deg,DEC_deg) Result(r)
-    Use Kinds, Only: dp
-    Use Global, Only: Pi
-    Use Global, Only: Rc => R_center
-    Implicit None
-    Real(dp) :: r(1:3)
-    Real(dp), Intent(In) :: alt,RA_deg,DEC_deg
-    Real(dp) :: RA,DEC
-    
-    RA = RA_deg * Pi / 180._dp
-    DEC = DEC_deg * Pi / 180._dp
-    !convert celestial to cartesian soordinates
-    r = (/  (Rc + alt) * Cos(RA) * Cos(DEC), &
-         & -(Rc + alt) * Sin(RA) * Cos(DEC), &
-         &  (Rc + alt) * Sin(DEC) /)
-End Function Celest_to_XYZ
-
 Subroutine Sample_Source(s,RNG,n)
     Use Kinds, Only: dp
     Use Global, Only: R_center
+    Use Global, Only: Z_hat
+    Use Global, Only: X_hat
+    Use Global, Only: Y_hat
     Use Random_Numbers, Only: RNG_Type
     Use Neutron_Scatter, Only: Neutron_Type
     Use Random_Directions, Only: Isotropic_Omega_hat
     Use Random_Directions, Only: Isotropic_Azimuth
+    Use Random_Directions, Only: mu_from_power_cosine
+    Use Random_Directions, Only: mu_from_power_cosine125
     Use Random_Directions, Only: mu_omega_2_OmegaHat
     Use Utilities, Only: Cube_Root
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Vector_Length
+    Use Utilities, Only: Cross_Product
     Use Neutron_Utilities, Only: Neutron_Speed
     Use Neutron_Utilities, Only: Neutron_Energy
     Use FileIO_Utilities, Only: Output_Message
@@ -370,7 +377,15 @@ Subroutine Sample_Source(s,RNG,n)
         Case (source_geom_Sphere_V_unif)
             n%r = s%r + Cube_root(RNG%Get_Random()) * s%rad * Isotropic_Omega_hat(RNG)
         Case (source_geom_Albedo)
-            n%r = s%rad * Isotropic_Omega_hat(RNG)
+            !In the Albedo case, the orientation of the source must be adjusted to be at this emission point for this history
+            s%A_hat = Isotropic_Omega_hat(RNG)
+            If (Abs(Dot_Product(s%A_hat,Z_Hat)) .LT. 0.5_dp) Then
+                s%B_hat = Unit_Vector(Cross_Product(Z_Hat,s%A_hat))
+            Else
+                s%B_hat = Unit_Vector(Cross_Product(X_Hat,s%A_hat))
+            End If
+            s%C_hat = Cross_Product(s%A_hat,s%B_hat)
+            n%r = s%rad * s%A_hat
     End Select
     If (.NOT.s%point_time .AND. s%has_velocity) Then  !update source position based on source velocity and elapsed time
         !N2H This implementation assumes linear motion of the source (no other motion types are presently supported)
@@ -378,7 +393,7 @@ Subroutine Sample_Source(s,RNG,n)
     End If
     !Sample Energy and Direction
     If (s%E_A_dist_coupled) Then  !coupled energy-angle distribution
-        Call Output_Message( 'ERROR:  Sources: Sample_Source: Coupled energy-angle dist not yet implemented',kill=.TRUE.)
+        Call Output_Message('ERROR:  Sources: Sample_Source: Coupled energy-angle dist not yet implemented',kill=.TRUE.)
     Else  !independent energy and angle distributions
         Select Case (s%E_dist_index)
             Case (source_E_dist_Line)
@@ -387,6 +402,8 @@ Subroutine Sample_Source(s,RNG,n)
                 n%E0ef = Sample_Uniform(RNG,s%E_low,s%E_high)
             Case (source_E_dist_Watt235)
                 n%E0ef = Sample_Watt235(RNG,s%E_high)
+            Case (source_E_dist_LunarAlbedo)
+                n%E0ef = Sample_LunarAlbedo(RNG)
         End Select
         Select Case (s%A_dist_index)
             Case (source_A_dist_Iso)
@@ -401,6 +418,14 @@ Subroutine Sample_Source(s,RNG,n)
                 n%Omega_hat = mu_omega_2_OmegaHat(mu,omega)
             Case (source_A_dist_bot)
                 mu = one_third + RNG%Get_random() * two_thirds
+                omega = Isotropic_Azimuth(RNG)
+                n%Omega_hat = mu_omega_2_OmegaHat(mu,omega)
+            Case (source_A_dist_pCos125)
+                mu = mu_from_power_cosine125(RNG)
+                omega = Isotropic_Azimuth(RNG)
+                n%Omega_hat = mu_omega_2_OmegaHat(mu,omega)
+            Case (source_A_dist_pCos)
+                mu = mu_from_power_cosine(RNG,s%A_param)
                 omega = Isotropic_Azimuth(RNG)
                 n%Omega_hat = mu_omega_2_OmegaHat(mu,omega)
         End Select
@@ -487,11 +512,11 @@ Function Sample_LunarAlbedo(RNG) Result(E)
 
     Do
         !select an energy uniformly distributed (in log10 space) between 10^a and 10^b
-        E = 10._dp**(a-(b-a)*RNG%Get_Random())
+        E = 10._dp**(a+(b-a)*RNG%Get_Random())
         !evaluate the distribution function at the sampled energy
         s = p0 * E * Exp(-E/p1) / p1 + p2 * ((E / p4)**p5) * ((p4 / E)**p3) / (1._dp + (E / p4)**p5)
         !select a testing value uniformly distributed (in log10 space) between 10^c and 10^d
-        g = 10._dp**(c-(d-c)*RNG%Get_Random())
+        g = 10._dp**(c+(d-c)*RNG%Get_Random())
         !test for acceptance of the value
         If (g .GT. dNorm * s) Cycle
         Exit
@@ -499,9 +524,31 @@ Function Sample_LunarAlbedo(RNG) Result(E)
     E = E * 1000._dp  !convert to keV
 End Function Sample_LunarAlbedo
 
+Function A_PDF(s,mu,w,E) Result(p)
+    Use Kinds, Only: dp
+    Use Global, Only: inv_TwoPi
+    Use Global, Only: inv_FourPi
+    Use Random_Directions, Only: PDF_power_cosine
+    Use Random_Directions, Only: PDF_power_cosine125
+    Implicit None
+    Real(dp) :: p
+    Class(Source_Type), Intent(In) :: s  !source info
+    Real(dp), Intent(In) :: mu  !cosine of the polar angle
+    Real(dp), Intent(In) :: w   !azimuthal angle
+    Real(dp), Intent(In) :: E   ![keV] neutron energy
+
+    Select Case (s%A_dist_index)
+        Case (source_A_dist_pCos125)
+            p = inv_TwoPi * PDF_power_cosine125(mu)
+        Case (source_A_dist_pCos)
+            p = inv_TwoPi * PDF_power_cosine(mu,s%A_param)
+        Case Default  !default to isotropic
+            p = inv_FourPi
+    End Select
+End Function A_PDF
+
 Subroutine Write_Source(s,file_name)
-    Use Global, Only: Pi
-    Use Global, Only: Rc => R_center
+    Use Global, Only: r2deg
     Use Utilities, Only: Vector_Length
     Use FileIO_Utilities, Only: Output_Message
     Use FileIO_Utilities, Only: half_dash_line
@@ -535,9 +582,9 @@ Subroutine Write_Source(s,file_name)
     Write(unit,'(A,ES24.16E3,A)') '    z = ',s%r(3),' km'
     If (s%geom_index .NE. source_geom_Albedo) Then
         Write(unit,'(A,ES24.16E3,A)') '    Right Ascension = ', & 
-                                    & Acos(s%r(1)/(Vector_Length(s%r)*Cos(Asin(s%r(3)/Vector_Length(s%r))))) / (Pi/180._dp), & 
+                                    & Acos(s%r(1)/(Vector_Length(s%r)*Cos(Asin(s%r(3)/Vector_Length(s%r))))) * r2deg, & 
                                     & ' deg'
-        Write(unit,'(A,ES24.16E3,A)') '    Declination     = ',Asin(s%r(3)/Vector_Length(s%r)) / (Pi/180._dp),' deg'
+        Write(unit,'(A,ES24.16E3,A)') '    Declination     = ',Asin(s%r(3)/Vector_Length(s%r)) * r2deg,' deg'
     Else
         Write(unit,'(A,ES24.16E3,A)') '    Right Ascension = ',0._dp,' deg'
         Write(unit,'(A,ES24.16E3,A)') '    Declination     = ',0._dp,' deg'
@@ -569,6 +616,8 @@ Subroutine Write_Source(s,file_name)
             Write(unit,'(A)') '    Type 8, thermonuclear'
         Case (source_E_dist_Type13)
             Write(unit,'(A)') '    Type 13, thermonuclear, enhanced radiation'
+        Case (source_E_dist_LunarAlbedo)
+            Write(unit,'(A)') '    Lunar Albedo'
         Case Default
             Call Output_Message( 'ERROR:  Sources: Write_Source:  Undefined source energy distribution',kill=.TRUE.)
     End Select
@@ -585,6 +634,10 @@ Subroutine Write_Source(s,file_name)
             Write(unit,'(A)') '    Downward 1/3'
         Case (source_A_dist_tab)
             Write(unit,'(A)') '    Tabular'
+        Case (source_A_dist_pCos)
+            Write(unit,'(A,ES24.16E3,A)') '    Power Cosine: Cos(theta)**(',s%A_param,')'
+        Case (source_A_dist_pCos125)
+            Write(unit,'(A)') '    Power Cosine: Cos(theta)**(1.25)'
         Case Default
             Call Output_Message( 'ERROR:  Sources: Write_Source:  Undefined source angular distribution',kill=.TRUE.)
     End Select

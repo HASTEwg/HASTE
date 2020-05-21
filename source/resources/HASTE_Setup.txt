@@ -16,14 +16,14 @@
 
 &ProgramSetupList
 !-----------------------------------------------------------------------------------------------------------------------------------
-prompt_for_exit = .FALSE.   !<.TRUE.,.FALSE.> 
+prompt_for_exit = .FALSE.  !<.TRUE.,.FALSE.> 
 screen_progress = .TRUE.   !<.TRUE.,.FALSE.>  Sets whether run progress and percent complete should be printed to screen
-output_folder = 'tests'         ! Default output goes to 'Results' directory, you may add up to one more folder to this tree, do not 
+output_folder = 'testing'  ! Default output goes to 'Results' directory, you may add up to one more folder to this tree, do not 
                            ! include 'Results\', do not include trailing slash
-file_suffix = '-sa'           ! Appended to end of results filenames, do not include file extension
+file_suffix = '-test'           ! Appended to end of results filenames, do not include file extension
 force_overwrite = .TRUE.   !<.TRUE.,.FALSE.>  Sets default file overwrite behavior, FALSE will prompt user for confirmation or new 
                            !                  filenames before overwriting files
-interim_outputs = .TRUE.   !<.TRUE.,.FALSE.>  TRUE indicates that periodic output of interim results from which a simulation run 
+interim_outputs = .FALSE.  !<.TRUE.,.FALSE.>  TRUE indicates that periodic output of interim results from which a simulation run 
                            !                  can be continued
 interim_unit = 'sec'       !<'hrs','min','sec','hist','cont'>
                            ! Selects unit for interval between interim outputs. 'hist' is completed histories, 'cont' is tallied 
@@ -114,7 +114,7 @@ y_source = 0.                    ![km]  Used only for 'Cartesian' geometry
 z_source = 50.                   ![km]  Used for 'Cartesian' AND 'Celestial' geometries, for 'Celestial' specifies geometric
                                  !      altitude above Earth surface
 declination_source = 45.         ![deg]  Measured from equator, northward is positive, Used only for 'Celestial' geometry
-right_ascension_source = 0.      ![deg]  Measured from prime meridian (increasing counter-clockwise when viewed down from North),
+hour_angle_source = 0.           ![deg]  Measured from prime meridian (increasing counter-clockwise when viewed down from North),
                                  !       Used only for 'Celestial' geometry
 v_E_source = 0.                  ![km/s]  Easterly velocity of source
 v_N_source = 0.                  ![km/s]  Northerly velocity of source
@@ -131,6 +131,7 @@ source_E_dist = 'Watt235'        !<'Line','Uniform','Watt235','Type03','Type05',
                                  !  'Type08' thermonuclear, 
                                  !  'Type13' enhanced radiation thermonuclear,
                                  !  'Egroups' list of tabulated energy bins and densities, 
+                                 !  'LunarAlb' lunar albedo, 
                                  !  'EAgroups' 2-D list of tabulated energy and angle bins
 E_high = 20000.                  ![keV]  Value for 'Line', max value for 'Uniform' or 'Watt235'
 E_low = 0.                       ![keV]  Min value for 'Uniform'
@@ -140,7 +141,10 @@ source_A_dist = 'Iso'            !<'Iso','Top','Side','Bottom','Agroups','EAgrou
                                  !  'Side' 1/3 of solid angle closest to perpendicular to Earth's surface beneath the source, 
                                  !  'Bottom' downward 1/3 of solid angle, 
                                  !  'Agroups' list of tabulated angle bins and densities,
+                                 !  'powCos' for albedo sources, distributes angle (measured from upward) on Cos(theta)**p,
+                                 !  'powCos125' for albedo sources, distributes angle (measured from upward) on Cos(theta)**1.25,
                                  !  'EAgroups' 2-D list of tabulated energy and angle bins
+A_param = 1.25                   ![]  Power value for 'powCos'
 source_t_dist = 'Point'          !<'Point','Uniform'>
 t_start = 0.                     ![s]  Value for 'Point', min value for 'Uniform'
 t_stop = 0.                      ![s]  Max value for 'Uniform'
@@ -157,11 +161,12 @@ y_detector = 0.                  ![km]  Used only for 'Cartesian' geometry
 z_detector = 35793.              ![km]  Used for 'Cartesian' AND 'Celestial' geometries, for 'Celestial' specifies geometric
                                  !      altitude above Earth surface
 declination_detector = 0.        ![deg]  Measured from equator, northward is positive, Used only for 'Celestial' geometry
-right_ascension_detector = 0.    ![deg]  Measured from prime meridian (increasing counter-clockwise when viewed down from North), 
+hour_angle_detector = 0.         ![deg]  Measured from prime meridian (increasing counter-clockwise when viewed down from North), 
                                  !       Used only for 'Celestial' geometry
-v_E_detector = 0.                ![km/s]  Easterly velocity of detector
-v_N_detector = 0.                ![km/s]  Northerly velocity of detector
-v_U_detector = 0.                ![km/s]  Upward velocity of detector
+velocity_frame = 'XYZ'           !<'XYZ','ENU'>  Frame of reference in which detector velocity is specified
+v_A_detector = 0.                ![km/s]  Easterly velocity of detector
+v_B_detector = 0.                ![km/s]  Northerly velocity of detector
+v_C_detector = 0.                ![km/s]  Upward velocity of detector
 detector_motion = 'GeoStat'      !<'Stationary','Linear','Conic','GeoStat','Conic_tab'>  Detector model motion: 
                                  !  'Conic' is orbital trajectory,
                                  !  'GeoStat' overrides detector position/velocity to place detector in geosynchronous, circular, 

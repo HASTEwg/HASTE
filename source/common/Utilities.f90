@@ -379,4 +379,16 @@ Pure Function pNorm(v,p) Result(x)
     x = Sum(Abs(v)**p)**(1._dp/p)
 End Function pNorm
 
+Function Celest_to_XYZ(alt,HA,DEC) Result(r)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: r(1:3)
+    Real(dp), Intent(In) :: alt,HA,DEC
+    
+    !convert celestial to cartesian coordinates
+    r = (/  alt * Cos(HA) * Cos(DEC), &
+         & -alt * Sin(HA) * Cos(DEC), &
+         &  alt * Sin(DEC) /)
+End Function Celest_to_XYZ
+
 End Module Utilities

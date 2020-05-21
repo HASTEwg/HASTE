@@ -345,12 +345,8 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     Else
         dmu0ef_dmu0 = 1._dp
     End If
-    !UNDONE Evaluate direction PDF for emission directly to detector
     If (s%aniso_dist) Then
-        !UNDONE The functing "PDF" on the following line is a placeholder...
-        !w2 = w2 * dmu0ef_dmu0 * PDF(mu0ef,omega0ef,n%E0ef) * inv_TwoPi
-        Print*,'not done yet...'
-        ERROR STOP
+        w2 = w2 * dmu0ef_dmu0 * s%A_PDF(mu0ef,omega0ef,n%E0ef)
     Else
         w2 = w2 * dmu0ef_dmu0 * inv_FourPi
     End If

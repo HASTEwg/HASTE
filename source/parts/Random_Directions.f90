@@ -24,6 +24,8 @@ Module Random_Directions
     Public :: mu_omega_2_OmegaHat
     Public :: mu_from_power_cosine
     Public :: mu_from_power_cosine125
+    Public :: PDF_power_cosine
+    Public :: PDF_power_cosine125
 
     Interface Neutron_Anisotropic_mu0cm
         Module Procedure Neutron_Anisotropic_mu0cm_Legendre
@@ -92,6 +94,27 @@ Function mu_from_power_cosine125(RNG) Result(mu)
     End Do
     mu = Cos(theta)
 End Function mu_from_power_cosine125
+
+Function PDF_power_cosine(mu,x) Result(p)
+    Use Kinds, Only: dp
+    Use Global, Only: sqrtPi
+    Implicit None
+    Real(dp) :: p
+    Real(dp), Intent(In) :: mu
+    Real(dp), Intent(In) :: x
+
+    p = (mu**x) * 2._dp * GAMMA(1._dp + 0.5_dp*x) / ( sqrtPi * GAMMA(0.5_dp * (x + 1._dp)) )
+End Function PDF_power_cosine
+
+Function PDF_power_cosine125(mu) Result(p)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: p
+    Real(dp), Intent(In) :: mu
+    Real(dp), Parameter :: invPDFnorm = 1._dp / 0.9308740569746155_dp
+
+    p = (mu**1.25_dp) * invPDFnorm
+End Function PDF_power_cosine125
 
 Function mu_omega_2_OmegaHat(xi,w) Result(Omegahat)
     !Converts angles (polar cosine and azimuthal rotation) to a unit vector
