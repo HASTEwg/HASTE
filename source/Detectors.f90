@@ -101,7 +101,6 @@ Function Setup_Detector(setup_file_name,resources_dir,run_file_name,slice_file_n
     Integer :: E_bins_per_decade  !number of energy bins per decade, used for 'log' grid spacing 
     Integer :: t_bins_per_decade  !number of time bins per decade, used for 'log' grid spacing
     Logical :: log_sp
-    Real(dp) :: HA,DEC
     Character(10) :: E_grid_spacing,t_grid_spacing  !specifies 'Log' or 'Linear' for grid spacing
     Integer :: n_mu_bins,n_omega_bins
     Integer :: setup_unit,stat,i

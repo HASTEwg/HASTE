@@ -1138,9 +1138,9 @@ End Subroutine Output_Message_CDPC
 
 !!!!!!!!!!  THREAD, IMAGE, and WORKER INDEXING ROUTINES  !!!!!!!!!!
 Function Worker_Index(OMP_threaded,CAF_imaged) Result(i)
-#   if CAF
-        Use OMP_LIB, Only: OMP_GET_NUM_THREADS,OMP_GET_THREAD_NUM
-#   endif
+!#   if CAF
+!        Use OMP_LIB, Only: OMP_GET_NUM_THREADS,OMP_GET_THREAD_NUM
+!#   endif
     Implicit None
     Integer :: i
     Logical, Intent(Out), Optional :: OMP_threaded
@@ -1153,12 +1153,12 @@ Function Worker_Index(OMP_threaded,CAF_imaged) Result(i)
             If (num_images() .GT. 1) Then  !use the coarray image number to index the worker
                 i = this_image()  !coarray images are numbered starting at 1
                 If (Present(CAF_imaged)) CAF_imaged = .TRUE.
-            Else If (OMP_GET_NUM_THREADS() .GT. 1) Then  !use the OpenMP thread number to index the worker
-                i = OMP_GET_THREAD_NUM() + 1  !OpenMP threads are numbered starting at zero
-                If (Present(OMP_threaded)) OMP_threaded = .TRUE.
+!            Else If (OMP_GET_NUM_THREADS() .GT. 1) Then  !use the OpenMP thread number to index the worker
+!                i = OMP_GET_THREAD_NUM() + 1  !OpenMP threads are numbered starting at zero
+!                If (Present(OMP_threaded)) OMP_threaded = .TRUE.
             Else
-                Call Output_Message('ERROR:  FileIO_Utilities: Worker_Index:  & 
-                                    &Unable to resolve thread or image number.',kill=.TRUE.)
+                Call Output_Message( 'ERROR:  FileIO_Utilities: Worker_Index:  & 
+                                     &Unable to resolve thread or image number.',kill=.TRUE. )
             End If
         Else
             i = 1  !default value for single threaded/imaged applications
@@ -1169,21 +1169,16 @@ Function Worker_Index(OMP_threaded,CAF_imaged) Result(i)
 End Function Worker_Index
 
 Function n_Workers() Result(n)
-#   if CAF
-        Use OMP_LIB, Only: OMP_GET_NUM_THREADS
-#   endif
     Implicit None
     Integer :: n
 
 #   if CAF
-        If (OMP_GET_NUM_THREADS().GT.1 .OR. num_images().GT.1) Then !Parallel threads or images are running
+        If (num_images().GT.1) Then !Parallel threads or images are running
             If (num_images() .GT. 1) Then
                 n = num_images()
-            Else If (OMP_GET_NUM_THREADS() .GT. 1) Then  !use the OpenMP thread number to index the thread
-                n = OMP_GET_NUM_THREADS()
             Else
-                Call Output_Message('ERROR:  FileIO_Utilities: n_Workers:  & 
-                                    &Unable to resolve number of threads or images.',kill=.TRUE.)
+                Call Output_Message( 'ERROR:  FileIO_Utilities: n_Workers:  & 
+                                     &Unable to resolve number of threads or images.',kill=.TRUE. )
             End If
         Else
             n = 1  !default value for single threaded/imaged applications

@@ -60,7 +60,7 @@ while getopts 'sdrqwp:ckvf:' flag; do
     c) COMP_NAME="caf"
        PREP_FLAGS="${PREP_FLAGS} -DCAF"
        COMP_FLAGS="${COMP_FLAGS} -fcoarray=lib"
-       LIB_FLAGS="${LIB_FLAGS} -lcaf_mpi"
+       #LIB_FLAGS="${LIB_FLAGS} -lcaf_mpi"
        ;;
     k) PREP_FLAGS="${PREP_FLAGS} -DCHECK_B -DCHECK_L"
        ;;

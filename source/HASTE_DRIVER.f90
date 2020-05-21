@@ -153,7 +153,7 @@ Dir_Tallies = Setup_Tallies(detector%Dir_grid(1)%n_bins,detector%Dir_grid(2)%n_b
 # if CAF
     !divide n_histories equally among images
     n_p = n_histories / n_img  !integer divide
-    If (i_img .EQ. n_img) n_p = n_p + Mod(n_histories,n_img)  !remainder added to last image
+    If (i_img .EQ. n_img) n_p = n_p + Mod(n_histories,INT(n_img,id))  !remainder added to last image
 # else
     !all histories will be executed on a single image
     n_p = n_histories

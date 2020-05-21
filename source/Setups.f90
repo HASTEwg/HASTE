@@ -291,13 +291,9 @@ Subroutine Check_folders_exist(paths_files)
         Call Output_Message( 'ERROR:  Setups: Setup_HASTE:  Resources directory not found: '// & 
                            & paths_files%resources_directory,kill=.TRUE. )
     End If
-    !Check if results directories exist
-    If (.NOT. Check_Directory(paths_files%results_directory)) Call Create_Directory(paths_files%results_directory)
-    If (paths_files%output_folder .NE. '')  Then !output folder is specified
-        If (.NOT. Check_Directory(paths_files%results_directory//paths_files%output_folder)) Then
-            Call Create_Directory(paths_files%results_directory//paths_files%output_folder)
-        End If
-    End if
+    !Make sure results directories exist
+    Call Create_Directory(paths_files%results_directory)
+    If (paths_files%output_folder .NE. '')  Call Create_Directory(paths_files%results_directory//paths_files%output_folder)
 End Subroutine Check_folders_exist
 
 Subroutine Setup_Estimator(setup_file_name,run_file_name,n_neutron_histories,absolute_n_histories)
@@ -332,7 +328,7 @@ Subroutine Setup_Info_to_disk(n_histories,abs_n_histories,prompt_for_exit,screen
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
     Use FileIO_Utilities, Only: Working_Directory
-    Use FileIO_Utilities, Only: Check_Directory
+    Use FileIO_Utilities, Only: Create_Directory
     Use FileIO_Utilities, Only: Var_to_File
     Implicit None
     Integer(id), Intent(In) :: n_histories
@@ -347,8 +343,8 @@ Subroutine Setup_Info_to_disk(n_histories,abs_n_histories,prompt_for_exit,screen
     Call Working_Directory(GETdir = dir,s = slash)
     Allocate(Character(max_path_len) :: file_dir)
     file_dir = Trim(dir)//'temp'//slash
-    !Check if temp results directory exists
-    If (.NOT. Check_Directory(file_dir)) Call Create_Directory(file_dir)
+    !Make sure temp results directory exists
+    Call Create_Directory(file_dir)
     Allocate(Character(max_path_len) :: file_name)
     !write n_histories to file
     file_name = file_dir//'n.tmp'
