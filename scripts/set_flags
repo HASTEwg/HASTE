@@ -40,7 +40,7 @@ LIB_FLAGS=""
 # LINKER Flags
 LINK_FLAGS="-static-libgcc -static-libgfortran"
 # Adjust based on command line flag(s)
-while getopts 'sdrqwp:ckvf:' flag; do
+while getopts 'sdrqwp:ckvfi:' flag; do
   case "${flag}" in
     s) COMP_FLAGS="${SYNTAX_FLAGS}"
        ;;
@@ -60,13 +60,14 @@ while getopts 'sdrqwp:ckvf:' flag; do
     c) COMP_NAME="caf"
        PREP_FLAGS="${PREP_FLAGS} -DCAF"
        COMP_FLAGS="${COMP_FLAGS} -fcoarray=lib"
-       #LIB_FLAGS="${LIB_FLAGS} -lcaf_mpi"
        ;;
     k) PREP_FLAGS="${PREP_FLAGS} -DCHECK_B -DCHECK_L"
        ;;
     v) COMP_FLAGS="${COMP_FLAGS} -v"
        ;;
     f) COMP_FLAGS="${COMP_FLAGS} ${OPTARG}"
+       ;;
+    i) COMP_FLAGS="${COMP_FLAGS} -g -a -pg"
        ;;
   esac
 done

@@ -539,9 +539,17 @@ Function A_PDF(s,mu,w,E) Result(p)
 
     Select Case (s%A_dist_index)
         Case (source_A_dist_pCos125)
-            p = inv_TwoPi * PDF_power_cosine125(mu)
+            If (mu .GT. 0._dp) Then
+                p = inv_TwoPi * PDF_power_cosine125(mu)
+            Else
+                p = 0._dp
+            End If
         Case (source_A_dist_pCos)
-            p = inv_TwoPi * PDF_power_cosine(mu,s%A_param)
+            If (mu .GT. 0._dp) Then
+                p = inv_TwoPi * PDF_power_cosine(mu,s%A_param)
+            Else
+                p = 0._dp
+            End If
         Case Default  !default to isotropic
             p = inv_FourPi
     End Select
