@@ -22,7 +22,6 @@ Module MC_Neutron
 Contains
 
 Subroutine Do_Neutron(s,d,atm,ScatMod,RNG,contributed)
-    Use Kinds, Only: dp
     Use Kinds, Only: id
     Use Sources, Only: Source_Type
     Use Detectors, Only: Detector_Type
@@ -115,7 +114,6 @@ Function Start_Neutron(source,atm,RNG,ScatMod,detector) Result(n)
     Use Atmospheres, Only: Atmosphere_Type
     Use Random_Numbers, Only: RNG_Type
     Use Global, Only: TwoPi
-    Use Global, Only: Rc => R_center
     Use Global, Only: mu => grav_param
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Unit_Vector
@@ -250,6 +248,7 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     Logical :: no_LOS  !flag indicates path to detector intersects Earth
     Real(dp) :: r_ca
     Real(dp) :: h,xi,p,e,s1
+    Integer :: i
         
     ScatMod%next_events(1) = ScatMod%next_events(1) + 1_id
     If (ScatMod%Gravity) Then !check if energy is adequate to reach detector
@@ -265,119 +264,130 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
             End If
         End If
     End If
-    Call Next_Event_Trajectory(d%sat,ScatMod%Gravity,n%r,n%t,n%s0ef,s%v,path_found,rS2,dt,v1ef,v2sat,vS2)
-    If (.NOT. path_found) Return
-    !Check for line of sight, compute EPL to detector as side effect
-    v1 = v1ef + s%v
-    s1 = Vector_Length(v1)
-    zeta1 = Dot_Product(Unit_Vector(n%r),Unit_Vector(v1))
-    If (s%exoatmospheric) Then  !emission point is above the atmosphere
-        !check for LOS above atm and through atm, if through atm compute distance along the path as a side-effect
-        xEff_top_atm = 0._dp
-        no_LOS = .FALSE.
-        If (zeta1 .LT. 0._dp) Then  !direction is downward
-            If (ScatMod%Gravity) Then
-                h = n%big_r * s1 * Sqrt(1._dp - zeta1**2)
-                xi = 0.5_dp * s1**2 - mu / n%big_r  !SME(n%big_r,s1)
-                p = h*h / mu
-                e = Sqrt(1._dp + 2._dp * xi * p / mu)
-                r_ca = p / (1._dp + e)
-                If (r_ca .LT. atm%R_top) Then !passes through atmosphere
-                    !add downward and upward segments
-                    Call EPL_upward(atm,r_ca-Rc,0._dp,h,xi,p,e,r_ca,xEff_top_atm)
-                    xEff_top_atm = 2._dp * xEff_top_atm
+    Do i = 1,2
+        If (i .EQ. 1) Then
+            Call Next_Event_Trajectory(d%sat,ScatMod%Gravity,n%r,n%t,n%s0ef,s%v,.TRUE.,path_found,rS2,dt,v1ef,v2sat,vS2)
+            If (.NOT. path_found) Cycle
+        Else !i.EQ.2
+            If (ScatMod%inbound_trajectories) Then
+                Call Next_Event_Trajectory(d%sat,ScatMod%Gravity,n%r,n%t,n%s0ef,s%v,.FALSE.,path_found,rS2,dt,v1ef,v2sat,vS2)
+            Else
+                Return
+            End If
+            If (.NOT. path_found) Return
+        End If
+        !Check for line of sight, compute EPL to detector as side effect
+        v1 = v1ef + s%v
+        s1 = Vector_Length(v1)
+        zeta1 = Dot_Product(Unit_Vector(n%r),Unit_Vector(v1))
+        If (s%exoatmospheric) Then  !emission point is above the atmosphere
+            !check for LOS above atm and through atm, if through atm compute distance along the path as a side-effect
+            xEff_top_atm = 0._dp
+            no_LOS = .FALSE.
+            If (zeta1 .LT. 0._dp) Then  !direction is downward
+                If (ScatMod%Gravity) Then
+                    h = n%big_r * s1 * Sqrt(1._dp - zeta1**2)
+                    xi = 0.5_dp * s1**2 - mu / n%big_r  !SME(n%big_r,s1)
+                    p = h*h / mu
+                    e = Sqrt(1._dp + 2._dp * xi * p / mu)
+                    r_ca = p / (1._dp + e)
+                    If (r_ca .LT. atm%R_top) Then !passes through atmosphere
+                        !add downward and upward segments
+                        Call EPL_upward(atm,r_ca-Rc,0._dp,h,xi,p,e,r_ca,xEff_top_atm)
+                        xEff_top_atm = 2._dp * xEff_top_atm
+                    End If
+                Else
+                    r_ca = R_close_approach(n%big_r,zeta1)
+                    If (r_ca .LT. atm%R_bot) Then  !downward to earth, no LOS for contribution
+                        Return
+                    Else If (r_ca .LT. atm%R_top) Then !path cuts through atmosphere, but has attenuated LOS
+                        !add downward and upward segments
+                        Call EPL_upward(atm,r_ca,0._dp,r_ca-Rc,xEff_top_atm)
+                        xEff_top_atm = 2._dp * xEff_top_atm
+                    End If
+                End If
+            End If
+        Else  !emission point is in the atmosphere
+            !check for LOS, compute distance along the path as a side-effect
+            If (ScatMod%Gravity) Then  !LOS need not be checked in the gravity case, the solver does not return trajectories w/o LOS
+                no_LOS = Next_Event_L_to_edge(atm,n%big_r,s1,n%Z,zeta1,xEff_top_atm)
+            Else
+                no_LOS = Next_Event_L_to_edge(atm,n%big_r,n%Z,zeta1,xEff_top_atm)
+                If (no_LOS) Return
+            End If
+        End If
+        ScatMod%next_events(2) = ScatMod%next_events(2) + 1_id
+        !TOTAL TIME OF FLIGHT TO ARRIVAL
+        tof = n%t + dt
+        !ENERGY AT ARRIVAL
+        E2sat = Neutron_Energy(v2sat)
+        !Check if time and energy are in range of the detector grid
+        If ( E2sat .LT. d%TE_grid(2)%min .OR. &
+        & E2sat .GT. d%TE_grid(2)%max .OR. &
+        & tof   .LT. d%TE_grid(1)%min .OR. &
+        & tof   .GT. d%TE_grid(1)%max      ) Then !No contribution from this neutron due to out of range of detector grid
+            !Record reason for no contribution and return
+            If (E2sat.LT.d%TE_grid(2)%min .OR. E2sat.GT.d%TE_grid(2)%max) Then  !E out of range, check for time range
+                If (tof.LT.d%TE_grid(1)%min .OR. tof.GT.d%TE_grid(1)%max) Then  !t also out of range
+                    ScatMod%n_no_tally(1) = ScatMod%n_no_tally(1) + 1_id
+                Else  !just E out of range
+                    ScatMod%n_no_tally(3) = ScatMod%n_no_tally(3) + 1_id
+                End If
+            Else If (tof.LT.d%TE_grid(1)%min .OR. tof.GT.d%TE_grid(1)%max) Then  !just t out of range
+                ScatMod%n_no_tally(2) = ScatMod%n_no_tally(2) + 1_id
+            End If
+            Return
+        Else  !contribution hits the grid
+            ScatMod%next_events(3) = ScatMod%next_events(3) + 1_id
+        End If
+        !DIRECTION AT ARRIVAL
+        Omega_hat2_sat = Unit_Vector(v2sat)
+        !WEIGHT ADJUSTMENTS... Scattered angle, divergence, absorption & scatter suppression, decay
+        w2 = n%weight !initial value (neutron weight at source)
+        !Adjust for emission angle
+        Omega_hat1_ef = Unit_Vector(v1ef)
+        Call Scattered_Angles(s%A_hat,Omega_hat1_ef,mu0ef,omega0ef,s%B_hat,s%C_hat)
+        If (s%has_velocity) Then
+            Bn = n%s0ef / s%speed
+            dmu0ef_dmu0 = Abs((1._dp + Bn * (2._dp * mu0ef + Bn))**(1.5_dp) / (Bn**2 * (Bn + mu0ef)))
+            !Eqn 479 from Haste-N removed material (p 39)
+        Else
+            dmu0ef_dmu0 = 1._dp
+        End If
+        If (s%aniso_dist) Then
+            w2 = w2 * dmu0ef_dmu0 * s%A_PDF(mu0ef,omega0ef,n%E0ef)
+        Else
+            w2 = w2 * dmu0ef_dmu0 * inv_FourPi
+        End If
+        !Adjust for divergence
+        If (ScatMod%Gravity) Then
+            divEF = Div_Fact_by_shooting(n%r,Omega_hat1_ef,n%s0ef,s%v,tof,vS2,v2sat+vS2)
+        Else
+            divEF = Div_Fact_Straight(n%r,v1,rS2,s%v,tof,vS2)
+        End If
+        w2 = w2 * divEF
+        !Adjust for interaction suppression on the path out of the atmosphere
+        If (xEff_top_atm .GT. 0._dp) Then
+            If (s%exoatmospheric) Then
+                If (ScatMod%Doppler_Broaden) Then
+                    sigma_T1 = ScatMod%CS%sig_T_broad(Neutron_Energy(v1),atm%T(r_ca-Rc))
+                Else
+                    sigma_T1 = ScatMod%CS%sig_T(Neutron_Energy(v1))
                 End If
             Else
-                r_ca = R_close_approach(n%big_r,zeta1)
-                If (r_ca .LT. atm%R_bot) Then  !downward to earth, no LOS for contribution
-                    Return
-                Else If (r_ca .LT. atm%R_top) Then !path cuts through atmosphere, but has attenuated LOS
-                    !add downward and upward segments
-                    Call EPL_upward(atm,r_ca,0._dp,r_ca-Rc,xEff_top_atm)
-                    xEff_top_atm = 2._dp * xEff_top_atm
+                If (ScatMod%Doppler_Broaden) Then
+                    sigma_T1 = ScatMod%CS%sig_T_broad(Neutron_Energy(v1),atm%T(n%Z))
+                Else
+                    sigma_T1 = ScatMod%CS%sig_T(Neutron_Energy(v1))
                 End If
             End If
+            w2 = w2 * Exp(-sigma_T1 * mfp_per_barn_per_km_at_seaLevel * xEff_top_atm)
         End If
-    Else  !emission point is in the atmosphere
-        !check for LOS, compute distance along the path as a side-effect
-        If (ScatMod%Gravity) Then  !LOS need not be checked in the gravity case, the solver does not return trajectories w/o LOS
-            no_LOS = Next_Event_L_to_edge(atm,n%big_r,s1,n%Z,zeta1,xEff_top_atm)
-        Else
-            no_LOS = Next_Event_L_to_edge(atm,n%big_r,n%Z,zeta1,xEff_top_atm)
-            If (no_LOS) Return
-        End If
-    End If
-    ScatMod%next_events(2) = ScatMod%next_events(2) + 1_id
-    !TOTAL TIME OF FLIGHT TO ARRIVAL
-    tof = n%t + dt
-    !ENERGY AT ARRIVAL
-    E2sat = Neutron_Energy(v2sat)
-    !Check if time and energy are in range of the detector grid
-    If ( E2sat .LT. d%TE_grid(2)%min .OR. &
-       & E2sat .GT. d%TE_grid(2)%max .OR. &
-       & tof   .LT. d%TE_grid(1)%min .OR. &
-       & tof   .GT. d%TE_grid(1)%max      ) Then !No contribution from this neutron due to out of range of detector grid
-        !Record reason for no contribution and return
-        If (E2sat.LT.d%TE_grid(2)%min .OR. E2sat.GT.d%TE_grid(2)%max) Then  !E out of range, check for time range
-            If (tof.LT.d%TE_grid(1)%min .OR. tof.GT.d%TE_grid(1)%max) Then  !t also out of range
-                ScatMod%n_no_tally(1) = ScatMod%n_no_tally(1) + 1_id
-            Else  !just E out of range
-                ScatMod%n_no_tally(3) = ScatMod%n_no_tally(3) + 1_id
-            End If
-        Else If (tof.LT.d%TE_grid(1)%min .OR. tof.GT.d%TE_grid(1)%max) Then  !just t out of range
-            ScatMod%n_no_tally(2) = ScatMod%n_no_tally(2) + 1_id
-        End If
-        Return
-    Else  !contribution hits the grid
-        ScatMod%next_events(3) = ScatMod%next_events(3) + 1_id
-    End If
-    !DIRECTION AT ARRIVAL
-    Omega_hat2_sat = Unit_Vector(v2sat)
-    !WEIGHT ADJUSTMENTS... Scattered angle, divergence, absorption & scatter suppression, decay
-    w2 = n%weight !initial value (neutron weight at source)
-    !Adjust for emission angle
-    Omega_hat1_ef = Unit_Vector(v1ef)
-    Call Scattered_Angles(s%A_hat,Omega_hat1_ef,mu0ef,omega0ef,s%B_hat,s%C_hat)
-    If (s%has_velocity) Then
-        Bn = n%s0ef / s%speed
-        dmu0ef_dmu0 = Abs((1._dp + Bn * (2._dp * mu0ef + Bn))**(1.5_dp) / (Bn**2 * (Bn + mu0ef)))
-        !Eqn 479 from Haste-N removed material (p 39)
-    Else
-        dmu0ef_dmu0 = 1._dp
-    End If
-    If (s%aniso_dist) Then
-        w2 = w2 * dmu0ef_dmu0 * s%A_PDF(mu0ef,omega0ef,n%E0ef)
-    Else
-        w2 = w2 * dmu0ef_dmu0 * inv_FourPi
-    End If
-    !Adjust for divergence
-    If (ScatMod%Gravity) Then
-        divEF = Div_Fact_by_shooting(n%r,Omega_hat1_ef,n%s0ef,s%v,tof,vS2,v2sat+vS2)
-    Else
-        divEF = Div_Fact_Straight(n%r,v1,rS2,s%v,tof,vS2)
-    End If
-    w2 = w2 * divEF
-    !Adjust for interaction suppression on the path out of the atmosphere
-    If (xEff_top_atm .GT. 0._dp) Then
-        If (s%exoatmospheric) Then
-            If (ScatMod%Doppler_Broaden) Then
-                sigma_T1 = ScatMod%CS%sig_T_broad(Neutron_Energy(v1),atm%T(r_ca-Rc))
-            Else
-                sigma_T1 = ScatMod%CS%sig_T(Neutron_Energy(v1))
-            End If
-        Else
-            If (ScatMod%Doppler_Broaden) Then
-                sigma_T1 = ScatMod%CS%sig_T_broad(Neutron_Energy(v1),atm%T(n%Z))
-            Else
-                sigma_T1 = ScatMod%CS%sig_T(Neutron_Energy(v1))
-            End If
-        End If
-        w2 = w2 * Exp(-sigma_T1 * mfp_per_barn_per_km_at_seaLevel * xEff_top_atm)
-    End If
-    !Adjust for free neutron decay
-    If (ScatMod%neutron_decay) w2 = w2 * Exp(-n_lambda * tof)
-    !TALLY
-    Call d%Tally_Scatter(E2sat,Omega_hat2_sat,tof,w2)
+        !Adjust for free neutron decay
+        If (ScatMod%neutron_decay) w2 = w2 * Exp(-n_lambda * tof)
+        !TALLY
+        Call d%Tally_Scatter(E2sat,Omega_hat2_sat,tof,w2)
+    End Do
 End Subroutine First_Event_Neutron
 
 Subroutine Move_Neutron(n,ScatMod,atm,RNG,leaked)
@@ -388,7 +398,6 @@ Subroutine Move_Neutron(n,ScatMod,atm,RNG,leaked)
     Use Neutron_Scatter, Only: Scatter_Model_Type
     Use Neutron_Utilities, Only: Neutron_Speed
     Use Atmospheres, Only: Atmosphere_Type
-    Use Atmospheres, Only: rho_SL
     Use Random_Numbers, Only: RNG_Type
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Vector_Length
@@ -555,6 +564,7 @@ Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
     Real(dp) :: vS2(1:3)  ![km/s]  velocity of satellite at arrival of neutron
     Real(dp) :: divCM  !divergence factor
     Logical :: no_LOS  !flag indicates path to detector intersects Earth
+    Integer :: i
         
     ScatMod%next_events(1) = ScatMod%next_events(1) + 1_id
     If (ScatMod%Gravity) Then !check if energy is adequate to reach detector
@@ -570,86 +580,97 @@ Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
             End If
         End If
     End If
-    Call Next_Event_Trajectory(d%sat,ScatMod%Gravity,n%r,n%t,scat%s1cm,scat%u,path_found,rS2,dt,v1cm,v2sat,vS2)
-    If (.NOT. path_found) Return
-    !Check for line of sight, compute EPL along the path as a side-effect
-    v1 = v1cm + scat%u
-    zeta1 = Dot_Product(Unit_Vector(n%r),Unit_Vector(v1))
-    If (ScatMod%Gravity) Then  !LOS need not be checked in the gravity case, the solver does not return trajectories w/o LOS
-        no_LOS = Next_Event_L_to_edge(atm,n%big_r,Vector_Length(v1),n%Z,zeta1,xEff_top_atm)
-    Else
-        no_LOS = Next_Event_L_to_edge(atm,n%big_r,n%Z,zeta1,xEff_top_atm)
-        If (no_LOS) Return
-    End If
-    ScatMod%next_events(2) = ScatMod%next_events(2) + 1_id
-    !TOTAL TIME OF FLIGHT TO ARRIVAL
-    tof = n%t + dt
-    !ENERGY AT ARRIVAL
-    E2sat = Neutron_Energy(v2sat)
-    !Check if time and energy are in range of the detector grid
-    If ( E2sat .LT. d%TE_grid(2)%min .OR. &
-       & E2sat .GT. d%TE_grid(2)%max .OR. &
-       & tof   .LT. d%TE_grid(1)%min .OR. &
-       & tof   .GT. d%TE_grid(1)%max      ) Then !No contribution from this neutron due to out of range of detector grid
-        !Record reason for no contribution and return
-        If (E2sat.LT.d%TE_grid(2)%min .OR. E2sat.GT.d%TE_grid(2)%max) Then  !E out of range, check for time range
-            If (tof.LT.d%TE_grid(1)%min .OR. tof.GT.d%TE_grid(1)%max) Then  !t also out of range
-                ScatMod%n_no_tally(1) = ScatMod%n_no_tally(1) + 1_id
-            Else  !just E out of range
-                ScatMod%n_no_tally(3) = ScatMod%n_no_tally(3) + 1_id
+    Do i = 1,2
+        If (i .EQ. 1) Then
+            Call Next_Event_Trajectory(d%sat,ScatMod%Gravity,n%r,n%t,scat%s1cm,scat%u,.TRUE.,path_found,rS2,dt,v1cm,v2sat,vS2)
+            If (.NOT. path_found) Cycle
+        Else !i.EQ.2
+            If (ScatMod%inbound_trajectories) Then
+                Call Next_Event_Trajectory(d%sat,ScatMod%Gravity,n%r,n%t,scat%s1cm,scat%u,.FALSE.,path_found,rS2,dt,v1cm,v2sat,vS2)
+            Else
+                Return
             End If
-        Else If (tof.LT.d%TE_grid(1)%min .OR. tof.GT.d%TE_grid(1)%max) Then  !just t out of range
-            ScatMod%n_no_tally(2) = ScatMod%n_no_tally(2) + 1_id
+            If (.NOT. path_found) Return
         End If
-        Return
-    Else  !contribution hits the grid
-        ScatMod%next_events(3) = ScatMod%next_events(3) + 1_id
-    End If
-    !DIRECTION AT ARRIVAL
-    Omega_hat2_sat = Unit_Vector(v2sat)
-    !WEIGHT ADJUSTMENTS... Scattered angle, divergence, absorption & scatter suppression, decay
-    w2 = n%weight !initial value (neutron wt multiplied by scatter wt for all mat/mech and exoatmospheric wt adj where applicable)
-    If (Present(w_scat)) w2 = w2 * w_scat
-    !Adjust for scatter angle
-    Omega_hat1_cm = Unit_Vector(v1cm)
-    Call Scattered_Angles(scat%Omega_hat0_cm,Omega_hat1_cm,mu0cm,omega0cm,scat%B_hat,scat%C_hat)
-    Bn = scat%s1cm / scat%u_speed
-    dmu0cm_dmu0 = Abs((1._dp + Bn * (2._dp * mu0cm + Bn))**(1.5_dp) / (Bn**2 * (Bn + mu0cm)))
-    !Eqn 479 from Haste-N removed material (p 39)
-    If (ScatMod%aniso_dist) Then
-        If (scat%da_is_Legendre) Then
-            w2 = w2 * dmu0cm_dmu0 * Legendre_pdf(mu0cm,scat%n_a,scat%a(0:scat%n_a)) * inv_TwoPi
+        !Check for line of sight, compute EPL along the path as a side-effect
+        v1 = v1cm + scat%u
+        zeta1 = Dot_Product(Unit_Vector(n%r),Unit_Vector(v1))
+        If (ScatMod%Gravity) Then  !LOS need not be checked in the gravity case, the solver does not return trajectories w/o LOS
+            no_LOS = Next_Event_L_to_edge(atm,n%big_r,Vector_Length(v1),n%Z,zeta1,xEff_top_atm)
         Else
-            w2 = w2 * dmu0cm_dmu0 * inv_TwoPi * Tabular_Cosine_pdf( mu0cm, & 
-                                                                  & scat%n_a1, & 
-                                                                  & scat%a_tab1(1:scat%n_a1,:), & 
-                                                                  & scat%n_a2, & 
-                                                                  & scat%a_tab2(1:scat%n_a2,:), & 
-                                                                  & scat%a_tab_Econv )
+            no_LOS = Next_Event_L_to_edge(atm,n%big_r,n%Z,zeta1,xEff_top_atm)
+            If (no_LOS) Return
         End If
-    Else
-        w2 = w2 * dmu0cm_dmu0 * inv_FourPi
-    End If
-    !Adjust for divergence
-    If (ScatMod%Gravity) Then
-        divCM = Div_Fact_by_shooting(n%r,Omega_hat1_cm,scat%s1cm,scat%u,dt,vS2,v2sat+vS2)
-    Else
-        divCM = Div_Fact_Straight(n%r,v1,rS2,scat%u,dt,vS2)
-    End If
-    w2 = w2 * divCM
-    !Adjust for absorption suppression at the point of scatter
-    w2 = w2 * (1._dp - scat%sig_A / scat%sig_T)
-    !Adjust for interaction suppression on the path out of the atmosphere
-    If (ScatMod%Doppler_Broaden) Then
-        sigma_T1 = ScatMod%CS%sig_T_broad(Neutron_Energy(v1),atm%T(n%Z))
-    Else
-        sigma_T1 = ScatMod%CS%sig_T(Neutron_Energy(v1))
-    End If
-    w2 = w2 * Exp(-sigma_T1 * mfp_per_barn_per_km_at_seaLevel * xEff_top_atm)
-    !Adjust for free neutron decay
-    If (ScatMod%neutron_decay) w2 = w2 * Exp(-n_lambda * tof)
-    !TALLY
-    Call d%Tally_Scatter(E2sat,Omega_hat2_sat,tof,w2)
+        ScatMod%next_events(2) = ScatMod%next_events(2) + 1_id
+        !TOTAL TIME OF FLIGHT TO ARRIVAL
+        tof = n%t + dt
+        !ENERGY AT ARRIVAL
+        E2sat = Neutron_Energy(v2sat)
+        !Check if time and energy are in range of the detector grid
+        If ( E2sat .LT. d%TE_grid(2)%min .OR. &
+        & E2sat .GT. d%TE_grid(2)%max .OR. &
+        & tof   .LT. d%TE_grid(1)%min .OR. &
+        & tof   .GT. d%TE_grid(1)%max      ) Then !No contribution from this neutron due to out of range of detector grid
+            !Record reason for no contribution and return
+            If (E2sat.LT.d%TE_grid(2)%min .OR. E2sat.GT.d%TE_grid(2)%max) Then  !E out of range, check for time range
+                If (tof.LT.d%TE_grid(1)%min .OR. tof.GT.d%TE_grid(1)%max) Then  !t also out of range
+                    ScatMod%n_no_tally(1) = ScatMod%n_no_tally(1) + 1_id
+                Else  !just E out of range
+                    ScatMod%n_no_tally(3) = ScatMod%n_no_tally(3) + 1_id
+                End If
+            Else If (tof.LT.d%TE_grid(1)%min .OR. tof.GT.d%TE_grid(1)%max) Then  !just t out of range
+                ScatMod%n_no_tally(2) = ScatMod%n_no_tally(2) + 1_id
+            End If
+            Return
+        Else  !contribution hits the grid
+            ScatMod%next_events(3) = ScatMod%next_events(3) + 1_id
+        End If
+        !DIRECTION AT ARRIVAL
+        Omega_hat2_sat = Unit_Vector(v2sat)
+        !WEIGHT ADJUSTMENTS... Scattered angle, divergence, absorption & scatter suppression, decay
+        w2 = n%weight !initial value (neutron wt multiplied by scatter wt for all mat/mech and exoatmospheric wt adj where applicable)
+        If (Present(w_scat)) w2 = w2 * w_scat
+        !Adjust for scatter angle
+        Omega_hat1_cm = Unit_Vector(v1cm)
+        Call Scattered_Angles(scat%Omega_hat0_cm,Omega_hat1_cm,mu0cm,omega0cm,scat%B_hat,scat%C_hat)
+        Bn = scat%s1cm / scat%u_speed
+        dmu0cm_dmu0 = Abs((1._dp + Bn * (2._dp * mu0cm + Bn))**(1.5_dp) / (Bn**2 * (Bn + mu0cm)))
+        !Eqn 479 from Haste-N removed material (p 39)
+        If (ScatMod%aniso_dist) Then
+            If (scat%da_is_Legendre) Then
+                w2 = w2 * dmu0cm_dmu0 * Legendre_pdf(mu0cm,scat%n_a,scat%a(0:scat%n_a)) * inv_TwoPi
+            Else
+                w2 = w2 * dmu0cm_dmu0 * inv_TwoPi * Tabular_Cosine_pdf( mu0cm, & 
+                                                                    & scat%n_a1, & 
+                                                                    & scat%a_tab1(1:scat%n_a1,:), & 
+                                                                    & scat%n_a2, & 
+                                                                    & scat%a_tab2(1:scat%n_a2,:), & 
+                                                                    & scat%a_tab_Econv )
+            End If
+        Else
+            w2 = w2 * dmu0cm_dmu0 * inv_FourPi
+        End If
+        !Adjust for divergence
+        If (ScatMod%Gravity) Then
+            divCM = Div_Fact_by_shooting(n%r,Omega_hat1_cm,scat%s1cm,scat%u,dt,vS2,v2sat+vS2)
+        Else
+            divCM = Div_Fact_Straight(n%r,v1,rS2,scat%u,dt,vS2)
+        End If
+        w2 = w2 * divCM
+        !Adjust for absorption suppression at the point of scatter
+        w2 = w2 * (1._dp - scat%sig_A / scat%sig_T)
+        !Adjust for interaction suppression on the path out of the atmosphere
+        If (ScatMod%Doppler_Broaden) Then
+            sigma_T1 = ScatMod%CS%sig_T_broad(Neutron_Energy(v1),atm%T(n%Z))
+        Else
+            sigma_T1 = ScatMod%CS%sig_T(Neutron_Energy(v1))
+        End If
+        w2 = w2 * Exp(-sigma_T1 * mfp_per_barn_per_km_at_seaLevel * xEff_top_atm)
+        !Adjust for free neutron decay
+        If (ScatMod%neutron_decay) w2 = w2 * Exp(-n_lambda * tof)
+        !TALLY
+        Call d%Tally_Scatter(E2sat,Omega_hat2_sat,tof,w2)
+    End Do
 End Subroutine Attempt_Next_Event
 
 Subroutine Scatter_Neutron(n,ScatMod,RNG,absorbed)

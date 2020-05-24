@@ -109,7 +109,9 @@ Real(dp), Parameter :: mfp_per_barn_per_km_at_seaLevel = 5.07_dp
 !   So this is "mean free paths per barn per km at sea level"
 ! Note: EPL (effective path length) is the path length at sea level
 !   that has the same optical thickness as the actual path
-Real(dp), Parameter :: n_lambda = Log(2._dp) / 611._dp  ![1/s] ln(2) divided by neutron half-life
+Real(dp), Parameter :: n_t_half = 615.3_dp  ![s] free neutron half-life
+Real(dp), Parameter :: n_life = n_t_half / Log(2._dp)  ![s] free neutron mean lifetime
+Real(dp), Parameter :: n_lambda = 1._dp / n_life  ![1/s] free neutron radioactive decay constant
 Real(dp), Parameter :: n_kill_weight = &  !weight of 1 particular neutron having chance to exist from a 1MT source
                            & 1._dp / (0.35_dp * nA * 1000._dp)  !based on rule-of-thumb of 0.35 mol of neutrons per kT yield
 

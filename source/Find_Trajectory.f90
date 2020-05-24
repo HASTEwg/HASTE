@@ -23,7 +23,7 @@ Module Find_Trajectory
     
 Contains
 
-Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, tof, v1cm, v2sat, vS2)
+Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, outbound_search, Found, r2, tof, v1cm, v2sat, vS2)
     Use Kinds, Only: dp
     Use Satellite_Motion, Only: Satellite_Position_Type
     Use Utilities, Only: Unit_Vector
@@ -31,6 +31,7 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
     Use Utilities, Only: Converged
     Use Astro_Utilities, Only: Lambert => Lambert_Gooding
     Use Astro_Utilities, Only: Hits_Center
+    Use Global, Only: n_life
     Implicit None
     Type(Satellite_Position_Type), Intent(In) :: sat
     Logical, Intent(In) :: Gravity
@@ -38,6 +39,7 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
     Real(dp), Intent(In) :: t1           ! [s]    time of scatter
     Real(dp), Intent(In) :: s1cm         ! [km/s] speed of neutron in cm system after scatter
     Real(dp), Intent(In) :: u_vec(1:3)   ! [km/s] velocity of center of mass of atom and neutron    
+    Logical, Intent(In) :: outbound_search ! Whether to search for solutions on outbout or inbound trajectories
     Logical, Intent(Out) :: Found        ! Whether solution is found (neutron can reach satellite)
     Real(dp), Intent(Out) :: r2(1:3)     ! [km]   neutron/target position at time of arrival
     Real(dp), Intent(Out) :: tof         ! [s] time of flight from r1 to r2 on transfer trajectory
@@ -53,6 +55,7 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
     Real(dp) :: s1cm_1,s1cm_2       ![km/s] speed in CM frame for tof_1 and tof_2
     Real(dp) :: u_speed             ![km/s] speed of CM frame
     Real(dp) :: m   !relaxation factor for Illinois fix to false position
+    Real(dp) :: x
     Integer :: i    !counter for Illinois fixes to false position
     Integer :: i_lim
 
@@ -60,18 +63,46 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
     If (Gravity) Then
         u_speed = Vector_Length(u_vec)
         r2 = sat%R(t1)
-        !estimate minimum TOF: starting distance to target divided by max possible closing speed
-        tof_1 = Vector_Length(r2 - r1) / (s1cm + u_speed + sat%vp)  !this is less than or equal to the true minimum
-        !check if this minimum TOF bounds true TOF
-        Call Lambert(r1,sat%R(t1+tof_1),tof_1,v1,v2)
-        s1cm_1 = Vector_Length(v1 - u_vec)  !this s1cm_i needs to be higher than s1cm
-        If (s1cm_1 .LT. s1cm) Return  !there is not a trajectory that joins the two points with the available neutron speed
-        !estimate maximum TOF: depends on transfer orbit type...
-        Call Find_max_TOF(tof_2)
-        !check if this maximum TOF bounds true TOF
-        Call Lambert(r1,sat%R(t1+tof_2),tof_2,v1,v2)
-        s1cm_2 = Vector_Length(v1 - u_vec)  !this s1cm_i needs to be lower than s1cm
-        If (s1cm_2 .GT. s1cm) Return  !there is not a trajectory that joins the two points with the available neutron speed
+        If (outbound_search) Then
+            !estimate minimum TOF: starting distance to target divided by max possible closing speed
+            tof_1 = Vector_Length(r2 - r1) / (s1cm + u_speed + sat%vp)  !this is less than or equal to the true minimum
+            !check if this minimum TOF bounds true TOF
+            Call Lambert(r1,sat%R(t1+tof_1),tof_1,v1,v2)
+            s1cm_1 = Vector_Length(v1 - u_vec)  !this s1cm_i needs to be higher than s1cm
+            If (s1cm_1 .LT. s1cm) Return  !there is not a trajectory that joins the two points with the available neutron speed
+            !estimate maximum TOF: depends on transfer orbit type...
+            Call Find_max_TOF(tof_2)
+            !check if this maximum TOF bounds true TOF
+            Call Lambert(r1,sat%R(t1+tof_2),tof_2,v1,v2)
+            s1cm_2 = Vector_Length(v1 - u_vec)  !this s1cm_i needs to be lower than s1cm
+            If (s1cm_2 .GT. s1cm) Return  !there is not a trajectory that joins the two points with the available neutron speed
+        Else !search for an inbound rendezvous, only valid when elliptical trajectories are possible
+            !estimate minimum TOF: same criteria as the maximum TOF for the outbound case
+            Call Find_max_TOF(tof_1)
+            Call Lambert(r1,sat%R(t1+tof_1),tof_1,v1,v2)
+            s1cm_1 = Vector_Length(v1 - u_vec)
+            !Since the placement and number of roots can vary, a practical approach is to check for a sign change in the difference
+            !between speed required and speed available for an intercept on a reasonable interval; if a sign change is indicated,
+            !then search for that root.
+            !A conservative upper limit to time of flight is arbitrarily 100 neutron lifetimes (the probability of a neutron NOT
+            !decaying during a flight this long is approximately 3.72E-44... sufficently close to zero to ignore trajectories with 
+            !TOFs longer than this)
+            !Test at logarithmically spaced intervals until a sign change is found...
+            x = Log10(tof_1) + ( Log10(100._dp*n_life) - Log10(tof_1) )
+            Do i = 1,100
+                tof_2 = 10._dp**( x * Real(i,dp)*0.01_dp )
+                Call Lambert(r1,sat%R(t1+tof_2),tof_2,v1,v2)
+                s1cm_2 = Vector_Length(v1 - u_vec)
+                If ( (s1cm-s1cm_1)*(s1cm-s1cm_2) .LT. 0._dp ) Then !sign change detected, a root exists on this interval
+                    Exit
+                ElseIf (i .EQ. 100) Then !a sign change was not found on any interval, no root to search for
+                    Return
+                End If
+                !advance tof_1 to check for the next interval on the next iteration
+                tof_1 = tof_2
+                s1cm_1 = s1cm_2
+            End Do
+        End If
         !min and max TOF are established and bracket a TOF for an achievable transfer trajectory
         !Use False-Position w/ Illinois modification to find TOF of transfer
         ds_1 = s1cm_1 - s1cm

@@ -101,6 +101,7 @@ Module Neutron_Scatter
             Logical :: Rotating_Earth
             Logical :: Wind
         Logical :: cs_loaded
+        Logical :: inbound_trajectories
     Contains
         Procedure, Pass :: Sample_Scatter
         Procedure, Pass :: Set_Scatter_prep
@@ -128,6 +129,7 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
     Logical :: suppress_absorption,suppress_leakage,all_mat_mech
     Logical :: Gravity,neutron_decay,doppler_broaden
     Logical :: thermal_motion,diatomic_Atm,Rotating_Earth,wind
+    Logical :: inbound_trajectories
     Integer :: setup_unit,stat
     Character(10) :: scatter_model  !IsoCM, AnIsoCM
     Character(10) :: dist_to_next_event  !An-exact,An-fast
@@ -141,7 +143,7 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
                                   & roulette,roulette_weight,roulette_ratio, &
                                   & direct_contribution,estimate_each_scatter,E_min,E_max, &
                                   & Gravity,neutron_decay,doppler_broaden,thermal_motion, &
-                                  & Diatomic_Atm,Rotating_Earth,Wind
+                                  & Diatomic_Atm,Rotating_Earth,Wind,inbound_trajectories
     
     Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message( 'ERROR:  Neutron_Scatter: Setup_Scatter_Model:  File open error, '//setup_file_name// & 
@@ -207,6 +209,11 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
         ScatMod%roulette_mult = 1._dp
     End If
     ScatMod%Gravity = Gravity
+    If (ScatMod%Gravity) Then
+        ScatMod%inbound_trajectories = inbound_trajectories
+    Else
+        ScatMod%inbound_trajectories = .FALSE.
+    End If
     ScatMod%Neutron_Decay = Neutron_Decay
     ScatMod%Doppler_Broaden = Doppler_Broaden
     If (Any( (/Thermal_Motion,Rotating_Earth,Wind/) )) Then

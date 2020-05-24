@@ -92,7 +92,8 @@ roulette_ratio = 10              ! 1/r particles rouletted survive, weight of su
 E_min = 0.                       ![keV]  Min energy to include in cross sections data
 E_max = 20000.                   ![keV]  Max energy to include in cross sections data
 Gravity = .TRUE.                 !<.TRUE.,.FALSE.>  TRUE includes gravitational effects in determining the trajectory of a neutron 
-                                 !                  to reach thedetector
+                                 !                  to reach the detector
+inbound_trajectories = .TRUE.    !<.TRUE.,.FALSE.>  TRUE includes trajectories returning (due to gravity) from above the detector 
 Neutron_Decay = .TRUE.           !<.TRUE.,.FALSE.>  TRUE accounts for radioactive decay of free neutrons
 Doppler_Broaden = .FALSE.        !<.TRUE.,.FALSE.>  TRUE adds on-the-fly Doppler broadening for interaction cross sections via  
                                  !                  thermal motion sampling

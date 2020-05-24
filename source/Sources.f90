@@ -336,7 +336,6 @@ Subroutine Sample_Source(s,RNG,n)
     Use Global, Only: R_center
     Use Global, Only: Z_hat
     Use Global, Only: X_hat
-    Use Global, Only: Y_hat
     Use Random_Numbers, Only: RNG_Type
     Use Neutron_Scatter, Only: Neutron_Type
     Use Random_Directions, Only: Isotropic_Omega_hat
