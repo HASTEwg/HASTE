@@ -250,7 +250,6 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     Real(dp) :: h,xi,p,e,s1
     Integer :: i
         
-    ScatMod%next_events(1) = ScatMod%next_events(1) + 1_id
     If (ScatMod%Gravity) Then !check if energy is adequate to reach detector
         If (SME(n%big_r,n%s0ef+s%speed) .LT. 0._dp) Then
             !neutron's max velocity is less than escape velocity, check if satellite altitude is achievable
@@ -266,10 +265,12 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
     End If
     Do i = 1,2
         If (i .EQ. 1) Then
+            ScatMod%next_events(1) = ScatMod%next_events(1) + 1_id
             Call Next_Event_Trajectory(d%sat,ScatMod%Gravity,n%r,n%t,n%s0ef,s%v,.TRUE.,path_found,rS2,dt,v1ef,v2sat,vS2)
             If (.NOT. path_found) Cycle
         Else !i.EQ.2
             If (ScatMod%inbound_trajectories) Then
+                ScatMod%next_events(1) = ScatMod%next_events(1) + 1_id
                 Call Next_Event_Trajectory(d%sat,ScatMod%Gravity,n%r,n%t,n%s0ef,s%v,.FALSE.,path_found,rS2,dt,v1ef,v2sat,vS2)
             Else
                 Return
@@ -566,7 +567,6 @@ Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
     Logical :: no_LOS  !flag indicates path to detector intersects Earth
     Integer :: i
         
-    ScatMod%next_events(1) = ScatMod%next_events(1) + 1_id
     If (ScatMod%Gravity) Then !check if energy is adequate to reach detector
         If (SME(n%big_r,scat%s1cm+scat%u_speed) .LT. 0._dp) Then
         !neutron's max velocity is less than escape velocity, check if satellite altitude is achievable
@@ -582,10 +582,12 @@ Subroutine Attempt_Next_Event(n,ScatMod,d,atm,scat,w_scat)
     End If
     Do i = 1,2
         If (i .EQ. 1) Then
+            ScatMod%next_events(1) = ScatMod%next_events(1) + 1_id
             Call Next_Event_Trajectory(d%sat,ScatMod%Gravity,n%r,n%t,scat%s1cm,scat%u,.TRUE.,path_found,rS2,dt,v1cm,v2sat,vS2)
             If (.NOT. path_found) Cycle
         Else !i.EQ.2
             If (ScatMod%inbound_trajectories) Then
+                ScatMod%next_events(1) = ScatMod%next_events(1) + 1_id
                 Call Next_Event_Trajectory(d%sat,ScatMod%Gravity,n%r,n%t,scat%s1cm,scat%u,.FALSE.,path_found,rS2,dt,v1cm,v2sat,vS2)
             Else
                 Return

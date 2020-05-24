@@ -722,6 +722,7 @@ Subroutine Write_Scatter_Model(s,file_name)
     Write(unit,'(A,L1)') '    Leakage suppression:    ',s%suppress_leakage
     Write(unit,'(A,L1)') '    All Materials & Mech:   ',s%all_mat_mech
     Write(unit,'(A,L1)') '    Gravity:                ',s%Gravity
+    Write(unit,'(A,L1)') '    Inbound Trajectories:   ',s%inbound_trajectories
     Write(unit,'(A,L1)') '    Neutron Decay:          ',s%Neutron_Decay
     Write(unit,'(A,L1)') '    OTF Doppler Broaden:    ',s%Doppler_Broaden
     Write(unit,'(A,L1)') '    Target Motion:          ',s%Target_Motion
