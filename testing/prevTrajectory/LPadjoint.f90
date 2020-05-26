@@ -32,7 +32,7 @@ Type(Satellite_Position_Type) :: sat
 Type(RNG_Type) :: RNG
 Type(Grid_info_type) :: TE_grid(1:2)
 Type(Grid_info_type) :: Dir_grid(1:2)
-Integer, Parameter :: n_trials = 100000
+Integer, Parameter :: n_trials = 100000000
 Integer, Parameter :: n_lat_bins = 36 , n_lon_bins = 72
 Type(Contrib_array) :: TE_tallies(1:n_lat_bins,1:n_lon_bins)
 Type(Contrib_array) :: Dir_tallies(1:n_lat_bins,1:n_lon_bins)
@@ -73,9 +73,9 @@ Real(dp) :: f,Ee,fD,fDt,zeta
 Logical, Parameter :: detailed_tallies = .FALSE.
 Real(dp) :: DFact_err,tof_err,Ee_err,fD_err,fDt_err,zeta_err
 Real(dp) :: lat,lon
+Character(2) :: n_En_char
 # if CAF
 Integer :: next_e[*]
-Character(2) :: n_En_char
 Character(80) :: stat_lines(1:n_En)[*]
 Character(80) :: new_stat_line
 # endif
@@ -129,8 +129,8 @@ En = 1000._dp * (/ 1.e-8_dp,   &
                  & 1.e-4_dp,   & 
                  & 1.e-3_dp,   & 
                  & 1.e-2_dp    /)
-# if CAF
 Write(n_En_char,'(I2)') n_En
+# if CAF
 Do e = 1,n_En
     Write(e_char,'(I2.2)') e
     stat_lines(e) = 'En '//e_char//'/'//n_En_char//'   *.**% (  *.**% hits) Total F: *.********E+***'

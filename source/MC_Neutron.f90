@@ -42,57 +42,50 @@ Subroutine Do_Neutron(s,d,atm,ScatMod,RNG,contributed)
         
     !Start a new neutron
     n = Start_Neutron(s,atm,RNG,ScatMod,d)
-    If (ScatMod%direct_contribution) Then
-        Call First_Event_Neutron(n,ScatMod,s,d,atm)
-        If (ScatMod%n_scatters .EQ. 0) Then
-            If (d%TE_contrib_index.GT.0 .OR. d%Dir_contrib_index.GT.0) Then
-                contributed = .TRUE.
-            Else
-                contributed = .FALSE.
+    If (ScatMod%direct_contribution) Call First_Event_Neutron(n,ScatMod,s,d,atm)
+    If (ScatMod%n_scatters .NE. 0) Then
+        scatter = 1
+        !Transport the neutron for the desired number of scatters
+        Do  !Exiting this loop kills the neutron
+            !Move the neutron to the site of next collision and check for leakage
+            Call Move_Neutron(n,ScatMod,atm,RNG,leaked)
+            If (leaked) Then  !kill for leakage
+                ScatMod%n_kills(4) = ScatMod%n_kills(4) + 1_id
+                Exit
             End If
-            ScatMod%n_kills(6) = ScatMod%n_kills(6) + 1_id
-            Return
-        End If
+            !Choose scatter parameters for next scatter
+            Call ScatMod%Sample_Scatter(n,atm,RNG)
+            If (scatter .EQ. ScatMod%n_scatters) Then  !neutron has reached final simulation position, scatter to detector and exit
+                ScatMod%n_kills(6) = ScatMod%n_kills(6) + 1_id
+                Call Next_Event_Neutron(n,ScatMod,d,atm,RNG)
+                Exit
+            Else If (ScatMod%estimate_each_scatter) Then  !Scatter to detector and continue
+                Call Next_Event_Neutron(n,ScatMod,d,atm,RNG)
+            End If
+            !Scatter into new random direction and check for absorption
+            Call Scatter_Neutron(n,ScatMod,RNG,absorbed)
+            If (absorbed) Then  !kill for absorption
+                ScatMod%n_kills(5) = ScatMod%n_kills(5) + 1_id
+                Exit
+            End If
+            If (ScatMod%n_scatters .EQ. -1) Then  !check kill criteria
+                If (Kill_Neutron(n%t,n%E,d%TE_Grid(1)%max,d%TE_grid(2)%min,ScatMod%n_kills(1:2))) Exit
+                If (ScatMod%roulette) Then
+                    If ( Roulette_Neutron( n%weight, & 
+                                        & ScatMod%roulette_weight, & 
+                                        & ScatMod%roulette_rate, & 
+                                        & ScatMod%roulette_mult, & 
+                                        & ScatMod%n_kills(3), & 
+                                        & RNG ) & 
+                    & ) Exit
+                End If
+            Else  !increment the scatter count and continue
+                scatter = scatter + 1
+            End If
+        End Do
+    Else !(n_scatters .EQ. 0), kill for final simulation position
+        ScatMod%n_kills(6) = ScatMod%n_kills(6) + 1_id
     End If
-    scatter = 1
-    !Transport the neutron for the desired number of scatters
-    Do  !Exiting this loop kills the neutron
-        !Move the neutron to the site of next collision and check for leakage
-        Call Move_Neutron(n,ScatMod,atm,RNG,leaked)
-        If (leaked) Then  !kill for leakage
-            ScatMod%n_kills(4) = ScatMod%n_kills(4) + 1_id
-            Exit
-        End If
-        !Choose scatter parameters for next scatter
-        Call ScatMod%Sample_Scatter(n,atm,RNG)
-        If (scatter .EQ. ScatMod%n_scatters) Then  !neutron has reached final simulation position, scatter to detector and exit
-            ScatMod%n_kills(6) = ScatMod%n_kills(6) + 1_id
-            Call Next_Event_Neutron(n,ScatMod,d,atm,RNG)
-            Exit
-        Else If (ScatMod%estimate_each_scatter) Then  !Scatter to detector and continue
-            Call Next_Event_Neutron(n,ScatMod,d,atm,RNG)
-        End If
-        !Scatter into new random direction and check for absorption
-        Call Scatter_Neutron(n,ScatMod,RNG,absorbed)
-        If (absorbed) Then  !kill for absorption
-            ScatMod%n_kills(5) = ScatMod%n_kills(5) + 1_id
-            Exit
-        End If
-        If (ScatMod%n_scatters .EQ. -1) Then  !check kill criteria
-            If (Kill_Neutron(n%t,n%E,d%TE_Grid(1)%max,d%TE_grid(2)%min,ScatMod%n_kills(1:2))) Exit
-            If (ScatMod%roulette) Then
-                If ( Roulette_Neutron( n%weight, & 
-                                     & ScatMod%roulette_weight, & 
-                                     & ScatMod%roulette_rate, & 
-                                     & ScatMod%roulette_mult, & 
-                                     & ScatMod%n_kills(3), & 
-                                     & RNG ) & 
-                   & ) Exit
-            End If
-        Else  !increment the scatter count and continue
-            scatter = scatter + 1
-        End If
-    End Do
     If (d%TE_contrib_index.GT.0 .OR. d%Dir_contrib_index.GT.0) Then
         contributed = .TRUE.
         !reduce the list of tallies for this history, sorting in time and energy and combining duplicates

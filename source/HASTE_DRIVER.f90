@@ -81,7 +81,7 @@ Use FileIO_Utilities, Only: Delta_Time
 Implicit None
 
 Character(max_line_len), Parameter :: title = 'High-Altitude to Space Transport Estimator for Neutrons (HASTEn)'
-Character(max_line_len), Parameter :: ver =   '    v0.10.02, 31 Mar 2020'
+Character(max_line_len), Parameter :: ver =   '    v0.11.00, 2 Jun 2020'
 Integer(id) :: n_histories
 Logical :: absolute_n_histories  !specifies whether number of histories is an absolute limit or a target number of contributions   
 Logical :: prompt_exit  !specifies whether the simulation will wait for user unput before exiting
