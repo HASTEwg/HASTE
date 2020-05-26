@@ -24,9 +24,11 @@ DIR_FLAGS="-I${OBJ_DIR} -J${OBJ_DIR}"
 MATH_FLAGS="-ffinite-math-only -fno-signed-zeros -fwrapv"
 ALWAYS_FLAGS="${MATH_FLAGS} -fimplicit-none -fexceptions -fnon-call-exceptions -ffpe-trap=invalid,zero,overflow -fmax-errors=5 ${DIR_FLAGS}"
 # DEVELOPMENT Flags (fastest compile cycle, no object files, no linking)
-SYNTAX_FLAGS="-O0 -fmax-errors=5 -Wall -Wextra -pedantic ${ALWAYS_FLAGS} -fsyntax-only"
+SYNTAX_FLAGS="-O0 -Wall -Wextra -pedantic ${ALWAYS_FLAGS} -fsyntax-only"
 # DEBUG Compiler Flags (for debug builds, fast compile with full debug information)
 DEBUG_FLAGS="-g -Og -Wall -pedantic -fcheck=all -fbacktrace ${ALWAYS_FLAGS}"
+# MIDDLE OF THE ROAD OPTIMIZATION Compiler Flags (gently optimize for runtime speed)
+MIDDLE_FLAGS="-O1 ${ALWAYS_FLAGS}"
 # RELEASE Compiler Flags (optimize for runtime speed)
 RELEASE_FLAGS="-Ofast ${ALWAYS_FLAGS}"
 # SUPER RELEASE Compiler Flags (optimize for runtime speed and current architecture)
@@ -41,11 +43,13 @@ LIB_FLAGS=""
 # LINKER Flags
 LINK_FLAGS="-static-libgcc -static-libgfortran"
 # Adjust based on command line flag(s)
-while getopts 'sdrqwp:ckvfi:' flag; do
+while getopts 'sdmrqwp:ckvf:i' flag; do
   case "${flag}" in
     s) COMP_FLAGS="${SYNTAX_FLAGS}"
        ;;
     d) COMP_FLAGS="${DEBUG_FLAGS}"
+       ;;
+    m) COMP_FLAGS="${MIDDLE_FLAGS}"
        ;;
     r) COMP_FLAGS="${RELEASE_FLAGS}"
        LINK_FLAGS="${LINK_FLAGS} -flto -fuse-linker-plugin"
