@@ -32,7 +32,7 @@ Type(Satellite_Position_Type) :: sat
 Type(RNG_Type) :: RNG
 Type(Grid_info_type) :: TE_grid(1:2)
 Type(Grid_info_type) :: Dir_grid(1:2)
-Integer, Parameter :: n_trials = 100000000
+Integer, Parameter :: n_trials = 100000
 Integer, Parameter :: n_lat_bins = 36 , n_lon_bins = 72
 Type(Contrib_array) :: TE_tallies(1:n_lat_bins,1:n_lon_bins)
 Type(Contrib_array) :: Dir_tallies(1:n_lat_bins,1:n_lon_bins)
@@ -51,7 +51,8 @@ Real(dp) :: r_sat(1:3),v_sat(1:3)  !position and velocity of the satellite at t2
 Real(dp) :: D_hat(1:3),N_hat(1:3),F_hat(1:3),U_hat(1:3),E_hat(1:3)  !basis vectors for satellite or emission frame of reference
 Real(dp) :: u,w
 Real(dp) :: Omega_hat2(1:3) !direction of neutron arrival in satellite frame
-Real(dp) :: En(1:15) ![keV] neutron energy at arrival in satellite frame
+Integer, Parameter :: n_En = 15
+Real(dp) :: En(1:n_En) ![keV] neutron energy at arrival in satellite frame
 Logical :: Found  !flag for whether a trajectory was found
 Real(dp) :: r1(1:3),v1(1:3),tof !position,velocity, time of flight defining flight from the surface of the central body
 Real(dp) :: v2(1:3)
@@ -67,14 +68,17 @@ Real(dp) :: w_min,w_max,w_res
 Integer :: u_bins_per_decade,w_bins_per_decade
 Integer :: i,i_miss
 Integer :: e,j,k
-Real(dp) :: wt
 Character(2) :: e_char
 Real(dp) :: f,Ee,fD,fDt,zeta
 Logical, Parameter :: detailed_tallies = .FALSE.
 Real(dp) :: DFact_err,tof_err,Ee_err,fD_err,fDt_err,zeta_err
 Real(dp) :: lat,lon
-
-Write(*,*)
+# if CAF
+Integer :: next_e[*]
+Character(2) :: n_En_char
+Character(80) :: stat_lines(1:n_En)[*]
+Character(80) :: new_stat_line
+# endif
 
 Gravity = .TRUE.
 Call Initialize_Satellite_Motion('','Conic_tab ',sat)
@@ -125,9 +129,22 @@ En = 1000._dp * (/ 1.e-8_dp,   &
                  & 1.e-4_dp,   & 
                  & 1.e-3_dp,   & 
                  & 1.e-2_dp    /)
-!define an arbitrary starting weight for particles (for better normalization)
-wt = 1._dp / (Vector_Length(r_sat) - R_center)**2
-Do e = 1,15
+# if CAF
+Write(n_En_char,'(I2)') n_En
+Do e = 1,n_En
+    Write(e_char,'(I2.2)') e
+    stat_lines(e) = 'En '//e_char//'/'//n_En_char//'   *.**% (  *.**% hits) Total F: *.********E+***'
+End Do
+next_e = 1
+Do
+    CRITICAL
+        e = next_e[1]
+        next_e[1] = next_e[1] + 1
+    END CRITICAL
+    If (e .GT. n_En) Exit
+# else
+Do e = 1,n_En
+# endif
     !initialize tally arrays for this energy
     tally_ct = 0
     fD_tallies = 0._dp
@@ -147,7 +164,7 @@ Do e = 1,15
     !initialize output files for this energy
     Write(e_char,'(I2.2)') e
     Open(NEWUNIT = map_unit , FILE = 'LPemissionMap_e'//e_char//'.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-    Write(map_unit,'(18ES25.16E3)',ADVANCE='NO') En(e),t2,r_sat,v_sat,D_hat,N_hat,F_hat,wt
+    Write(map_unit,'(17ES25.16E3)',ADVANCE='NO') En(e),t2,r_sat,v_sat,D_hat,N_hat,F_hat
     i = 0
     i_miss = 0
     Do
@@ -166,7 +183,7 @@ Do e = 1,15
             If (HA .LT. 0._dp) HA = HA + TwoPi
             dec_bin = 1 + Floor(Real(n_lat_bins,dp) * DEC / Pi)
             ha_bin = 1 + Floor(Real(n_lon_bins,dp) * HA / TwoPi)
-            f = wt / DFact
+            f = DFact
             Ee = Neutron_Energy(v1)
             zeta = Dot_Product(Unit_Vector(r1),Unit_Vector(v1))
             If (detailed_tallies) Then
@@ -187,42 +204,59 @@ Do e = 1,15
             fD_tallies(dec_bin,ha_bin,2) = fD_tallies(dec_bin,ha_bin,2) + f**2
             fDt_tallies(dec_bin,ha_bin,1) = fDt_tallies(dec_bin,ha_bin,1) + f*Exp(-tof/895._dp)
             fDt_tallies(dec_bin,ha_bin,2) = fDt_tallies(dec_bin,ha_bin,2) + (f*Exp(-tof/895._dp))**2
-            tof_tallies(dec_bin,ha_bin,1) = tof_tallies(dec_bin,ha_bin,1) + tof
-            tof_tallies(dec_bin,ha_bin,2) = tof_tallies(dec_bin,ha_bin,2) + tof**2
+            tof_tallies(dec_bin,ha_bin,1) = tof_tallies(dec_bin,ha_bin,1) + f*tof
+            tof_tallies(dec_bin,ha_bin,2) = tof_tallies(dec_bin,ha_bin,2) + (f*tof)**2
+            E_tallies(dec_bin,ha_bin,1) = E_tallies(dec_bin,ha_bin,1) + f*Ee
+            E_tallies(dec_bin,ha_bin,2) = E_tallies(dec_bin,ha_bin,2) + (f*Ee)**2
+            zeta_tallies(dec_bin,ha_bin,1) = zeta_tallies(dec_bin,ha_bin,1) + f*zeta
+            zeta_tallies(dec_bin,ha_bin,2) = zeta_tallies(dec_bin,ha_bin,2) + (f*zeta)**2
             D_tallies(dec_bin,ha_bin,1) = D_tallies(dec_bin,ha_bin,1) + DFact
             D_tallies(dec_bin,ha_bin,2) = D_tallies(dec_bin,ha_bin,2) + DFact**2
-            E_tallies(dec_bin,ha_bin,1) = E_tallies(dec_bin,ha_bin,1) + Ee
-            E_tallies(dec_bin,ha_bin,2) = E_tallies(dec_bin,ha_bin,2) + Ee**2
-            zeta_tallies(dec_bin,ha_bin,1) = zeta_tallies(dec_bin,ha_bin,1) + zeta
-            zeta_tallies(dec_bin,ha_bin,2) = zeta_tallies(dec_bin,ha_bin,2) + zeta**2
             tally_ct(dec_bin,ha_bin) = tally_ct(dec_bin,ha_bin) + 1
         Else
             i_miss = i_miss + 1
         End If
-        If (MOD(i,1000).EQ.0) Write(*,'(A,I2,A,F6.2,A,F6.2,A)',ADVANCE='NO') 'En ',e,'/15 ', & 
-                                                                           & 100._dp*Real(i,dp)/Real(n_trials,dp),'% (',&
-                                                                           & 100._dp*Real(i,dp)/Real(i+i_miss,dp),'% hits)'//cr
+#       if CAF
+        If (MOD(i,1000).EQ.0) Then
+            Write(new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES15.8E3)') & 
+                                    & 'En ',e,'/'//n_En_char//' ',100._dp*Real(i,dp)/Real(n_trials,dp),'% (', &
+                                    & 100._dp*Real(i,dp)/Real(i+i_miss,dp),'% hits) Total F: ',Sum(fD_tallies(:,:,1))
+            If (this_image() .EQ. 1) Then
+                stat_lines(e) = new_stat_line
+                Do j = 1,n_En
+                    Write(*,'(A)') stat_lines(j)
+                End Do
+                Write(*,'(A)',ADVANCE='NO') ACHAR(27)//'['//n_En_char//'F'
+            Else
+                stat_lines(e)[1] = new_stat_line
+            End If
+        End If
+#       else
+        If (MOD(i,1000).EQ.0) Write(*,'(A,I2,A,F6.2,A,F6.2,A,ES15.8E3,A)',ADVANCE='NO') & 
+                                     & 'En ',e,'/'//n_En_char//' ',100._dp*Real(i,dp)/Real(n_trials,dp),'% (', &
+                                     & 100._dp*Real(i,dp)/Real(i+i_miss,dp),'% hits) Total F: ',Sum(fD_tallies(:,:,1)),cr
+#       endif
         If (i .GE. n_trials) Exit
     End Do
-    Write(map_unit,'(2I12)') i,i_miss
+    Write(map_unit,'(ES25.16E3,2I12)') Sum(fD_tallies(:,:,1)),i,i_miss
     Do i = 1,n_lat_bins
         Do j = 1,n_lon_bins
             If (tally_ct(i,j) .GT. 0) Then
                 DEC = Real(2*i-1,dp) * halfPi / Real(n_lat_bins,dp)
                 HA = Real(2*j-1,dp) * Pi / Real(n_lon_bins,dp)
                 r1 = Cos(DEC) * Z_hat + Sqrt(1._dp - Cos(DEC)**2) * (Cos(HA) * Y_hat + Sin(HA) * X_hat)
+                fD = fD_tallies(i,j,1) / Sum(fD_tallies(:,:,1))
+                fD_err = Std_err(Sum(fD_tallies(:,:,1)),fD_tallies(i,j,1),fD_tallies(i,j,2))
+                fDt = fDt_tallies(i,j,1) / Sum(fD_tallies(:,:,1))
+                fDt_err = Std_err(Sum(fD_tallies(:,:,1)),fDt_tallies(i,j,1),fDt_tallies(i,j,2))
+                tof = tof_tallies(i,j,1) / fD_tallies(i,j,1)
+                tof_err = Std_err(fD_tallies(i,j,1),tof_tallies(i,j,1),tof_tallies(i,j,2))
+                Ee = E_tallies(i,j,1) / fD_tallies(i,j,1)
+                Ee_err = Std_err(fD_tallies(i,j,1),E_tallies(i,j,1),E_tallies(i,j,2))
+                zeta = zeta_tallies(i,j,1) / fD_tallies(i,j,1)
+                zeta_err = Std_err(fD_tallies(i,j,1),zeta_tallies(i,j,1),zeta_tallies(i,j,2))
                 DFact = D_tallies(i,j,1) / Real(tally_ct(i,j),dp)
                 DFact_err = Std_err(tally_ct(i,j),D_tallies(i,j,1),D_tallies(i,j,2))
-                tof = tof_tallies(i,j,1) / Real(tally_ct(i,j),dp)
-                tof_err = Std_err(tally_ct(i,j),tof_tallies(i,j,1),tof_tallies(i,j,2))
-                Ee = E_tallies(i,j,1) / Real(tally_ct(i,j),dp)
-                Ee_err = Std_err(tally_ct(i,j),E_tallies(i,j,1),E_tallies(i,j,2))
-                zeta = zeta_tallies(i,j,1) / Real(tally_ct(i,j),dp)
-                zeta_err = Std_err(tally_ct(i,j),zeta_tallies(i,j,1),zeta_tallies(i,j,2))
-                fD = fD_tallies(i,j,1) / Real(i+i_miss,dp)
-                fD_err = Std_err(i+i_miss,fD_tallies(i,j,1),fD_tallies(i,j,2))
-                fDt = fDt_tallies(i,j,1) / Real(i+i_miss,dp)
-                fDt_err = Std_err(i+i_miss,fDt_tallies(i,j,1),fDt_tallies(i,j,2))
                 lat = halfPi - DEC
                 lon = -(HA - Pi) - halfPi
                 If (Abs(lon) .GT. Pi) lon = lon + SIGN(TwoPi,-lon)
@@ -240,7 +274,17 @@ Do e = 1,15
         End Do
     End Do
     Close(map_unit)
+#   if CAF
+#   else
     Write(*,*)
+#   endif
 End Do
-
+# if CAF
+SYNC ALL
+If (this_image() .EQ. 1) Then
+    Do i = 1,n_En+1
+        Write(*,*)
+    End Do
+End If
+# endif
 End Program

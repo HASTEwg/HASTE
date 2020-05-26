@@ -35,4 +35,4 @@ cp -r ../source/resources ${SRC_PATH}Resources
 #RUN THE TEST PROGRAM
 echo "Running..."
 cd ${SRC_PATH}
-./${FNAME}${EXT}
+${RUN_CMD}${FNAME}${EXT}

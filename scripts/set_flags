@@ -15,6 +15,7 @@ set -e
 # The following preprocessor flags are set for my personal development environment
 PREP_FLAGS="-cpp -DLIN_OS -DGFORT"
 EXT=".out"
+RUN_CMD="./"
 # Additional preprocessor flags may be appended to this using the '-p' flag from the command line
 
 # General compiler flags (applies to all builds)
@@ -60,6 +61,7 @@ while getopts 'sdrqwp:ckvfi:' flag; do
     c) COMP_NAME="caf"
        PREP_FLAGS="${PREP_FLAGS} -DCAF"
        COMP_FLAGS="${COMP_FLAGS} -fcoarray=lib"
+       RUN_CMD="cafrun -np $(nproc) "
        ;;
     k) PREP_FLAGS="${PREP_FLAGS} -DCHECK_B -DCHECK_L"
        ;;
