@@ -4,9 +4,6 @@ Use Kinds, Only: dp
 Use Satellite_Motion, Only: Satellite_Position_Type
 Use Satellite_Motion, Only: Initialize_Satellite_Motion
 Use Random_Numbers, Only: RNG_Type
-Use Tallies, Only: Contrib_array
-Use Tallies, Only: Setup_Tallies,Clear_Tallies
-Use Tallies, Only: Contrib_triplet
 Use Detectors, Only: Grid_info_type
 Use Detectors, Only: Define_Grid_Info
 Use Neutron_Utilities, Only: Neutron_Speed
@@ -30,12 +27,8 @@ Implicit None
 
 Type(Satellite_Position_Type) :: sat
 Type(RNG_Type) :: RNG
-Type(Grid_info_type) :: TE_grid(1:2)
-Type(Grid_info_type) :: Dir_grid(1:2)
 Integer, Parameter :: n_trials = 100000000
 Integer, Parameter :: n_lat_bins = 36 , n_lon_bins = 72
-Type(Contrib_array) :: TE_tallies(1:n_lat_bins,1:n_lon_bins)
-Type(Contrib_array) :: Dir_tallies(1:n_lat_bins,1:n_lon_bins)
 Real(dp) :: E_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
 Real(dp) :: tof_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
 Real(dp) :: D_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
@@ -43,7 +36,6 @@ Real(dp) :: fD_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
 Real(dp) :: fDt_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
 Real(dp) :: zeta_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
 Integer :: tally_ct(1:n_lat_bins,1:n_lon_bins)
-Type(Contrib_triplet) :: contrib(1:2)
 
 Logical :: Gravity  !flag to set gravity on or off
 Real(dp) :: t2  !time relative to epoch of intercept event
@@ -67,10 +59,9 @@ Real(dp) :: u_min,u_max,u_res
 Real(dp) :: w_min,w_max,w_res
 Integer :: u_bins_per_decade,w_bins_per_decade
 Integer :: i,i_miss
-Integer :: e,j,k
+Integer :: e,j
 Character(2) :: e_char
 Real(dp) :: f,Ee,fD,fDt,zeta
-Logical, Parameter :: detailed_tallies = .FALSE.
 Real(dp) :: DFact_err,tof_err,Ee_err,fD_err,fDt_err,zeta_err
 Real(dp) :: lat,lon
 Character(2) :: n_En_char
@@ -89,30 +80,11 @@ D_hat = -Unit_Vector(r_sat)
 N_hat = Unit_Vector(Cross_Product(D_hat,v_sat))
 F_hat = Cross_Product(N_hat,D_hat)
 ! Random Number Generator
+# if CAF
+Call RNG%Initialize(seed = 7777777 , thread = this_image())
+# else
 Call RNG%Initialize(seed = 7777777)
-If (detailed_tallies) Then
-    ! Define time, energy, and direction grids in which to tally emissions
-    t_min = 0.1_dp
-    t_max = 1.E6_dp
-    t_res = 1._dp
-    t_bins_per_decade = 10
-    TE_grid(1) = Define_Grid_Info(.TRUE.,t_min,t_max,t_res,t_bins_per_decade)
-    E_min = 1.E-5_dp
-    E_max = 1.E6_dp
-    E_res = 1._dp
-    E_bins_per_decade = 100
-    TE_grid(2) = Define_Grid_Info(.TRUE.,E_min,E_max,E_res,E_bins_per_decade)
-    u_min = -1._dp
-    u_max = 1._dp
-    u_res = 2._dp / 263._dp
-    u_bins_per_decade = 1
-    Dir_grid(1) = Define_Grid_Info(.FALSE.,u_min,u_max,u_res,u_bins_per_decade)
-    w_min = -Pi
-    w_max = Pi
-    w_res = TwoPi / 72._dp
-    w_bins_per_decade = 1
-    Dir_grid(2) = Define_Grid_Info(.FALSE.,w_min,w_max,w_res,w_bins_per_decade)
-End If
+# endif
 ! Grid of energies at which to create maps
 En = 1000._dp * (/ 1.e-8_dp,   & 
                  & 2.5e-8_dp,  & 
@@ -153,14 +125,6 @@ Do e = 1,n_En
     D_tallies = 0._dp
     E_tallies = 0._dp
     zeta_tallies = 0._dp
-    If (detailed_tallies) Then
-        Do CONCURRENT (i=1:n_lat_bins , j=1:n_lon_bins)
-            Call Clear_Tallies(TE_tallies(i,j))
-            TE_tallies(i,j) = Setup_Tallies(TE_grid(1)%n_bins,TE_grid(2)%n_bins)
-            Call Clear_Tallies(Dir_tallies(i,j))
-            Dir_tallies(i,j) = Setup_Tallies(Dir_grid(1)%n_bins,Dir_grid(2)%n_bins)
-        End Do
-    End If
     !initialize output files for this energy
     Write(e_char,'(I2.2)') e
     Open(NEWUNIT = map_unit , FILE = 'LPemissionMap_e'//e_char//'.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
@@ -186,20 +150,6 @@ Do e = 1,n_En
             f = DFact
             Ee = Neutron_Energy(v1)
             zeta = Dot_Product(Unit_Vector(r1),Unit_Vector(v1))
-            If (detailed_tallies) Then
-                !compute the TE and direction indexes for the contribution
-                contrib(1)%i1 = TE_grid(1)%Bin_Number(tof)
-                contrib(1)%i2 = TE_grid(2)%Bin_Number(Ee)
-                E_hat = Cross_Product(Z_hat,U_hat)
-                N_hat = Cross_Product(U_hat,E_hat)
-                Call Scattered_Angles(E_hat,Unit_Vector(v1),u,w,N_hat,U_hat)
-                contrib(2)%i1 = Dir_grid(1)%Bin_Number(u)
-                contrib(2)%i2 = Dir_grid(2)%Bin_Number(w)
-                contrib(:)%f = f
-                !tally the contribution to this DEC-RA bin
-                Call TE_tallies(dec_bin,ha_bin)%Tally_1_History(contrib(1))
-                Call Dir_tallies(dec_bin,ha_bin)%Tally_1_History(contrib(2))
-            End If
             fD_tallies(dec_bin,ha_bin,1) = fD_tallies(dec_bin,ha_bin,1) + f
             fD_tallies(dec_bin,ha_bin,2) = fD_tallies(dec_bin,ha_bin,2) + f**2
             fDt_tallies(dec_bin,ha_bin,1) = fDt_tallies(dec_bin,ha_bin,1) + f*Exp(-tof/895._dp)
@@ -269,8 +219,6 @@ Do e = 1,n_En
                                                         & zeta,zeta_err, & 
                                                         & DFact,DFact_err,tally_ct(i,j)
             End If
-            !Do k = 1,TE_tallies(i,j)%index
-            !End Do
         End Do
     End Do
     Close(map_unit)
