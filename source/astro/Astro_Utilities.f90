@@ -376,8 +376,8 @@ Function Time_Since_Periapsis(r_vec,v_vec) Result(t)
     Real(dp) :: e_vec(1:3),e
     Real(dp) :: CosNu
     Real(dp) :: CosE
-    Real(dp) :: CoshF,F
-    Real(dp) :: Nu,p,D
+    Real(dp) :: SinhH
+    Real(dp) :: B,p
     Real(dp), Parameter :: tolerance = 1.E-12_dp
     Real(dp), Parameter :: one_third = 1._dp / 3._dp
     
@@ -390,20 +390,16 @@ Function Time_Since_Periapsis(r_vec,v_vec) Result(t)
     CosNu = Dot_Product(e_vec,r_vec) / (e * r)
     If (alpha .GT. tolerance) Then !elliptical
         CosE = (e + CosNu) / (1._dp + e * CosNu)
-        t = (ACos(CosE) - e * Sqrt(1-CosE**2)) / Sqrt(mu * alpha**3)
-        t = SIGN(t,Dot_Product(r_vec,v_vec))
+        t = (ACos(CosE) - e * Sqrt(1._dp-CosE**2)) / Sqrt(mu * alpha**3)
     Else If (alpha .LT. -tolerance) Then !hyperbolic
-        CoshF = (e + CosNu) / (1._dp + e * CosNu)
-        F = Log(CoshF + Sqrt(CoshF**2 - 1._dp))
-        If (Dot_Product(r_vec,v_vec) .LT. 0._dp) F = -F
-        t = (e * Sinh(F) - F) / Sqrt(mu * (-alpha)**3)
+        SinhH = Sqrt(1._dp - CosNu**2) * Sqrt(e**2 - 1._dp) / (1._dp + e * CosNu)
+        t = (e * SinhH - ASinh(SinhH)) / Sqrt(-mu * alpha**3)
     Else !parabolic
-        Nu = ACos(CosNu)
-        If (Dot_Product(r_vec,v_vec) .LT. 0._dp) Nu = TwoPi - Nu
+        B = Sqrt(1._dp - CosNu**2) / (CosNu + 1._dp)
         p = Semilatus_Rectum(r_vec,v_vec)
-        D = Sqrt(p) * Tan(0.5 * Nu)
-        t = 0.5_dp * (p * D + one_third * D**3) / Sqrt(mu)
+        t = 0.5_dp * Sqrt(p**3 / mu) * B * (one_third*(B**2) + 1._dp)
     End If
+    t = SIGN(t,Dot_Product(r_vec,v_vec))
 End Function Time_Since_Periapsis
 
 !-------------------------------------------------------------------------------
@@ -838,7 +834,7 @@ Pure Subroutine Lambert_Gooding(r1_vec,r2_vec,tof,v1,v2,long_way)
     eta2 = Cross_Product(rho,r2_hat)
     !Call Gooding
     call vlamb(r1,r2,ta,tof,vr1,vt1,vr2,vt2)
-    !convert transverse and radial velicities to inertial vectors
+    !convert transverse and radial velocities to inertial vectors
     v1 = vr1 * r1_hat + vt1 * eta1
     v2 = vr2 * r2_hat + vt2 * eta2
 End Subroutine Lambert_Gooding
