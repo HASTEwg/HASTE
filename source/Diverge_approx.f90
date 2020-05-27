@@ -38,9 +38,8 @@ Function Div_Fact_Straight(r1,v1,r2,u,tof,vS2) Result(D)
     r1_to_r2 = r2 - (r1 + u*tof)
     dist_r1_to_r2 = Vector_Length(r1_to_r2)
     D = 1._dp / ( dist_r1_to_r2**2 )
-    cos_theta = Abs( Dot_Product(Unit_Vector(vS2 - v1),r1_to_r2 / dist_r1_to_r2) )
+    cos_theta = Max( Abs( Dot_Product(Unit_Vector(vS2 - v1),r1_to_r2 / dist_r1_to_r2) ) , 0.1_dp )
     D = D / cos_theta
-    !TODO Practical limit for perpendicular incidence is not implemented
 End Function Div_Fact_Straight
 
 Function Div_Fact_by_shooting(r1,Omega_hat1cm,s1cm,u,tof,vS2,v2) Result(D)
@@ -100,11 +99,10 @@ Function Div_Fact_by_shooting(r1,Omega_hat1cm,s1cm,u,tof,vS2,v2) Result(D)
     Surf_Normal = Normal_Vector_4(r2_shots)
     mag_Surf_Normal = Vector_Length(Surf_Normal)
     Aar = 0.5_dp * mag_Surf_Normal !same as Quadrilateral_Area(r2_shots), but preserves intermediate quatity for later use
-    !Divergence factor is the ratio of these areas
+    !Divergence factor is the ratio of these areas adjusted for angle of incidence
     D = Acm / Aar
-    cos_theta = Abs( Dot_Product(Unit_Vector(vS2 - v2),Surf_Normal / mag_Surf_Normal) )
+    cos_theta = Max( Abs( Dot_Product(Unit_Vector(vS2 - v2),Surf_Normal / mag_Surf_Normal) ) , 0.1_dp )
     D = D / cos_theta
-    !TODO Practical limit for perpendicular incidence is not implemented
 End Function Div_Fact_by_shooting
 
 End Module Diverge_approx
