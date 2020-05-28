@@ -16,25 +16,25 @@ Use Global, Only: Pi,TwoPi,halfPi
 Use Global, Only: r2deg,deg2r
 Use Global, Only: R_center
 Use Global, Only: Z_hat,X_hat,Y_hat
+Use Global, Only: n_life
 Use Utilities, Only: Unit_Vector
 Use Utilities, Only: Cross_Product
 Use Utilities, Only: Vector_Length
 Use Statistics, Only: Std_Err
-Use Statistics, Only: std_devs_for_95CI
 Use FileIO_Utilities, Only: cr => creturn
 
 Implicit None
 
 Type(Satellite_Position_Type) :: sat
 Type(RNG_Type) :: RNG
-Integer, Parameter :: n_trials = 100000000
+Integer, Parameter :: n_trials = 10000000
 Integer, Parameter :: n_lat_bins = 36 , n_lon_bins = 72
-Real(dp) :: E_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
-Real(dp) :: tof_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
-Real(dp) :: D_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
-Real(dp) :: fD_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
-Real(dp) :: fDt_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
-Real(dp) :: zeta_tallies(1:n_lat_bins,1:n_lon_bins,1:2)
+Real(dp) :: E_tallies(1:n_lat_bins,1:n_lon_bins)
+Real(dp) :: tof_tallies(1:n_lat_bins,1:n_lon_bins)
+Real(dp) :: D_tallies(1:n_lat_bins,1:n_lon_bins)
+Real(dp) :: fD_tallies(1:n_lat_bins,1:n_lon_bins)
+Real(dp) :: fDt_tallies(1:n_lat_bins,1:n_lon_bins)
+Real(dp) :: zeta_tallies(1:n_lat_bins,1:n_lon_bins)
 Integer :: tally_ct(1:n_lat_bins,1:n_lon_bins)
 
 Logical :: Gravity  !flag to set gravity on or off
@@ -150,27 +150,21 @@ Do e = 1,n_En
             f = DFact
             Ee = Neutron_Energy(v1)
             zeta = Dot_Product(Unit_Vector(r1),Unit_Vector(v1))
-            fD_tallies(dec_bin,ha_bin,1) = fD_tallies(dec_bin,ha_bin,1) + f
-            fD_tallies(dec_bin,ha_bin,2) = fD_tallies(dec_bin,ha_bin,2) + f**2
-            fDt_tallies(dec_bin,ha_bin,1) = fDt_tallies(dec_bin,ha_bin,1) + f*Exp(-tof/895._dp)
-            fDt_tallies(dec_bin,ha_bin,2) = fDt_tallies(dec_bin,ha_bin,2) + (f*Exp(-tof/895._dp))**2
-            tof_tallies(dec_bin,ha_bin,1) = tof_tallies(dec_bin,ha_bin,1) + f*tof
-            tof_tallies(dec_bin,ha_bin,2) = tof_tallies(dec_bin,ha_bin,2) + (f*tof)**2
-            E_tallies(dec_bin,ha_bin,1) = E_tallies(dec_bin,ha_bin,1) + f*Ee
-            E_tallies(dec_bin,ha_bin,2) = E_tallies(dec_bin,ha_bin,2) + (f*Ee)**2
-            zeta_tallies(dec_bin,ha_bin,1) = zeta_tallies(dec_bin,ha_bin,1) + f*zeta
-            zeta_tallies(dec_bin,ha_bin,2) = zeta_tallies(dec_bin,ha_bin,2) + (f*zeta)**2
-            D_tallies(dec_bin,ha_bin,1) = D_tallies(dec_bin,ha_bin,1) + DFact
-            D_tallies(dec_bin,ha_bin,2) = D_tallies(dec_bin,ha_bin,2) + DFact**2
+            fD_tallies(dec_bin,ha_bin) = fD_tallies(dec_bin,ha_bin) + f
+            fDt_tallies(dec_bin,ha_bin) = fDt_tallies(dec_bin,ha_bin) + f*Exp(-tof/n_life)
+            tof_tallies(dec_bin,ha_bin) = tof_tallies(dec_bin,ha_bin) + tof
+            E_tallies(dec_bin,ha_bin) = E_tallies(dec_bin,ha_bin) + Log(PDF_LunarAlbedo(Ee))
+            zeta_tallies(dec_bin,ha_bin) = zeta_tallies(dec_bin,ha_bin) + Log(PDF_power_cosine125(zeta))
+            D_tallies(dec_bin,ha_bin) = D_tallies(dec_bin,ha_bin) + Log(DFact)
             tally_ct(dec_bin,ha_bin) = tally_ct(dec_bin,ha_bin) + 1
         Else
             i_miss = i_miss + 1
         End If
 #       if CAF
         If (MOD(i,1000).EQ.0) Then
-            Write(new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES15.8E3)') & 
+            Write(new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES16.8E3)') & 
                                     & 'En ',e,'/'//n_En_char//' ',100._dp*Real(i,dp)/Real(n_trials,dp),'% (', &
-                                    & 100._dp*Real(i,dp)/Real(i+i_miss,dp),'% hits) Total F: ',Sum(fD_tallies(:,:,1))
+                                    & 100._dp*Real(i,dp)/Real(i+i_miss,dp),'% hits) Total F: ',Sum(fD_tallies(:,:))
             If (this_image() .EQ. 1) Then
                 stat_lines(e) = new_stat_line
                 Do j = 1,n_En
@@ -182,42 +176,36 @@ Do e = 1,n_En
             End If
         End If
 #       else
-        If (MOD(i,1000).EQ.0) Write(*,'(A,I2,A,F6.2,A,F6.2,A,ES15.8E3,A)',ADVANCE='NO') & 
+        If (MOD(i,1000).EQ.0) Write(*,'(A,I2,A,F6.2,A,F6.2,A,ES16.8E3,A)',ADVANCE='NO') & 
                                      & 'En ',e,'/'//n_En_char//' ',100._dp*Real(i,dp)/Real(n_trials,dp),'% (', &
-                                     & 100._dp*Real(i,dp)/Real(i+i_miss,dp),'% hits) Total F: ',Sum(fD_tallies(:,:,1)),cr
+                                     & 100._dp*Real(i,dp)/Real(i+i_miss,dp),'% hits) Total F: ',Sum(fD_tallies(:,:)),cr
 #       endif
         If (i .GE. n_trials) Exit
     End Do
-    Write(map_unit,'(ES25.16E3,2I12)') Sum(fD_tallies(:,:,1)),i,i_miss
+    Write(map_unit,'(ES25.16E3,2I12)') Sum(fD_tallies(:,:)),i,i_miss
     Do i = 1,n_lat_bins
         Do j = 1,n_lon_bins
             If (tally_ct(i,j) .GT. 0) Then
                 DEC = Real(2*i-1,dp) * halfPi / Real(n_lat_bins,dp)
                 HA = Real(2*j-1,dp) * Pi / Real(n_lon_bins,dp)
                 r1 = Cos(DEC) * Z_hat + Sqrt(1._dp - Cos(DEC)**2) * (Cos(HA) * Y_hat + Sin(HA) * X_hat)
-                fD = fD_tallies(i,j,1) / Sum(fD_tallies(:,:,1))
-                fD_err = Std_err(Sum(fD_tallies(:,:,1)),fD_tallies(i,j,1),fD_tallies(i,j,2))
-                fDt = fDt_tallies(i,j,1) / Sum(fD_tallies(:,:,1))
-                fDt_err = Std_err(Sum(fD_tallies(:,:,1)),fDt_tallies(i,j,1),fDt_tallies(i,j,2))
-                tof = tof_tallies(i,j,1) / fD_tallies(i,j,1)
-                tof_err = Std_err(fD_tallies(i,j,1),tof_tallies(i,j,1),tof_tallies(i,j,2))
-                Ee = E_tallies(i,j,1) / fD_tallies(i,j,1)
-                Ee_err = Std_err(fD_tallies(i,j,1),E_tallies(i,j,1),E_tallies(i,j,2))
-                zeta = zeta_tallies(i,j,1) / fD_tallies(i,j,1)
-                zeta_err = Std_err(fD_tallies(i,j,1),zeta_tallies(i,j,1),zeta_tallies(i,j,2))
-                DFact = D_tallies(i,j,1) / Real(tally_ct(i,j),dp)
-                DFact_err = Std_err(tally_ct(i,j),D_tallies(i,j,1),D_tallies(i,j,2))
+                fD = fD_tallies(i,j) / Real(i+i_miss,dp)
+                fDt = fDt_tallies(i,j) / Real(i+i_miss,dp)
+                tof = tof_tallies(i,j) / Real(tally_ct(i,j),dp)
+                Ee = Exp(E_tallies(i,j) / Real(tally_ct(i,j),dp))
+                zeta = Exp(zeta_tallies(i,j) / Real(tally_ct(i,j),dp))
+                DFact = Exp(D_tallies(i,j) / Real(tally_ct(i,j),dp))
                 lat = halfPi - DEC
                 lon = -(HA - Pi) - halfPi
                 If (Abs(lon) .GT. Pi) lon = lon + SIGN(TwoPi,-lon)
-                Write(map_unit,'(2F8.2,15ES25.16E3,I12)') lat*r2deg,lon*r2deg, & 
+                Write(map_unit,'(2F8.2,9ES25.16E3,I12)') lat*r2deg,lon*r2deg, & 
                                                         & r1, & 
-                                                        & fD,fD_err, & 
-                                                        & fDt,fDt_err, & 
-                                                        & tof,tof_err, & 
-                                                        & Ee,Ee_err, & 
-                                                        & zeta,zeta_err, & 
-                                                        & DFact,DFact_err,tally_ct(i,j)
+                                                        & fD, & 
+                                                        & fDt, & 
+                                                        & tof, & 
+                                                        & Ee, & 
+                                                        & zeta, & 
+                                                        & DFact,tally_ct(i,j)
             End If
         End Do
     End Do
@@ -235,4 +223,33 @@ If (this_image() .EQ. 1) Then
     End Do
 End If
 # endif
+
+Contains
+
+Function PDF_LunarAlbedo(E) Result(p)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: p
+    Real(dp), Intent(In) :: E
+    Real(dp), Parameter :: p0 =  4.4598E6_dp
+    Real(dp), Parameter :: p1 =  3.6840E-9_dp
+    Real(dp), Parameter :: p2 =  4.4183E5_dp
+    Real(dp), Parameter :: p3 =  0.9181_dp
+    Real(dp), Parameter :: p4 =  1.4567E-7_dp
+    Real(dp), Parameter :: p5 =  5.0338_dp
+    Real(dp), Parameter :: pdfNorm =  1._dp / 1.33446100936458714_dp
+    
+    p = pdfNorm * (p0 * E * Exp(-E/p1) / p1 + p2 * ((E / p4)**p5) * ((p4 / E)**p3) / (1._dp + (E / p4)**p5))
+End Function PDF_LunarAlbedo
+
+Function PDF_power_cosine125(mu) Result(p)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: p
+    Real(dp), Intent(In) :: mu
+    Real(dp), Parameter :: invPDFnorm = 1._dp / 0.9308740569746155_dp
+
+    p = (mu**1.25_dp) * invPDFnorm
+End Function PDF_power_cosine125
+
 End Program
