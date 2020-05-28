@@ -374,32 +374,39 @@ Function Time_Since_Periapsis(r_vec,v_vec) Result(t)
     Real(dp) :: xi
     Real(dp) :: alpha
     Real(dp) :: e_vec(1:3),e
-    Real(dp) :: CosNu
-    Real(dp) :: CosE
+    Real(dp) :: CosNu,nu
+    Real(dp) :: CosE,SinE
     Real(dp) :: SinhH
     Real(dp) :: B,p
+    Real(dp) :: rdotv
     Real(dp), Parameter :: tolerance = 1.E-12_dp
     Real(dp), Parameter :: one_third = 1._dp / 3._dp
     
     r = Vector_Length(r_vec)
     v = Vector_Length(v_vec)
     xi = SME(r,v)
-    alpha = -2._dp * xi / mu
-    e_vec = (v**2 / mu - 1._dp / r) * r_vec - Dot_Product(r_vec,v_vec) * v_vec / mu
+    rdotv = Dot_Product(r_vec,v_vec)
+    e_vec = (v**2 / mu - 1._dp / r) * r_vec - rdotv * v_vec / mu
     e = Vector_Length(e_vec)
     CosNu = Dot_Product(e_vec,r_vec) / (e * r)
+    If (Abs(CosNu) .GT. 1._dp) CosNu = Sign(1._dp,CosNu) !test and correct for precision jitter around CosNu=1
+    nu = ACos(CosNu)
+    If (rdotv .LT. 0._dp) nu = TwoPi - nu
+    alpha = -2._dp * xi / mu
     If (alpha .GT. tolerance) Then !elliptical
         CosE = (e + CosNu) / (1._dp + e * CosNu)
-        t = (ACos(CosE) - e * Sqrt(1._dp-CosE**2)) / Sqrt(mu * alpha**3)
+        SinE = Sin(nu) * Sqrt(1._dp - e**2) / (1._dp + e * CosNu)
+        t = (ATan2(SinE,CosE) - e * SinE) / Sqrt(mu * alpha**3)
     Else If (alpha .LT. -tolerance) Then !hyperbolic
-        SinhH = Sqrt(1._dp - CosNu**2) * Sqrt(e**2 - 1._dp) / (1._dp + e * CosNu)
+        SinhH = Sin(nu) * Sqrt(e**2 - 1._dp) / (1._dp + e * CosNu)
         t = (e * SinhH - ASinh(SinhH)) / Sqrt(-mu * alpha**3)
     Else !parabolic
-        B = Sqrt(1._dp - CosNu**2) / (CosNu + 1._dp)
+        B = Sin(nu) / (CosNu + 1._dp)
         p = Semilatus_Rectum(r_vec,v_vec)
         t = 0.5_dp * Sqrt(p**3 / mu) * B * (one_third*(B**2) + 1._dp)
     End If
-    t = SIGN(t,Dot_Product(r_vec,v_vec))
+    !TODO Check if following line is needed... use of signed nu above may already correctly sign t
+    t = Sign(t,rdotv)
 End Function Time_Since_Periapsis
 
 !-------------------------------------------------------------------------------
