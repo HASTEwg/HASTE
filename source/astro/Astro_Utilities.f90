@@ -784,6 +784,142 @@ Subroutine Find_C_S(z,C,S)
 End Subroutine Find_C_S
 
 !-------------------------------------------------------------------------------
+!   Solution to Lambert's Problem, Battin's Method
+!
+!   Formulae from:
+!   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
+!       ed.). El Segundo, CA: Microcosm Press.
+!
+!   Translated to modern Fortran by Whitman Dailey.  Jun 02, 2020.
+!   Air Force Institute of Technology, Department of Engineering Physics
+!-------------------------------------------------------------------------------
+Subroutine Lambert_Battin(r0_vec,r1_vec,tof,v0_vec,v_vec,long_way)
+    Use Kinds, Only: dp
+    Use Global, Only: mu => grav_param
+    Use Utilities, Only: Vector_Length
+    Use Utilities, Only: Converged
+    Implicit None
+    Real(dp), Intent(In) :: r0_vec(1:3)
+    Real(dp), Intent(In) :: r1_vec(1:3)
+    Real(dp), Intent(In) :: tof
+    Real(dp), Intent(Out) :: v0_vec(1:3)
+    Real(dp), Intent(Out) :: v1_vec(1:3)
+    Logical, Intent(In) :: long_way
+    Real(dp) :: r0,r1,r0r1,r1dr0
+    Real(dp) :: cos_nu,sin_n,nu
+    Real(dp) :: c,s,eps
+    Real(dp) :: tanSq2w,cosSqQtrNu,sinSqQtrNu
+    Real(dp) :: rop,m
+    Real(dp) :: x,x_old
+    Real(dp) eta,c_eta
+    Real(dp) :: d,d_old,t,t_old,sig
+    Integer :: i
+    Real(dp) :: xi,h,h1,h2
+    Real(dp) :: b,u,k,y
+    Real(dp) :: a,Ae,Be,a_min,t_min,dE
+    Real(dp) :: Ah,Bh,dH
+    Real(dp) :: f,g,g_dot
+    Real(dp), Parameter :: tolerance = 1.E-12_dp
+    Real(dp), Parameter :: one_third = 1._dp / 3._dp
+    Real(dp), Parameter :: four_27ths = 4._dp / 27._dp
+
+    r0 = Vector_Length(r0_vec)
+    r1 = Vector_Length(r1_vec)
+    r0r1 = r0 * r1
+    r1dr0 = r1 / r0
+    cos_nu = Dot_Product(r0_vec,r1_vec) / r0r1
+    sin_nu = Sqrt(1._dp - cos_nu**2)
+    If (long_way) sin_nu = -sin_nu
+    nu = ATAN2(sin_nu,cos_nu)
+    c = Sqrt(r0**2 + r1**2 - 2._dp * r0r1 * cos_nu)
+    s = 0.5_dp * (r0 + r1 + c)
+    eps = (r1 - r0) / r0
+    tanSq2w = 0.25_dp * eps**2 / (Sqrt(r1dr0) + r1dr0*(2._dp + Sqrt(r1dr0)))
+    cosSqQtrNu = Cos(0.25_dp*nu)**2
+    sinSqQtrNu = Sin(0.25_dp*nu)**2
+    rop = Sqrt(r0r1) * (cosSqQtrNu + tanSq2w)
+    If (long_way) Then
+        l = (cosSqQtrNu + tanSq2w - Cos(0.5_dp*nu)) / (cosSqQtrNu + tanSq2w)
+    Else
+        l = (sinSqQtrNu + tanSq2w) / (sinSqQtrNu + tanSq2w + Cos(0.5_dp*nu))
+    End If
+    m = mu * tof**2 / (8._dp * rop**3)
+    !UNDONE Need a way to determine or specify elliptical or other orbit for Battin's method...
+    If (ellipse) Then
+        x = l
+    Else
+        x = 0._dp
+    End If
+    Do
+        x_old = x
+        eta = x / ( Sqrt(1._dp+x) + 1._dp )**2
+        d_old = 1._dp
+        t_old = 0.2_dp
+        sig = t_old
+        i = 3
+        Do
+            c_eta = Real( i**2 , dp ) / Real( ((2*i)**2)-1 , dp )
+            d = 1._dp / (1._dp + c_eta * eta * d_old)
+            t = t_old * (d - 1._dp)
+            sig = sig + t
+            If (Abs(t) .LT. tolerance) Exit
+            d_old = d
+            t_old = t
+            i = i + 1
+        End Do
+        xi = 1._dp / ( (1._dp / (8._dp * (1._dp + Sqrt(1._dp+x))) ) * ( 3._dp + sig / ( 1._dp + eta*sig ) ) )
+        h = 1._dp / ( (1._dp + 2._dp*x + l) * (3._dp + x*(1._dp + 4._dp*xi)) )
+        h1 = ((l + x))**2 * (1._dp + xi * (1._dp + 3._dp*x)) * h
+        h2 = m * (1._dp - xi * (x - l)) * h
+        b = 27._dp * h2 / (4._dp*((1._dp + h1)**3))
+        u = -b / (2._dp * (Sqrt(1._dp + b) + 1._dp))
+        d_old = 1._dp / (1._dp + four_27ths * u * one_third)
+        t_old = one_third * (d_old - 1._dp)
+        k = one_third + t_old
+        i = 1
+        Do
+            If (Mod(i,2) .EQ. 0) Then !even i
+                c_u = Real( 2*(3*i+1)*(6*i-1) , dp) / Real( 9*(4*i-1)*(4*i+1) , dp)
+            Else !odd i
+                c_u = Real( 2*(3*i+2)*(6*i+1) , dp) / Real( 9*(4*i+1)*(4*i+3) , dp)
+            End If
+            d = 1._dp / (1._dp + c_u * u * d_old)
+            t = t_old * (d - 1._dp)
+            k = k + t
+            If (Abs(t) .LT. tolerance) Exit
+            d_old = d
+            t_old = t
+            i = i + 1
+        End Do
+        y = one_third * (1._dp + h1) * (2._dp + Sqrt(1._dp + b) / (1._dp - 2._dp * u * (k**2) ))
+        x = Sqrt((0.5_dp * (1._dp - l))**2 + (m / (y**2))) - 0.5_dp * (1._dp + l)
+        If (Converged(x,x_old)) Exit
+    End Do
+    a = mu * tof**2 / (16._dp * rop**2 * x * y**2)
+    If (a .GT. 0._dp) Then
+        Be = ACos(1._dp - (s - c) / a)
+        If (long_way) Be = -Be
+        a_min = 0.5_dp * s
+        t_min = Sqrt(a_min**3 / mu) * (Pi - Be + Sin(Be))
+        Ae = ACos(1._dp - s / a)
+        If (tof .GT. t_min) Ae = TwoPi - Ae
+        dE = Ae - Be
+        f = 1._dp - a * (1._dp - Cos(dE)) / r0
+        g = tof - Sqrt(a**3 / mu) * (dE - Sin(dE))
+        g_dot = 1._dp - a * (1._dp - Cos(dE)) / r1
+    Else
+        Bh = ACosh(1._dp - (s - c) / a )
+        Ah = ACosh(1._dp - s / a)
+        dH = Ah - Bh
+        f = 1._dp - a * (1._dp - Cosh(dH)) / r0
+        g = tof - Sqrt(-a**3 / mu) * (Sinh(dH) - dH)
+        g_dot = 1._dp - a * (1._dp - Cosh(dH)) / r1
+    End If
+    v0_vec = (r1_vec - f*r0_vec) / g
+    v1_vec = (g_dot * r1_vec - r0_vec) / g
+End Subroutine Lambert_Battin
+
+!-------------------------------------------------------------------------------
 !   Gooding's Method for Lambert's Problem
 !
 !   Original FORTRAN77 Source from:
@@ -825,18 +961,18 @@ Pure Subroutine Lambert_Gooding(r1_vec,r2_vec,tof,v1,v2,long_way)
     If (All(r1xr2 .EQ. 0._dp)) Then  !the vectors are parallel, so the transfer plane is undefined
         !write(*,*) 'Warning: pi transfer in solve_lambert_gooding'
         r1xr2 = (/ 0._dp , 0._dp , 1._dp /)    !degenerate conic...choose the x-y plane
-    end if
+    End If
     r1xr2_hat = Unit_Vector(r1xr2)
     !a trick to make sure argument is between [-1 and 1]:
     pa = Acos(Max(-1._dp,Min(1._dp,Dot_Product(r1_hat,r2_hat))))
     !transfer angle and normal vector:
-    if (tm) then ! greater than pi
+    If (tm) Then ! greater than pi
         ta    =  TwoPi - pa
         rho   = -r1xr2_hat
-    else ! less than pi
+    Else ! less than pi
         ta    = pa
         rho   = r1xr2_hat
-    end if
+    End If
     eta1 = Cross_Product(rho,r1_hat)
     eta2 = Cross_Product(rho,r2_hat)
     !Call Gooding
