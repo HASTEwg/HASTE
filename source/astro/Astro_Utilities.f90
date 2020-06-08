@@ -647,7 +647,7 @@ End Subroutine Lambert_minV
 !   Translated to modern Fortran by Whitman Dailey.  Jun 02, 2018.
 !   Air Force Institute of Technology, Department of Engineering Physics
 !-------------------------------------------------------------------------------
-Subroutine Lambert(r0_vec,r_vec,tof,v0_vec,v_vec,long_way)
+Pure Subroutine Lambert(r0_vec,r_vec,tof,v0_vec,v_vec,long_way)
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: r0_vec(1:3)
@@ -675,7 +675,7 @@ Subroutine Lambert(r0_vec,r_vec,tof,v0_vec,v_vec,long_way)
     v_vec = kps_per_EpT * (g_dot*r_vec_Rc - r0_vec_Rc) / g
 End Subroutine Lambert
 
-Subroutine Lambert_f_g(r0_vec,r_vec,t,long_way,f,g,g_dot)
+Pure Subroutine Lambert_f_g(r0_vec,r_vec,t,long_way,f,g,g_dot)
     !INPUTS & OUTPUTS ARE IN CANONICAL UNITS
     Use Kinds, Only: dp
     Use Global, Only: TwoPi
@@ -699,12 +699,9 @@ Subroutine Lambert_f_g(r0_vec,r_vec,t,long_way,f,g,g_dot)
     A = Sqrt(r * r0 + Dot_Product(r0_vec,r_vec))
     If (A .LT. tolerance) Then
         !when A=0, this is a near-180deg transfer, universal variable formulation does not have unique solution,
-        !use Battin's method instead
-        Print *,'ERROR:  Astro_Utilities: Lambert_f_g:  Lambert-Battin not yet supported.'
-        ERROR STOP
-        !UNDONE  Lambert-Battin method for near-180deg transfers
-        !Call Lambert_f_g_Battin(r0_vec,r_vec,t,long_way,f,g,g_dot)
-        !Return
+        !use Battin's method instead assuming an elliptical transfer
+        Call Lambert_f_g_Battin(r0_vec,r_vec,t,long_way,.TRUE.,f,g,g_dot)
+        Return
     End If
     If (long_way) A = -A
     z = 0._dp
@@ -731,7 +728,7 @@ Subroutine Lambert_f_g(r0_vec,r_vec,t,long_way,f,g,g_dot)
     g_dot = 1._dp - y / r
 End Subroutine Lambert_f_g
 
-Subroutine Find_C_S(z,C,S)
+Pure Subroutine Find_C_S(z,C,S)
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: z
@@ -754,7 +751,7 @@ Subroutine Find_C_S(z,C,S)
     End If
     
     Contains
-        Subroutine C_S_series()
+        Pure Subroutine C_S_series()
             Use Kinds, Only: dp
             Implicit None
             Real(dp) :: zi,Ci,Si,a
@@ -793,18 +790,56 @@ End Subroutine Find_C_S
 !   Translated to modern Fortran by Whitman Dailey.  Jun 02, 2020.
 !   Air Force Institute of Technology, Department of Engineering Physics
 !-------------------------------------------------------------------------------
-Subroutine Lambert_Battin(r0_vec,r1_vec,tof,v0_vec,v_vec,long_way)
+Pure Subroutine Lambert_Battin(r0_vec,r_vec,tof,v0_vec,v_vec,long_way,ellipse)
     Use Kinds, Only: dp
-    Use Global, Only: mu => grav_param
+    Implicit None
+    Real(dp), Intent(In) :: r0_vec(1:3)
+    Real(dp), Intent(In) :: r_vec(1:3)
+    Real(dp), Intent(In) :: tof
+    Real(dp), Intent(Out) :: v0_vec(1:3)
+    Real(dp), Intent(Out) :: v_vec(1:3)
+    Logical, Intent(In), Optional :: long_way
+    Logical, Intent(In), Optional :: ellipse
+    Real(dp) :: f,g,g_dot
+    Real(dp) :: r0_vec_Rc(1:3),r_vec_Rc(1:3)
+    Logical :: tm,te
+
+    If (Present(long_way)) Then
+        tm = long_way
+    Else  !default is short way
+        tm = .FALSE.
+    End If
+    If (Present(ellipse)) Then
+        te = ellipse
+    Else  !default is elliptical transfer
+        te = .TRUE.
+    End If
+    !convert to cannonical units
+    r0_vec_Rc = r0_vec * Rc_per_km
+    r_vec_Rc = r_vec * Rc_per_km
+    !Find f, g, and g_dot
+    Call Lambert_f_g_Battin(r0_vec_Rc,r_vec_Rc,tof*TU_per_sec,tm,te,f,g,g_dot)
+    !Compute new v0 and v, converting back to km/s
+    v0_vec = kps_per_EpT * (r_vec_Rc - f*r0_vec_Rc) / g
+    v_vec = kps_per_EpT * (g_dot*r_vec_Rc - r0_vec_Rc) / g
+End Subroutine Lambert_Battin
+
+Pure Subroutine Lambert_f_g_Battin(r0_vec,r1_vec,tof,long_way,ellip_trans,f,g,g_dot)
+    !INPUTS & OUTPUTS ARE IN CANONICAL UNITS
+    Use Kinds, Only: dp
+    Use Global, Only: Pi
+    Use Global, Only: TwoPi
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Converged
     Implicit None
     Real(dp), Intent(In) :: r0_vec(1:3)
     Real(dp), Intent(In) :: r1_vec(1:3)
     Real(dp), Intent(In) :: tof
-    Real(dp), Intent(Out) :: v0_vec(1:3)
-    Real(dp), Intent(Out) :: v1_vec(1:3)
     Logical, Intent(In) :: long_way
+    Logical, Intent(In) :: ellip_trans
+    Real(dp), Intent(Out) :: f
+    Real(dp), Intent(Out) :: g
+    Real(dp), Intent(Out) :: g_dot
     Real(dp) :: r0,r1,r0r1,r1dr0
     Real(dp) :: cos_nu,sin_n,nu
     Real(dp) :: c,s,eps
@@ -818,7 +853,6 @@ Subroutine Lambert_Battin(r0_vec,r1_vec,tof,v0_vec,v_vec,long_way)
     Real(dp) :: b,u,k,y
     Real(dp) :: a,Ae,Be,a_min,t_min,dE
     Real(dp) :: Ah,Bh,dH
-    Real(dp) :: f,g,g_dot
     Real(dp), Parameter :: tolerance = 1.E-12_dp
     Real(dp), Parameter :: one_third = 1._dp / 3._dp
     Real(dp), Parameter :: four_27ths = 4._dp / 27._dp
@@ -844,8 +878,7 @@ Subroutine Lambert_Battin(r0_vec,r1_vec,tof,v0_vec,v_vec,long_way)
         l = (sinSqQtrNu + tanSq2w) / (sinSqQtrNu + tanSq2w + Cos(0.5_dp*nu))
     End If
     m = mu * tof**2 / (8._dp * rop**3)
-    !UNDONE Need a way to determine or specify elliptical or other orbit for Battin's method...
-    If (ellipse) Then
+    If (ellip_trans) Then
         x = l
     Else
         x = 0._dp
@@ -895,29 +928,27 @@ Subroutine Lambert_Battin(r0_vec,r1_vec,tof,v0_vec,v_vec,long_way)
         x = Sqrt((0.5_dp * (1._dp - l))**2 + (m / (y**2))) - 0.5_dp * (1._dp + l)
         If (Converged(x,x_old)) Exit
     End Do
-    a = mu * tof**2 / (16._dp * rop**2 * x * y**2)
+    a = tof**2 / (16._dp * rop**2 * x * y**2)
     If (a .GT. 0._dp) Then
         Be = ACos(1._dp - (s - c) / a)
         If (long_way) Be = -Be
         a_min = 0.5_dp * s
-        t_min = Sqrt(a_min**3 / mu) * (Pi - Be + Sin(Be))
+        t_min = Sqrt(a_min**3) * (Pi - Be + Sin(Be))
         Ae = ACos(1._dp - s / a)
         If (tof .GT. t_min) Ae = TwoPi - Ae
         dE = Ae - Be
         f = 1._dp - a * (1._dp - Cos(dE)) / r0
-        g = tof - Sqrt(a**3 / mu) * (dE - Sin(dE))
+        g = tof - Sqrt(a**3) * (dE - Sin(dE))
         g_dot = 1._dp - a * (1._dp - Cos(dE)) / r1
     Else
         Bh = ACosh(1._dp - (s - c) / a )
         Ah = ACosh(1._dp - s / a)
         dH = Ah - Bh
         f = 1._dp - a * (1._dp - Cosh(dH)) / r0
-        g = tof - Sqrt(-a**3 / mu) * (Sinh(dH) - dH)
+        g = tof - Sqrt(-a**3) * (Sinh(dH) - dH)
         g_dot = 1._dp - a * (1._dp - Cosh(dH)) / r1
     End If
-    v0_vec = (r1_vec - f*r0_vec) / g
-    v1_vec = (g_dot * r1_vec - r0_vec) / g
-End Subroutine Lambert_Battin
+End Subroutine Lambert_f_g_Battin
 
 !-------------------------------------------------------------------------------
 !   Gooding's Method for Lambert's Problem
@@ -937,11 +968,11 @@ Pure Subroutine Lambert_Gooding(r1_vec,r2_vec,tof,v1,v2,long_way)
     Use Utilities, Only: Cross_Product
     Use Utilities, Only: Unit_Vector
     implicit none
-    Real(dp), Intent(In) :: r1_vec(1:3)         !! first cartesian position [km]
-    Real(dp), Intent(In) :: r2_vec(1:3)         !! second cartesian position [km]
-    Real(dp), Intent(In) :: tof        !! time of flight [sec]
-    Real(dp), Intent(Out) :: v1(1:3)         !! cartesian velocity at r1
-    Real(dp), Intent(Out) :: v2 (1:3)        !! cartesian velocity at r2
+    Real(dp), Intent(In) :: r1_vec(1:3)  !! first cartesian position [km]
+    Real(dp), Intent(In) :: r2_vec(1:3)  !! second cartesian position [km]
+    Real(dp), Intent(In) :: tof          !! time of flight [sec]
+    Real(dp), Intent(Out) :: v1(1:3)     !! cartesian velocity at r1
+    Real(dp), Intent(Out) :: v2(1:3)     !! cartesian velocity at r2
     Logical, Intent(In), Optional :: long_way   !! when true, do "long way" (>pi) transfers
     Logical :: tm
     Real(dp) :: pa,ta,r1,r2
@@ -959,8 +990,11 @@ Pure Subroutine Lambert_Gooding(r1_vec,r2_vec,tof,v1,v2,long_way)
     r2_hat = r2_vec / r2
     r1xr2 = Cross_Product(r1_vec,r2_vec)
     If (All(r1xr2 .EQ. 0._dp)) Then  !the vectors are parallel, so the transfer plane is undefined
-        !write(*,*) 'Warning: pi transfer in solve_lambert_gooding'
-        r1xr2 = (/ 0._dp , 0._dp , 1._dp /)    !degenerate conic...choose the x-y plane
+        !when A=0, this is a near-180deg transfer, universal variable formulation does not have unique solution,
+        !use Battin's method instead assuming an elliptical transfer
+        Call Lambert_Battin(r0_vec,r_vec,t,v1,v2,long_way,.TRUE.)
+        Return
+        !r1xr2 = (/ 0._dp , 0._dp , 1._dp /)    !degenerate conic...choose the x-y plane
     End If
     r1xr2_hat = Unit_Vector(r1xr2)
     !a trick to make sure argument is between [-1 and 1]:
