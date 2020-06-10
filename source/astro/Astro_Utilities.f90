@@ -846,7 +846,7 @@ Pure Subroutine Lambert_f_g_Battin(r0_vec,r1_vec,tof,long_way,ellip_trans,f,g,g_
     Real(dp) :: tanSq2w,cosSqQtrNu,sinSqQtrNu
     Real(dp) :: rop,m
     Real(dp) :: x,x_old
-    Real(dp) eta,c_eta
+    Real(dp) :: eta,c_eta
     Real(dp) :: d,d_old,t,t_old,sig
     Integer :: i
     Real(dp) :: xi,h,h1,h2
@@ -1001,11 +1001,11 @@ Pure Subroutine Lambert_Gooding(r1_vec,r2_vec,tof,v1,v2,long_way)
     pa = Acos(Max(-1._dp,Min(1._dp,Dot_Product(r1_hat,r2_hat))))
     !transfer angle and normal vector:
     If (tm) Then ! greater than pi
-        ta    =  TwoPi - pa
-        rho   = -r1xr2_hat
+        ta  =  TwoPi - pa
+        rho = -r1xr2_hat
     Else ! less than pi
-        ta    = pa
-        rho   = r1xr2_hat
+        ta  = pa
+        rho = r1xr2_hat
     End If
     eta1 = Cross_Product(rho,r1_hat)
     eta2 = Cross_Product(rho,r2_hat)
