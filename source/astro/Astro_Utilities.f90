@@ -747,38 +747,39 @@ Pure Subroutine Find_C_S(z,C,S)
             S = (Sinh(sqrt_Z) - sqrt_Z) / (-z * sqrt_Z)
         End If
     Else !evaluate by series
-        Call C_S_series()
+        Call Find_C_S_by_series(z,C,S)
     End If
-    
-    Contains
-        Pure Subroutine C_S_series()
-            Use Kinds, Only: dp
-            Implicit None
-            Real(dp) :: zi,Ci,Si,a
-            Integer :: i,b
-            Real(dp), Parameter :: one_sixth = 1._dp / 6._dp
-            Real(dp), Parameter :: tol = 1.E-15_dp
-
-            C = 0.5_dp
-            S = one_sixth
-            zi = -z
-            a = one_sixth
-            b = 3
-            !add up to ten terms, checking for convergence along the way
-            Do i = 1,10
-                b = b + 1
-                a = a / Real(b,dp)
-                Ci = zi * a
-                C = C + Ci
-                b = b + 1
-                a = a / Real(b,dp)
-                Si = zi * a
-                S = S + Si
-                If (Abs(Ci) .LT. Abs(C)*tol .AND. Abs(Si) .LT. Abs(S)*tol) Exit
-                zi = zi * (-z)
-            End Do
-        End Subroutine C_S_series
 End Subroutine Find_C_S
+
+Pure Subroutine Find_C_S_by_series(z,C,S)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp), Intent(In) :: z
+    Real(dp), Intent(Out) :: C,S
+    Real(dp) :: zi,Ci,Si,a
+    Integer :: i,b
+    Real(dp), Parameter :: one_sixth = 1._dp / 6._dp
+    Real(dp), Parameter :: tol = 1.E-15_dp
+
+    C = 0.5_dp
+    S = one_sixth
+    zi = -z
+    a = one_sixth
+    b = 3
+    !add up to ten terms, checking for convergence along the way
+    Do i = 1,10
+        b = b + 1
+        a = a / Real(b,dp)
+        Ci = zi * a
+        C = C + Ci
+        b = b + 1
+        a = a / Real(b,dp)
+        Si = zi * a
+        S = S + Si
+        If (Abs(Ci) .LT. Abs(C)*tol .AND. Abs(Si) .LT. Abs(S)*tol) Exit
+        zi = zi * (-z)
+    End Do
+End Subroutine Find_C_S_by_series
 
 !-------------------------------------------------------------------------------
 !   Solution to Lambert's Problem, Battin's Method
@@ -841,16 +842,16 @@ Pure Subroutine Lambert_f_g_Battin(r0_vec,r1_vec,tof,long_way,ellip_trans,f,g,g_
     Real(dp), Intent(Out) :: g
     Real(dp), Intent(Out) :: g_dot
     Real(dp) :: r0,r1,r0r1,r1dr0
-    Real(dp) :: cos_nu,sin_n,nu
+    Real(dp) :: cos_nu,sin_nu,nu
     Real(dp) :: c,s,eps
     Real(dp) :: tanSq2w,cosSqQtrNu,sinSqQtrNu
-    Real(dp) :: rop,m
+    Real(dp) :: rop,m,l
     Real(dp) :: x,x_old
     Real(dp) :: eta,c_eta
     Real(dp) :: d,d_old,t,t_old,sig
     Integer :: i
     Real(dp) :: xi,h,h1,h2
-    Real(dp) :: b,u,k,y
+    Real(dp) :: b,u,k,y,c_u
     Real(dp) :: a,Ae,Be,a_min,t_min,dE
     Real(dp) :: Ah,Bh,dH
     Real(dp), Parameter :: tolerance = 1.E-12_dp
@@ -992,7 +993,7 @@ Pure Subroutine Lambert_Gooding(r1_vec,r2_vec,tof,v1,v2,long_way)
     If (All(r1xr2 .EQ. 0._dp)) Then  !the vectors are parallel, so the transfer plane is undefined
         !when A=0, this is a near-180deg transfer, universal variable formulation does not have unique solution,
         !use Battin's method instead assuming an elliptical transfer
-        Call Lambert_Battin(r0_vec,r_vec,t,v1,v2,long_way,.TRUE.)
+        Call Lambert_Battin(r1_vec,r2_vec,tof,v1,v2,long_way,.TRUE.)
         Return
         !r1xr2 = (/ 0._dp , 0._dp , 1._dp /)    !degenerate conic...choose the x-y plane
     End If
