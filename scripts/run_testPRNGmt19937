@@ -17,7 +17,6 @@ FNAME="Random_Numbers"; . ./compile_it
 
 #TEST PROGRAM
 SRC_PATH="../testing/PRNGs/"
-BLD_PATH="../build/"
 FNAME="testPRNGmt19937"
 echo "Compiling and linking testPRNGs..."
 $COMP_NAME $GFORT_FLAGS -o ${SRC_PATH}${FNAME}${EXT} ${SRC_PATH}${FNAME}.f90 $OBJ_FILES

@@ -48,11 +48,4 @@ FNAME="Detectors"; . ./compile_it
 
 #TEST PROGRAM
 SRC_PATH="../testing/prevTrajectory/"
-FNAME="LPadjoint"
-echo "Compiling and linking LPadjoint..."
-$COMP_NAME $GFORT_FLAGS -o ${SRC_PATH}${FNAME}${EXT} ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
-
-#RUN THE TEST PROGRAM
-echo "Running..."
-cd ${SRC_PATH}
-${RUN_CMD}${FNAME}${EXT}
+FNAME="LPadjoint"; . ./compile_it

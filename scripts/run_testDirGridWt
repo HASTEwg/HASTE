@@ -13,7 +13,6 @@ FNAME="Kinds"; . ./compile_it
 
 #TEST PROGRAM
 SRC_PATH="../testing/"
-BLD_PATH="../build/"
 FNAME="testDirGridWt"
 echo "Compiling and linking testDirGridWt..."
 $COMP_NAME $GFORT_FLAGS -o ${SRC_PATH}${FNAME}${EXT} ${SRC_PATH}${FNAME}.f90 $OBJ_FILES

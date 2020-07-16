@@ -30,7 +30,6 @@ FNAME="Diverge_approx"; . ./compile_it
 
 #TEST PROGRAM
 SRC_PATH="../testing/prevTrajectory/"
-BLD_PATH="../build/"
 FNAME="testLPadjoint"
 echo "Compiling and linking testLPadjoint..."
 $COMP_NAME $GFORT_FLAGS -o ${SRC_PATH}${FNAME}${EXT} ${SRC_PATH}${FNAME}.f90 $OBJ_FILES

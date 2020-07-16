@@ -14,7 +14,6 @@ FNAME="FileIO_Utilities"; . ./compile_it
 
 #TEST PROGRAM
 SRC_PATH="../testing/"
-BLD_PATH="../build/"
 FNAME="testCR"
 echo "Compiling and linking testCR..."
 $COMP_NAME $GFORT_FLAGS -o ${SRC_PATH}${FNAME}${EXT} ${SRC_PATH}${FNAME}.f90 $OBJ_FILES

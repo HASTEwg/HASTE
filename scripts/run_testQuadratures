@@ -18,7 +18,6 @@ FNAME="Quadratures"; . ./compile_it
 
 #TEST PROGRAM
 SRC_PATH="../testing/Quadratures/"
-BLD_PATH="../build/"
 FNAME="testQuadratures"
 echo "Compiling and linking testQuadratures..."
 $COMP_NAME $GFORT_FLAGS -o ${SRC_PATH}${FNAME}${EXT} ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
