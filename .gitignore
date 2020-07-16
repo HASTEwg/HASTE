@@ -5,6 +5,7 @@
 /testing/n_CS/Resources
 /.VSCodeCounter
 *.out
+*.exe
 *.tst
 *.stream
 *.o
