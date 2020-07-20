@@ -36,6 +36,8 @@
 !   0.8     Opened development to community WG, migrated project to Github.
 !   0.9     Major portability revision: gFortran compiler, IA32/IA64/ARM 
 !           architectures now supported
+!   0.10    Begin switch to generalized ENDF input data for cross sections.
+!   0.11    Add albedo sources and limited-function adjoint solver routines.
 !-------------------------------------------------------------------------------
 Program HASTE
 
