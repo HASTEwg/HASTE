@@ -21,23 +21,22 @@
 !   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !-------------------------------------------------------------------------------
 !   Version History
-!   0.0     Initial version based on HASTE-n TE and HASTE-n by K.Mathews
-!   0.1     Initial release candidate, debugged & ready for studies.  Ready for
-!           multithreading or coarray implementations.
-!   0.2     Initial coarray implementation.
-!   0.3     Revised coarray implementation for memory stability.  Revised next-
-!           event orbital trajectory selection and supporting astro routines.
-!   0.4     Converted from QuickWin to Console application.
-!   0.5     Speed improvements.
-!   0.6     Added direct (first-flight by sampling) computations. Revised cross 
-!           section implementation for speed.
-!   0.7     Revised EPL quadrature routines, Kepler Problem solver, & gravity 
-!           divergence approach.
-!   0.8     Opened development to community WG, migrated project to Github.
-!   0.9     Major portability revision: gFortran compiler, IA32/IA64/ARM 
-!           architectures now supported
-!   0.10    Begin switch to generalized ENDF input data for cross sections.
-!   0.11    Add albedo sources and limited-function adjoint solver routines.
+!   0.0    Initial version from HASTE-n by K.Mathews and HASTE-n-TE by W.Dailey
+!   0.1    Initial release candidate, debugged & ready for studies.  Ready for
+!          multithreading or coarray implementations.
+!   0.2    Initial coarray implementation.
+!   0.3    Revised coarray implementation for memory stability.  Revised next-
+!          event orbital trajectory selection and supporting astro routines.
+!   0.4    Converted from QuickWin to Console application.
+!   0.5    Speed improvements.
+!   0.6    Added direct (first-flight by sampling) computations. Revised cross 
+!          section implementation for speed.
+!   0.7    Revised EPL quadrature routines, Kepler Problem solver, & gravity 
+!          divergence approach.
+!   0.8    Opened development to community WG, migrated project to Github.
+!   0.9    Major portability revision: gFortran compiler, IA32/IA64/ARM 
+!          architectures now supported
+!   0.10   Add albedo sources and limited-function adjoint solver routines.
 !-------------------------------------------------------------------------------
 Program HASTE
 
@@ -83,7 +82,7 @@ Use FileIO_Utilities, Only: Delta_Time
 Implicit None
 
 Character(max_line_len), Parameter :: title = 'High-Altitude to Space Transport Estimator for Neutrons (HASTEn)'
-Character(max_line_len), Parameter :: ver =   '    v0.11.00, 2 Jun 2020'
+Character(max_line_len), Parameter :: ver =   '    v0.10.00, 2 Jun 2020'
 Integer(id) :: n_histories
 Logical :: absolute_n_histories  !specifies whether number of histories is an absolute limit or a target number of contributions   
 Logical :: prompt_exit  !specifies whether the simulation will wait for user unput before exiting
