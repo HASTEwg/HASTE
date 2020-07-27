@@ -4,6 +4,7 @@
 /testing/PRNGs/Resources
 /testing/n_CS/Resources
 /.VSCodeCounter
+/.vs
 *.out
 *.exe
 *.tst
