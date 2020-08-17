@@ -498,6 +498,7 @@ Subroutine Next_Event_Neutron(n,ScatMod,d,atm,RNG)
             Do lev = 0,n_lev
                 Call ScatMod%Set_Scatter_lev(scat,lev,E_cm,i_E_cm)
                 Call Attempt_Next_Event(n,ScatMod,d,atm,scat,scat%iso_cs(iso)*scat%lev_cs(lev))
+                If (ScatMod%elastic_only) Exit !Prevent attempts for scatters other than elastic
             End Do
             Deallocate(scat%lev_cs)
         End Do
