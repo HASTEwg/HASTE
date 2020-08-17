@@ -56,7 +56,6 @@ Subroutine Initialize_Satellite_Motion(resources_dir,motion_type,sat)
     Use Global, Only: mu => grav_param
     Use Global, Only: rot_Earth
     Use Global, Only: Z_hat
-    Use Global, Only: R_earth
     Use Astro_Utilities, Only: Radius_of_Periapsis
     Use Astro_Utilities, Only: Velocity_of_Periapsis
     Use Astro_Utilities, Only: Period
