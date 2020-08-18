@@ -9,6 +9,6 @@ n_isotopes = 1   !number of isotopes for each element
 
 &csSetupList3
 isotope_names = 'O18'  !Common isotope abbreviations for each element
-iso_fractions = 0.002  ![mol/mol-el] Relative abundance of each isotope within each element
+!iso_fractions = 0.002  ![mol/mol-el] Relative abundance of each isotope within each element
 diatomic = .TRUE.
 /

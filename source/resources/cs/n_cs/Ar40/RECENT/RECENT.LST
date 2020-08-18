@@ -1,0 +1,165 @@
+ Calculate Cross Sections from Resonance Parameters (RECENT 2015-1)
+ ==============================================================================
+ Retrieval Criteria-----------        MAT
+ File 2 Mimimum Cross Section- 1.0000E-30                     
+ Reactions with No Background-     Output (Resonance Contribution)
+ Calculate/Edit Mode----------  Calculate. Minimum Output Listing.     
+ Negative Cross Sections------   Make = 0 (No Negative Output)     
+ Monitor Mode-----------------         On
+ ==============================================================================
+ ENDF/B Input and Output Data Filenames
+ ENDFB.IN                                                                
+ ENDFB.OUT                                                               
+ ==============================================================================
+ Requested MAT Ranges
+ ==============================================================================
+    Mimimum    Maximum
+ ==============================================================================
+          1       8371
+ ==============================================================================
+ WARNING - You Have Turned on the Override to ONLY Process a
+ Portion of the Resonance Region  837.000000 to  20000000.0 eV.
+ ==============================================================================
+ ==============================================================================
+ File 2 Reconstruction Error
+ ==============================================================================
+      Energy      Error   per-cent
+ ==============================================================================
+  0.0         .001000000      0.100 (Default Option)
+ ==============================================================================
+ ENDF/B Tape Label
+ ==============================================================================
+ Retrieved by E4-Web: 2017/06/06,00:43:31                             1
+ ******************************************************************************
+ Processing  18-Ar-40  MAT= 1837
+ ******************************************************************************
+ Based on the Format and Contents of MF=1, MT=451
+ (1) ENDF/B-VI Format.
+ (2) Material is NOT Fissile (LFI=0).
+ (3) Resonance Parameters are Given (LRP=1).
+ (4) Projectile ZA =      1 (Neutron).
+ (5) Temperature of Background  0.0        Kelvin.
+ ==============================================================================
+ Listing of All Resonance Parameters
+ ==============================================================================
+ Element or Material------------------ 18-Ar-40 
+ Atomic Weight Ratio------------------ 39.6191000
+ Number of Isotopes-------------------          1
+ ==============================================================================
+ Isotope Number-----------------------          1
+ Isotope------------------------------ 18-Ar-40 
+ Fractional Abundance----------------- 1.00000000
+ LFW (Fission Widths)-----------------          0 (No Fission Widths)        
+ Number of Energy Ranges--------------          1
+ ==============================================================================
+ Lower Limit of the Energy Range------ 1.00000E-5 eV
+ Upper Limit of the Energy Range------ 1497740.00 eV
+ LRU (Type of Region)-----------------          1 (Resolved Region)          
+ LRF (Type of Resolved Parameters)----          3 (Reich-Moore)              
+ NRO (Scattering Radius)--------------          0 (Energy Independent)        
+ NAPS (Channel Radius)----------------          1 (= Scattering Radius)       
+ ==============================================================================
+ Nuclear Spin of Target--------------- 0.0       
+ Scattering Radius-------------------- .350000000
+ Number of L Values-------------------          4
+ ==============================================================================
+ Atomic Weight Ratio of Isotope------- 39.6564000
+ L Dependent Scattering Radius-------- 0.0       
+ Angular Momentum (L)-----------------          0
+ Number of Resonances-----------------         26
+ WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING
+ L Dependent Scattering Radius in the Evaluation is Zero.
+ Have Defined it to be Equal to the Scattering Radius .350000000
+ (see, ENDF/B-VI Formats and Procedures Manual, page 2.11)
+ ==============================================================================
+ Atomic Weight Ratio of Isotope------- 39.6564000
+ L Dependent Scattering Radius-------- 0.0       
+ Angular Momentum (L)-----------------          1
+ Number of Resonances-----------------        122
+ WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING
+ L Dependent Scattering Radius in the Evaluation is Zero.
+ Have Defined it to be Equal to the Scattering Radius .350000000
+ (see, ENDF/B-VI Formats and Procedures Manual, page 2.11)
+ ==============================================================================
+ Atomic Weight Ratio of Isotope------- 39.6564000
+ L Dependent Scattering Radius-------- 0.0       
+ Angular Momentum (L)-----------------          2
+ Number of Resonances-----------------         54
+ WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING
+ L Dependent Scattering Radius in the Evaluation is Zero.
+ Have Defined it to be Equal to the Scattering Radius .350000000
+ (see, ENDF/B-VI Formats and Procedures Manual, page 2.11)
+ ==============================================================================
+ Atomic Weight Ratio of Isotope------- 39.6564000
+ L Dependent Scattering Radius-------- 0.0       
+ Angular Momentum (L)-----------------          3
+ Number of Resonances-----------------          7
+ WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING
+ L Dependent Scattering Radius in the Evaluation is Zero.
+ Have Defined it to be Equal to the Scattering Radius .350000000
+ (see, ENDF/B-VI Formats and Procedures Manual, page 2.11)
+ ------------------------------------------------------------------------------
+ WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING
+ for L= 3 The Following J Sequences are Missing.
+ J =    3.50
+ ------------------------------------------------------------------------------
+ ------------------------------------------------------------------------------
+ WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING
+ FOR L =  3 Expect Sum of Statistical Weights (GJ) to Equal
+ (2*L + 1) =  7.000
+ Found     =  3.000
+ Corrective Action Will be Taken to Correctly Calculate
+ the Potential Scattering Cross Section - This Procedure is
+ Based on the Decision of the National Nuclear Data Center,
+ Brookhaven National Laboratory, Private Communication,
+ Charles Dunford, (April 1991)
+ ==============================================================================
+ WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING...WARNING
+ The Above Resonance Region Will be Truncated to Requested
+ Energy Range to be Processed.
+ ==============================================================================
+ Summary of Calculated MT #
+ ------------------------------------------------------------------------------
+    1    2  102
+ ==============================================================================
+ Reconstructing Cross Sections from Resonance Parameters
+ ==============================================================================
+        E-Low     E-High   Points   Type of Resonance Region
+        (eV)       (eV)   Generated Messages
+ ==============================================================================
+   837.000000 1497740.00      46353 Resolved
+ ==============================================================================
+ Entire Resonance Region      46353 Points
+ ==============================================================================
+ Summary of Output MT #
+ ------------------------------------------------------------------------------
+    1    2  102
+ ==============================================================================
+ Combining File 2 and File 3 Data
+ ==============================================================================
+ Reaction   MT  File 2  File 3  Combined
+                Points  Points    Points Comments
+ ==============================================================================
+    Total    1   46353       0     46353 No Background. Output Resonance Part.
+  Elastic    2   46353       0     46353 No Background. Output Resonance Part.
+  Capture  102   46353       0     46353 No Background. Output Resonance Part.
+ ==============================================================================
+ ==============================================================================
+      MAT Total Execution Time                0.45 Seconds
+ ==============================================================================
+ ******************************************************************************
+ End of ENDF/B Input Data
+ ******************************************************************************
+ Core Allocation and Requirements
+ ==============================================================================
+         Sections   Nodes Parameter
+                            Storage
+ ==============================================================================
+ Allocated    100  300000    300000
+ Required       4     207       209
+ ==============================================================================
+ End of Run
+ ==============================================================================
+ ==============================================================================
+ RECENT   Total Execution Time                0.45 Seconds
+ ==============================================================================

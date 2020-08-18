@@ -1,0 +1,407 @@
+Retrieved by E4-Web: 2017/06/06,01:14:29                             1 0  0    0
+ 8.018000+3 1.784454+1          1          0          2          1 831 1451    1
+ 0.000000+0 0.000000+0          0          0          0          6 831 1451    2
+ 1.000000+0 2.000000+8          1          0         10         32 831 1451    3
+ 0.000000+0 0.000000+0          0          0        386          2 831 1451    4
+  8-O - 18  NRG       EVAL-DEC12 A.J. Koning and D. Rochman        831 1451    5
+ TENDL-2012           DIST-      REV1-                             831 1451    6
+----JEFF32            Material  831         REVISION 1             831 1451    7
+-----Incident neutron  data                                        831 1451    8
+------ENDF-6 Format                                                831 1451    9
+*****************************  JEFF-3.2    *********************** 831 1451   10
+TENDL-2012 (TALYS Evaluated Nuclear Data Library)                  831 1451   11
+                                                                   831 1451   12
+O018 neutron general purpose library                               831 1451   13
+                                                                   831 1451   14
+Author: A.J. Koning and D. Rochman, NRG Petten, The Netherlands    831 1451   15
+                                                                   831 1451   16
+Ref.: A.J. Koning and D. Rochman,                                  831 1451   17
+      Modern nuclear data evaluation with the TALYS code system,   831 1451   18
+      Nucl. Data Sheets 113, 2841 (2012).                          831 1451   19
+                                                                   831 1451   20
+************** G E N E R A L   I N F O R M A T I O N ************* 831 1451   21
+                                                                   831 1451   22
+This evaluated data file is based on a software system built       831 1451   23
+around the nuclear model code TALYS [kon07], version 1.50. It is   831 1451   24
+part of a large collection of isotopic evaluations, all created by 831 1451   25
+running the system with either adjusted or default input           831 1451   26
+parameters. This means that the data in the entire collection have 831 1451   27
+been tested in detail for many isotopes against individual         831 1451   28
+experimental data, while for other isotopes it is only as good as  831 1451   29
+the global quality of TALYS at the moment. The mutual quality of   831 1451   30
+all individual data files is however consistent: The same set of   831 1451   31
+nuclear models is used and, equally important, the same ENDF-6     831 1451   32
+formatting procedures for each isotope. The data file has been     831 1451   33
+created automatically using the ENDF-6 format generator TEFAL.     831 1451   34
+                                                                   831 1451   35
+The resulting data file provides a complete representation of      831 1451   36
+nuclear data needed for transport, activation, damage, heating,    831 1451   37
+radioactivity, and shielding applications over the incident        831 1451   38
+neutron energy range from 1.e-11 to 200. MeV.                      831 1451   39
+                                                                   831 1451   40
+All transport and activation data for neutrons, charged particles, 831 1451   41
+photons and residual nuclides are filed. This includes cross       831 1451   42
+sections, angular distributions, double-differential spectra,      831 1451   43
+isomeric production, discrete and continuum photon production      831 1451   44
+cross sections, residual production cross sections and recoils.    831 1451   45
+This general purpose evaluation can thus be used as both           831 1451   46
+transport and activation library.                                  831 1451   47
+                                                                   831 1451   48
+A complete set of covariance data is included, which is stored     831 1451   49
+in MF31-40.                                                        831 1451   50
+                                                                   831 1451   51
+**** N U C L I D E    S P E C I F I C   I N F O R M A T I O N **** 831 1451   52
+                                                                   831 1451   53
+                      Resonance Range                              831 1451   54
+                                                                   831 1451   55
+  ---------------------------------------------------------------  831 1451   56
+  ---------------------------------------------------------------  831 1451   57
+                                                                   831 1451   58
+  MF2:  Resolved resonance range  (RRR)                            831 1451   59
+       The RRR was generated with TARES-1.1, compiled on           831 1451   60
+       12-23-2012 11:38:39 PM at Petten, the, Netherlands. The RRR 831 1451   61
+       expands from 0 to 7.090100E+5 eV, with resonance informatio 831 1451   62
+       extracted from the "urr" TARES database. A total of         831 1451   63
+       2 l-values are used and 2 resonances. The resonance         831 1451   64
+       formalism is Reich Moore (RM).                              831 1451   65
+       The unresolved resonance range is obtained from the TALYS   831 1451   66
+       code.                                                       831 1451   67
+                                                                   831 1451   68
+  MF32: Covariance file for resonance parameters                   831 1451   69
+        The compact format is used to represent the covariance     831 1451   70
+        information on the resonance parameters. Uncertainties     831 1451   71
+        come from compilations, EXFOR or existing libraries and    831 1451   72
+        correlations between parameters are obtained following     831 1451   73
+        the method presented in NIM/A 589 (2008) 85.               831 1451   74
+                                                                   831 1451   75
+                                                                   831 1451   76
+               Average parameters from INTER                       831 1451   77
+                                                                   831 1451   78
+     ****************************************************          831 1451   79
+     *   Thermal (n,g) xs =  1.555280E-04 b.            *          831 1451   80
+     *   RI      (n,g)    =  9.971140E-05 b.            *          831 1451   81
+     *   MACS 30 keV      =  6.429600E-07 b. (MF2 only) *          831 1451   82
+     *                                                  *          831 1451   83
+     *   Thermal (n,el) xs = 4.050330E+00 b.            *          831 1451   84
+     *   RI      (n,el)    = 5.683220E+01 b.            *          831 1451   85
+     ****************************************************          831 1451   86
+                                                                   831 1451   87
+  ---------------------------------------------------------------  831 1451   88
+  ---------------------------------------------------------------  831 1451   89
+                                                                   831 1451   90
+               Adjusted TALYS input parameters                     831 1451   91
+                                                                   831 1451   92
+gamgamadjust  8  19 0.50                                           831 1451   93
+                                                                   831 1451   94
+***************************** T A L Y S ************************** 831 1451   95
+                                                                   831 1451   96
+TALYS is a computer code system for the prediction and analysis    831 1451   97
+of nuclear reactions. TALYS simulates reactions that involve       831 1451   98
+neutrons, gamma-rays, protons, deuterons, tritons, helions and     831 1451   99
+alpha-particles, in the 1 keV - 200 MeV energy range. This is      831 1451  100
+achieved by implementing a suite of nuclear reaction models into   831 1451  101
+a single code system. This nuclear data file is based on a         831 1451  102
+theoretical analysis that utilizes the optical model, compound     831 1451  103
+nucleus statistical theory, fission, direct reactions and          831 1451  104
+pre-equilibrium processes, in combination with databases and       831 1451  105
+models for nuclear structure. The following output of TALYS is     831 1451  106
+stored in this data file:                                          831 1451  107
+                                                                   831 1451  108
+- Total, elastic and non-elastic cross sections                    831 1451  109
+- Inelastic cross sections to discrete states                      831 1451  110
+- Exclusive channel cross sections, e.g. (n,g), (n,2n), (n,np),..  831 1451  111
+- Inelastic scattering angular distributions to discrete states    831 1451  112
+- Exclusive channel energy spectra                                 831 1451  113
+- Exclusive channel double-differential spectra                    831 1451  114
+- Exclusive gamma production for discrete states and continuum     831 1451  115
+- Elastic scattering angular distributions                         831 1451  116
+- Recoil data                                                      831 1451  117
+- Total particle cross sections, e.g. (n,xn), (n,xp),..            831 1451  118
+- Total particle energy spectra                                    831 1451  119
+- Total particle double-differential spectra                       831 1451  120
+- Isomeric and ground state cross sections                         831 1451  121
+- Residual production cross sections                               831 1451  122
+                                                                   831 1451  123
+For a description of the used nuclear models and their             831 1451  124
+parameterization we refer to [kon12]. If for this specific         831 1451  125
+nuclide we deviate from the global parameterization, it is made    831 1451  126
+explicit above under Nuclide Specific Information.                 831 1451  127
+                                                                   831 1451  128
+***************** F I L E   I N F O R M A T I O N **************** 831 1451  129
+                                                                   831 1451  130
+##### MF1: GENERAL INFORMATION                                     831 1451  131
+                                                                   831 1451  132
+- MT451    : Descriptive data and directory                        831 1451  133
+                                                                   831 1451  134
+This text and the full directory of used MF/MT sections.           831 1451  135
+                                                                   831 1451  136
+##### MF2: RESONANCE PARAMETERS                                    831 1451  137
+                                                                   831 1451  138
+- MT151    : Resonance parameters                                  831 1451  139
+                                                                   831 1451  140
+Details about the origin of the resonance parameters for this      831 1451  141
+nuclide are given above in this description. In general, both a    831 1451  142
+Resolved and an Unresolved Resonance Range are given.              831 1451  143
+                                                                   831 1451  144
+##### MF3: REACTION CROSS SECTIONS                                 831 1451  145
+                                                                   831 1451  146
+All the data present in the following MT-sections have been        831 1451  147
+calculated with TALYS, possibly normalized to experimental data.   831 1451  148
+If the maximal cross section in an excitation function over the    831 1451  149
+whole energy range does not exceed 1.e-9 b, the MT-number is not   831 1451  150
+included. Cross sections lower than 1.e-20 b are assumed to have   831 1451  151
+no physical meaning and are set to zero. All MT numbers extend up  831 1451  152
+to the highest incident energy.                                    831 1451  153
+The following reaction channels/MT numbers are generally included: 831 1451  154
+                                                                   831 1451  155
+- MT1      : Total cross section                                   831 1451  156
+                                                                   831 1451  157
+Calculated with the optical model over the whole energy range,     831 1451  158
+or partly reproduced using experimental data.                      831 1451  159
+                                                                   831 1451  160
+- MT2      : Elastic scattering cross section                      831 1451  161
+                                                                   831 1451  162
+Obtained by subtracting the non-elastic cross section from the     831 1451  163
+total cross section.                                               831 1451  164
+                                                                   831 1451  165
+- MT3      : Non-elastic cross section                             831 1451  166
+                                                                   831 1451  167
+Calculated with the optical model over the whole energy range.     831 1451  168
+                                                                   831 1451  169
+- MT4      : Total inelastic cross section                         831 1451  170
+                                                                   831 1451  171
+Sum of MT=51-91.                                                   831 1451  172
+                                                                   831 1451  173
+- MT5      : (n,anything) cross section                            831 1451  174
+                                                                   831 1451  175
+MT5 contains the reactions which can not be stored in any other    831 1451  176
+MT-number. The information of MF3/MT5 can be combined with         831 1451  177
+MF6/MT5 to obtain residual production cross sections particle      831 1451  178
+production cross sections and (double-)differential cross          831 1451  179
+sections.                                                          831 1451  180
+                                                                   831 1451  181
+- MT16     : (n,2n) cross section                                  831 1451  182
+- MT17     : (n,3n) cross section                                  831 1451  183
+- MT22     : (n,na) cross section                                  831 1451  184
+- MT28     : (n,np) cross section                                  831 1451  185
+- MT51-90  : (n,n') cross section for 1st-40th excited state       831 1451  186
+- MT91     : (n,n') continuum cross section                        831 1451  187
+- MT102    : (n,gamma) cross section                               831 1451  188
+- MT103    : (n,p) cross section                                   831 1451  189
+- MT104    : (n,d) cross section                                   831 1451  190
+- MT105    : (n,t) cross section                                   831 1451  191
+- MT106    : (n,h) cross section                                   831 1451  192
+- MT107    : (n,a) cross section                                   831 1451  193
+- MT600-610: (n,p) cross section for 0th-10th excited state        831 1451  194
+- MT649    : (n,p) continuum cross section                         831 1451  195
+- MT650-655: (n,d) cross section for 0th-5th excited state         831 1451  196
+- MT699    : (n,d) continuum cross section                         831 1451  197
+- MT700-705: (n,t) cross section for 0th-5th excited state         831 1451  198
+- MT749    : (n,t) continuum cross section                         831 1451  199
+- MT750-755: (n,h) cross section for 0th-5th excited state         831 1451  200
+- MT799    : (n,h) continuum cross section                         831 1451  201
+- MT800-810: (n,a) cross section for 0th-10th excited state        831 1451  202
+- MT849    : (n,a) continuum cross section                         831 1451  203
+                                                                   831 1451  204
+##### MF4: ANGULAR DISTRIBUTIONS OF SECONDARY PARTICLES            831 1451  205
+                                                                   831 1451  206
+We use MF4 for the neutron scattering angular distribution for     831 1451  207
+discrete levels.                                                   831 1451  208
+                                                                   831 1451  209
+- MT2      : Elastic angular distribution                          831 1451  210
+                                                                   831 1451  211
+The flag LTT=3 is used to indicate a switch at some high energy,   831 1451  212
+generally 50 MeV, from a Legendre representation to a tabulated    831 1451  213
+representation. For incident energies below this energy, the       831 1451  214
+Legendre coefficients are given on a sufficiently precise energy   831 1451  215
+grid. They are a sum of calculated Legendre coefficients for       831 1451  216
+compound nucleus and shape-elastic scattering. For higher          831 1451  217
+incident energies, relative angular distributions are tabulated    831 1451  218
+on an angular grid.                                                831 1451  219
+                                                                   831 1451  220
+- MT51-70  : (n,n') angular distribution for 1st-20th state        831 1451  221
+- MT600-610: (n,p) angular distribution for 0th-10th state         831 1451  222
+- MT650-655: (n,d) angular distribution for 0th-5th state          831 1451  223
+- MT700-705: (n,t) angular distribution for 0th-5th state          831 1451  224
+- MT750-755: (n,h) angular distribution for 0th-5th state          831 1451  225
+- MT800-810: (n,a) angular distribution for 0th-10th state         831 1451  226
+                                                                   831 1451  227
+##### MF6: PRODUCT ENERGY-ANGLE DISTRIBUTIONS                      831 1451  228
+                                                                   831 1451  229
+In MF6 we store all secondary energy, angle, and energy-angle      831 1451  230
+distributions, as well as all residual and discrete + continuum    831 1451  231
+photon production cross sections for channels other than capture   831 1451  232
+(MT102) and reactions to discrete levels (MT51,etc.).              831 1451  233
+All data are generated with TALYS.                                 831 1451  234
+                                                                   831 1451  235
+- MT5      : (n,anything) yields and energy-angle distributions    831 1451  236
+                                                                   831 1451  237
+MT5 contains, in this order,                                       831 1451  238
+For neutrons up to alpha particles and photons:                    831 1451  239
+- the production yields per particle for the whole energy range    831 1451  240
+- the secondary energy-angle distributions per particles which are 831 1451  241
+  not represented by explicit MT numbers. On a secondary energy    831 1451  242
+  grid the relative emission spectra are given together with the   831 1451  243
+  parameters for the Kalbach systematics for angular               831 1451  244
+  distributions. Inelastic scattering cross sections for discrete  831 1451  245
+  states have been broadened and added to the continuum spectra.   831 1451  246
+For each residual product:                                         831 1451  247
+- the production yields for the whole energy range.                831 1451  248
+- the recoil                                                       831 1451  249
+These distributions can be multiplied with MF3/MT5 to get          831 1451  250
+the production cross sections and (double-)differential cross      831 1451  251
+sections.                                                          831 1451  252
+                                                                   831 1451  253
+- MT16     : (n,2n) energy-angle distr. and photon production      831 1451  254
+                                                                   831 1451  255
+First, for each type of outgoing particle, the (trivial) integer   831 1451  256
+particle yields are given. Next, on a sufficiently dense incident  831 1451  257
+energy grid the secondary energy-angle distributions are           831 1451  258
+specified by means of the relative emission spectra and the        831 1451  259
+parameters for the Kalbach systematics for angular distributions.  831 1451  260
+Next, the photon yield is tabulated as a function of incident      831 1451  261
+energy. For each incident energy, the photon production is given   831 1451  262
+for all discrete gamma lines present in the final nucleus. A       831 1451  263
+continuum photon distribution is added to this. We assume          831 1451  264
+isotropy for all produced gamma rays.                              831 1451  265
+                                                                   831 1451  266
+For the following MT-numbers, the same procedure as for MT16 is    831 1451  267
+followed:                                                          831 1451  268
+                                                                   831 1451  269
+- MT17 : (n,3n) energy-angle distr. and photon production          831 1451  270
+- MT22 : (n,na) energy-angle distr. and photon production          831 1451  271
+- MT28 : (n,np) energy-angle distr. and photon production          831 1451  272
+- MT91 : (n,n') continuum energy-angle distr. and phot. prod.      831 1451  273
+- MT649: (n,p) continuum energy-angle distr. and photon prod.      831 1451  274
+- MT699: (n,d) continuum energy-angle distr. and photon prod.      831 1451  275
+- MT749: (n,t) continuum energy-angle distr. and photon prod.      831 1451  276
+- MT809: (n,h) continuum energy-angle distr. and photon prod.      831 1451  277
+- MT849: (n,a) continuum energy-angle distr. and photon prod.      831 1451  278
+                                                                   831 1451  279
+##### MF8: RADIOACTIVE DECAY DATA                                  831 1451  280
+                                                                   831 1451  281
+For reactions to isomers, MF8 designates where the information     831 1451  282
+for isomeric versus ground state production, or residual           831 1451  283
+production can be found, i.e. for each MT number it points to      831 1451  284
+either MF6, MF9 or MF10.                                           831 1451  285
+                                                                   831 1451  286
+##### MF9: MULTIPLICITIES FOR PRODUCTION OF RADIOACTIVE NUCLIDES   831 1451  287
+                                                                   831 1451  288
+MF9 is used for isomer production by non-threshold reactions.      831 1451  289
+Final states with a lifetime that exceeds 1 second are treated     831 1451  290
+as isomer.                                                         831 1451  291
+                                                                   831 1451  292
+##### MF10: CROSS SECTIONS FOR PRODUCTION OF RADIOACTIVE NUCLIDES  831 1451  293
+                                                                   831 1451  294
+MF10 is used for isomer production by threshold reactions.         831 1451  295
+Final states with a lifetime that exceeds 1 second are treated     831 1451  296
+as isomer.                                                         831 1451  297
+                                                                   831 1451  298
+##### MF12: PHOTON PRODUCTION YIELD DATA                           831 1451  299
+                                                                   831 1451  300
+MF12 is used for the photon production for two types of reactions: 831 1451  301
+- Reactions to discrete levels (MT51, etc.) For this transition    831 1451  302
+  probabilities are used (LO=2)                                    831 1451  303
+- Photons from neutron capture (MT102). Here multiplicities are    831 1451  304
+  given                                                            831 1451  305
+                                                                   831 1451  306
+##### MF14: PHOTON ANGULAR DISTRIBUTIONS                           831 1451  307
+                                                                   831 1451  308
+All photon production is considered as isotropic                   831 1451  309
+                                                                   831 1451  310
+##### MF15: PHOTON ENERGY SPECTRA                                  831 1451  311
+                                                                   831 1451  312
+For capture (MT102), the photon energy spectrum is given.          831 1451  313
+                                                                   831 1451  314
+##### MF32: COVARIANCES OF RESONANCE PARAMETERS                    831 1451  315
+                                                                   831 1451  316
+In MF32, we store the covariances of resonance parameters,         831 1451  317
+and more details are given above in this description.              831 1451  318
+                                                                   831 1451  319
+##### MF33: COVARIANCES OF NEUTRON CROSS SECTIONS                  831 1451  320
+                                                                   831 1451  321
+In MF33, we store the covariances of most, but not all, reaction   831 1451  322
+channels that are given in MF3. All covariances are generated      831 1451  323
+with the TASMAN code [kon12], which generates TALYS runs using     831 1451  324
+a Monte Carlo parameter method.                                    831 1451  325
+For each MT-number, the information consists of:                   831 1451  326
+1. Covariances for MTa, Ea and MTa, Ea (variances)                 831 1451  327
+2. Covariances for MTa, Ea and MTa, Eb (correlations for the       831 1451  328
+   same reaction channel between different energies)               831 1451  329
+3. Covariances for MTa, Ea and MTb, Ea (correlations between       831 1451  330
+   different reaction channels for the same energy)                831 1451  331
+4. Covariances for MTa, Ea and MTb, Eb (correlations between       831 1451  332
+   different reaction channels for different energies)             831 1451  333
+Classes 1 and 2 are covered by NI-type subsubsections with         831 1451  334
+flag LB=5, followed by a LB=8 section which contains               831 1451  335
+the cross section variances multiplied by 1.e-3. Next, classes 3   831 1451  336
+and 4 are covered by flag LB=6 to account for the different        831 1451  337
+energy grids that two correlating MT-sections may have. Since      831 1451  338
+the total correlation matrix is fully symmetric, we only need to   831 1451  339
+include the correlation elements between different MT-numbers      831 1451  340
+once, and we do that in the subsection with the lowest of the      831 1451  341
+two MT-numbers. We include covariance information for all the      831 1451  342
+total cross sections, the lumped partial cross sections and the    831 1451  343
+individual inelastic cross sections per level (MT51,...). We do    831 1451  344
+not include covariances for MT600 and higher MT-numbers. For the   831 1451  345
+most important channels, we include cross-channel correlations.    831 1451  346
+                                                                   831 1451  347
+##### MF34: COVARIANCES OF ANGULAR DISTRIBUTIONS                   831 1451  348
+                                                                   831 1451  349
+In MF34, we store the covariances of the elastic scattering        831 1451  350
+angular distributions that are given in MF4/MT2. All covariances   831 1451  351
+are generated with the TASMAN code [kon12], which generates        831 1451  352
+TALYS runs using a Monte Carlo parameter method. The tables are    831 1451  353
+restricted to MT2 and contain covariances for the first 6          831 1451  354
+Legendre coefficients. Both intra- and inter-correlations of the   831 1451  355
+various Legendre coefficients are given. As in MF33, the LB5       831 1451  356
+representation is used.                                            831 1451  357
+                                                                   831 1451  358
+##### MF40: COVARIANCES OF ISOMER PRODUCTION                       831 1451  359
+                                                                   831 1451  360
+For covariances of ground state and isomeric cross sections, the   831 1451  361
+same procedures as for MF33 are used.                              831 1451  362
+                                                                   831 1451  363
+***** F I L E   C H E C K I N G   A N D   P R O C E S S I N G **** 831 1451  364
+                                                                   831 1451  365
+This file has been checked and processed by                        831 1451  366
+- the BNL checking codes CHECKR-8.0, FIZCON-8.0 and PSYCHE-8.0     831 1451  367
+  [her08],                                                         831 1451  368
+- the preprocessing code suite PREPRO [cul12] into a PENDF file,   831 1451  369
+- the processing code NJOY99.364 [mac10] into a PENDF file and an  831 1451  370
+  MCNP (ACE) library,                                              831 1451  371
+- MCNP for a standard calculation with the ACE library.            831 1451  372
+                                                                   831 1451  373
+*********************** R E F E R E N C E S ********************** 831 1451  374
+                                                                   831 1451  375
+[cul12] D.E. Cullen, PREPRO 2010 - 2010 ENDF-6 Pre-processing      831 1451  376
+        codes, Technical report IAEA-NDS-39 (Rev.14), IAEA (2010)  831 1451  377
+[her08] M. Herman, ENDF Utility Codes Release 8.0, (2008)          831 1451  378
+[kon07] A.J. Koning, S. Hilaire and M.C. Duijvestijn, TALYS-1.0,   831 1451  379
+        Proceedings of the International Conference on Nuclear     831 1451  380
+        Data for Science and Technology - ND-2007,                 831 1451  381
+        April 22-27, 2007, Nice, France                            831 1451  382
+[kon12] A.J. Koning and D. Rochman, Modern nuclear data            831 1451  383
+        evaluation with the TALYS code system, Nuclear Data        831 1451  384
+        Sheets, December 2012                                      831 1451  385
+[mac10] R.E. Macfarlane and A.C. Kahler, Methods for processing    831 1451  386
+        ENDF/B-VII with NJOY, Nuclear Data Sheets 111, 2739 (2010) 831 1451  387
+                                                                   831 1451  388
+************************* C O N T E N T S ************************ 831 1451  389
+                                                                   831 1451  390
+                                1        451        603          1 831 1451  391
+                                2        151          8          1 831 1451  392
+                                                                   831 1  099999
+                                                                   831 0  0    0
+ 8.018000+3 1.784454+1          0          0          1          0 831 2151    1
+ 8.018000+3 1.000000+0          0          0          1          0 831 2151    2
+ 1.000000-5 7.090100+5          1          3          0          1 831 2151    3
+ 0.000000+0 4.800000-1          1          0          2          2 831 2151    4
+ 1.784454+1 4.800000-1          0          0          6          1 831 2151    5
+-2.485000+6 5.000000-1 1.429784+6 2.320000-1 0.000000+0 0.000000+0 831 2151    6
+ 1.784454+1 3.534590-1          1          0          6          1 831 2151    7
+ 6.600000+5 1.500000+0 9.700000+4 1.900000+0 0.000000+0 0.000000+0 831 2151    8
+                                                                   831 2  099999
+                                                                   831 0  0    0
+                                                                     0 0  0    0
+                                                                    -1 0  0    0

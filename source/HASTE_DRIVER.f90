@@ -62,7 +62,6 @@ Use Tallies, Only: Contrib_array
 Use Tallies, Only: Setup_Tallies
 Use Results, Only: Write_Run_Summary
 Use Results, Only: Write_Tally_Grids
-Use Statistics, Only: gMean
 Use Statistics, Only: Std_Err
 Use FileIO_Utilities, Only: max_line_len
 Use FileIO_Utilities, Only: Worker_Index
@@ -164,11 +163,11 @@ If (i_img .EQ. 1) Then
     Write(*,'(A)') 'Running histories:  '
     Write(*,'(4A)') '  ',paths_files%results_directory,'...',paths_files%file_suffix
     If (screen_Progress) Then !prep screen for progress updates
-        Write(*,'(A)') '    % Comp    ETTC     NE/min      H/min     gMean RSE   % Eff'
-        Write(*,'(A)') '    ------  --------  ---------  ---------  ----------  -------'
+        Write(*,'(A)') '    % Comp    ETTC     NE/min      H/min     % Eff'
+        Write(*,'(A)') '    ------  --------  ---------  ---------  -------'
         !Initialize progress to screen
-        Write(*,'(F9.2,A11,3ES11.3E2,A1,F8.2,A1,A)',ADVANCE='NO') & 
-              & 0._dp,'%  **:**:**',0._dp,0._dp,100._dp,'%',0._dp,'%',creturn
+        Write(*,'(F9.2,A11,2ES11.3E2,F8.2,A1,A)',ADVANCE='NO') & 
+              & 0._dp,'%  **:**:**',0._dp,0._dp,0._dp,'%',creturn
     End If
 End If
 p = 0_id
@@ -185,16 +184,11 @@ Do !run histories, periodically updating progress to the display if required
                 HH = Floor(ETTC/3600._dp)
                 MM = Floor((ETTC - Real(3600*HH,dp))/60._dp)
                 SS = Floor(ETTC - Real(3600*HH,dp) - Real(60*MM,dp))
-                Write(*,'(F9.2,A2,I3.2,A1,I2.2,A1,I2.2,3ES11.3E2,A1,F8.2,A1,A)',ADVANCE='NO') & 
+                Write(*,'(F9.2,A2,I3.2,A1,I2.2,A1,I2.2,2ES11.3E2,F8.2,A1,A)',ADVANCE='NO') & 
                       & 100._dp * Real(p,dp) / Real(n_p,dp),'% ', & !Percent Complete
                       & HH,':',MM,':',SS, & !ETTC
                       & Real(n_img*ScatterModel%next_events(1),dp) / (dt / 60._dp), & !Next-Events per minute
                       & Real(n_img*p,dp) / (dt / 60._dp), & !Histories per minute
-                      & 100._dp * gMean( Std_Err( p, & 
-                                                & TE_tallies%contribs(1:TE_tallies%index)%f, & 
-                                                & TE_tallies%contribs(1:TE_tallies%index)%f_sq) / & 
-                                       & TE_tallies%contribs(1:TE_tallies%index)%f & 
-                                       & ),'%', & !Geometric Mean Relative Standard Error
                       & 100._dp * Real(p,dp) / Real(n_done,dp),'%', & !Percent efficency
                       & creturn
             End If 
@@ -270,16 +264,11 @@ If (i_img.EQ.1 .AND. detector%shape_data) Call Close_Slice_Files( detector%n_sli
 # endif
 If (i_img .EQ. 1) Then
     If (screen_progress) Then !finalize progress to screen
-        Write(*,'(F9.2,A2,I3.2,A1,I2.2,A1,I2.2,3ES11.3E2,A1,F8.2,A1)') &
+        Write(*,'(F9.2,A2,I3.2,A1,I2.2,A1,I2.2,2ES11.3E2,F8.2,A1)') &
               & 100._dp,'% ', & !Percent Complete
               & 0,':',0,':',0, & !ETTC
               & Real(ScatterModel%next_events(1),dp) / (Sum(t_runs) / 60._dp), & !Next-Events per minute
               & Real(Sum(n_hist_run),dp) / (Sum(t_runs) / 60._dp), & !Histories per minute
-              & 100._dp * gMean( Std_Err( Sum(n_hist_run), & 
-                                        & TE_tallies%contribs(1:TE_tallies%index)%f, & 
-                                        & TE_tallies%contribs(1:TE_tallies%index)%f_sq) /  & 
-                               & TE_tallies%contribs(1:TE_tallies%index)%f & 
-                               & ),'%', & !Geometric Mean Relative Standard Error
               & 100._dp * Real(Sum(n_hist_hit),dp) / Real(Sum(n_hist_run),dp),'%' !Percent efficency
     End If
     !Write results

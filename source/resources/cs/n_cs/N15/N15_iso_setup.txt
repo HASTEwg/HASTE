@@ -1,0 +1,11 @@
+&isoSetupList1
+iso_fraction = 0.004
+n_absorption_modes = 5
+n_inelastic_lev = 16
+has_resonance = .FALSE.
+/
+
+&isoSetupList2
+!mode file MUST be listed in order of ascending threshold energy
+abs_mode_names = 'n_g','n_a','n_d','n_p','n_t'
+/
