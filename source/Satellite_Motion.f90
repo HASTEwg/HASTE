@@ -75,7 +75,7 @@ Subroutine Initialize_Satellite_Motion(resources_dir,motion_type,sat)
             sat%is_conic = .FALSE.
             sat%is_smooth = .TRUE.
             sat%rp = Vector_Length(sat%r0)
-            sat%vp = 0._dp
+            sat%vp = Vector_Length(sat%v0)
         Case('Linear')
             sat%is_stationary = .FALSE.
             sat%is_conic = .FALSE.
@@ -101,7 +101,8 @@ Subroutine Initialize_Satellite_Motion(resources_dir,motion_type,sat)
             sat%v0 = sat%rs_vs(4:6,1)
         Case('GeoStat')
 #           if LUNA
-                !a stationary orbit above the surface of the moon is not feasible (it's outside the moon's sphere of influence)
+                ! A lunar-stationary orbit above the surface of the moon is not feasible (necessary altitude for this type of lunar 
+                ! orbit places the satellite outside the moon's gravitational sphere of influence)
                 Call Output_Message('ERROR:  Satellite_Motion: Initialize_Satellite_Motion:  Stationary lunar orbit specified.', & 
                                    & kill=.TRUE.)
 #           else
@@ -114,6 +115,16 @@ Subroutine Initialize_Satellite_Motion(resources_dir,motion_type,sat)
                 sat%rp = Vector_Length(sat%r0)
                 sat%vp = Velocity_of_Periapsis(sat%r0,sat%v0)
 #           endif
+        Case('StatGeo')  !special undocumented case:
+            ! STATIONARY satellite in geostationary position with geostationary velocity, but NO MOTION
+            sat%is_stationary = .TRUE.
+            sat%is_conic = .FALSE.
+            sat%is_smooth = .TRUE.
+            sat%r0(3) = 0._dp  !make sure r0 is in equatorial plane
+            sat%r0 = Unit_Vector(sat%r0) * Cube_Root(mu / rot_Earth**2)  !make sure r0 has correct magnitude
+            sat%v0 = Unit_Vector(Cross_Product(Z_hat,sat%r0)) * Cube_Root(mu / rot_Earth**2) * rot_Earth  !set v0
+            sat%rp = Vector_Length(sat%r0)
+            sat%vp = Vector_Length(sat%v0)
         Case Default
             Call Output_Message('ERROR:  Satellite_Motion: Initialize_Satellite_Motion:  Unknown motion type.',kill=.TRUE.)
     End Select
@@ -135,7 +146,7 @@ Subroutine R_V_Satellite(s,t,r,v)
         End If
     Else If (s%is_stationary) Then
         r = s%r0
-        v = 0._dp
+        v = s%v0
     Else !s%is_linear
         r = s%r0 + t*s%v0
         v = s%v0

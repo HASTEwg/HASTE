@@ -301,7 +301,7 @@ Subroutine Tally_Scatter(d,E,Omega_Hat,t,weight)
     Real(dp) :: D_hat(1:3)  !DOWN
     Real(dp) :: N_hat(1:3)  !negative orbit-normal
     Real(dp) :: F_hat(1:3)  !FORWARD
-    Real(dp) :: Arr_dir_DNF(1:3)!,mu,omega
+    Real(dp) :: Arr_dir_DNF(1:3)
     Integer :: mu_bin,omega_bin
     Integer :: i
     Real(dp) :: DdotY
@@ -349,13 +349,17 @@ Subroutine Tally_Scatter(d,E,Omega_Hat,t,weight)
     If (d%sat%is_stationary) Then
         !N2H For stationary detector, we can save arithmetic by computing and saving the orientation basis just once
         D_hat = -Unit_Vector(d%sat%r0)
-        DdotY = Dot_Product(D_hat,Y_hat)
-        If (Abs(DdotY) .GT. 0._dp) Then !use +/- Y_hat as direction of motion
-            N_hat = Unit_Vector(Cross_Product(D_Hat,Sign(Y_hat,DdotY)))
-        Else !use +/- X_hat as direction of motion
-            N_hat = Unit_Vector(Cross_Product(D_Hat,Sign(X_hat,Dot_Product(D_hat,X_hat))))
+        If (d%sat%vp .GT. 0._dp) Then !stationary detector has velocity to use as reference direction
+            N_hat = Unit_Vector(Cross_Product(D_hat,d%sat%v0))
+        Else !use X-hat or Y-hat as the reference direction
+            DdotY = Dot_Product(D_hat,Y_hat)
+            If (Abs(DdotY) .GT. 0._dp) Then !use +/- Y_hat as direction of motion
+                N_hat = Unit_Vector(Cross_Product(D_Hat,Sign(Y_hat,DdotY)))
+            Else !use +/- X_hat as direction of motion
+                N_hat = Unit_Vector(Cross_Product(D_Hat,Sign(X_hat,Dot_Product(D_hat,X_hat))))
+            End If
         End If
-    Else
+    Else !non-stationary satellite motions have a basis that can be referenced from position and direction of travel
         Call d%sat%R_and_V(t,r_sat,v_sat)
         D_hat = -Unit_Vector(r_sat)
         N_hat = Unit_Vector(Cross_Product(D_hat,v_sat))
