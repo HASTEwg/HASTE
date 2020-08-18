@@ -26,7 +26,7 @@ Implicit None
 
 Type(Satellite_Position_Type) :: sat
 Type(RNG_Type) :: RNG
-Integer, Parameter :: n_trials = 10000000
+Integer, Parameter :: n_trials = 10000
 Integer, Parameter :: n_lat_bins = 36 , n_lon_bins = 72
 Real(dp) :: Espec(0:6,1:n_lat_bins,1:n_lon_bins)
 Real(dp) :: D_tallies(1:4,1:n_lat_bins,1:n_lon_bins)
@@ -35,7 +35,7 @@ Real(dp) :: E_tallies(1:4,1:n_lat_bins,1:n_lon_bins)
 Real(dp) :: zeta_tallies(1:4,1:n_lat_bins,1:n_lon_bins)
 Real(dp) :: det_tallies(1:4,1:n_lat_bins,1:n_lon_bins)
 Integer :: tally_ct(1:n_lat_bins,1:n_lon_bins)
-Logical :: Gravity  !flag to set gravity on or off
+Logical, Parameter :: Gravity = .TRUE.  !flag to set gravity on or off
 Real(dp) :: t2  !time relative to epoch of intercept event
 Real(dp) :: r_sat(1:3),v_sat(1:3)  !position and velocity of the satellite at t2
 Real(dp) :: D_hat(1:3),N_hat(1:3),F_hat(1:3),U_hat(1:3),E_hat(1:3)  !basis vectors for satellite or emission frame of reference
@@ -66,7 +66,6 @@ Character(2) :: n_En_char
  Character(80) :: new_stat_line
 # endif
 
-Gravity = .TRUE.
 Call Initialize_Satellite_Motion('','Conic_tab ',sat)
 t2 = 212640._dp  !This many seconds into mission start
 !Satellite DNF basis vectors
