@@ -2140,7 +2140,8 @@ Pure Function sig_Composite(E,n_E,E_list,lnE_list,E_index,n1,n2,t_list,sig_list)
     Integer, Parameter :: LogLog_interpolation = 5  !ln(y) is linear in ln(x) (log-log)
 
     sig = 0._dp
-    Do i = n1,n2
+    i = n1 !initialize loop counter: loop runs at least once, from n1 to n2
+    Do
         If (E_index .LE. t_list(i)) Exit
         index1 = sig_list(i)%E_map(E_index) - 1
         index2 = sig_list(i)%E_map(E_index)
@@ -2180,6 +2181,8 @@ Pure Function sig_Composite(E,n_E,E_list,lnE_list,E_index,n1,n2,t_list,sig_list)
 !            Case Default
 !                Call Output_Message('ERROR:  Cross_Sections: sig_Composite:  Undefined interpolation method',kill=.TRUE.)
         End Select
+        i = i + 1
+        If (i .GT. n2) Exit
     End Do
 End Function sig_Composite
 
