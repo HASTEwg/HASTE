@@ -286,7 +286,9 @@ End Function Define_Grid_Info
 
 Subroutine Tally_Scatter(d,E,Omega_Hat,t,weight)
     Use Kinds, Only: dp
-    Use Global, Only: Y_hat,X_hat
+    Use Global, Only: X_hat
+    Use Global, Only: Y_hat
+    Use Global, Only: Z_hat
     Use Global, Only: Pi
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Cross_Product
@@ -304,7 +306,6 @@ Subroutine Tally_Scatter(d,E,Omega_Hat,t,weight)
     Real(dp) :: Arr_dir_DNF(1:3)
     Integer :: mu_bin,omega_bin
     Integer :: i
-    Real(dp) :: DdotY
     
     If (weight .EQ. 0._dp) Return !don't bother tallying zeroes
     t_bin = d%TE_grid(1)%Bin_number(t)
@@ -351,18 +352,20 @@ Subroutine Tally_Scatter(d,E,Omega_Hat,t,weight)
         D_hat = -Unit_Vector(d%sat%r0)
         If (d%sat%vp .GT. 0._dp) Then !stationary detector has velocity to use as reference direction
             N_hat = Unit_Vector(Cross_Product(D_hat,d%sat%v0))
-        Else !use X-hat or Y-hat as the reference direction
-            DdotY = Dot_Product(D_hat,Y_hat)
-            If (Abs(DdotY) .GT. 0._dp) Then !use +/- Y_hat as direction of motion
-                N_hat = Unit_Vector(Cross_Product(D_Hat,Sign(Y_hat,DdotY)))
-            Else !use +/- X_hat as direction of motion
-                N_hat = Unit_Vector(Cross_Product(D_Hat,Sign(X_hat,Dot_Product(D_hat,X_hat))))
-            End If
+            F_hat = Cross_Product(N_hat,D_hat)
+            !Otherwise, use "easterly" (counterclockwise as viewed from positive Z in ECI)
+        Else If (Abs(Dot_Product(D_hat,Z_hat)) .LT. 1._dp) Then
+            F_hat = Unit_Vector(Cross_Product(D_Hat,Z_hat))
+            N_hat = Cross_Product(F_hat,D_hat)
+        Else !special case for polar location
+            N_hat = -X_hat
+            F_hat = Y_hat
         End If
     Else !non-stationary satellite motions have a basis that can be referenced from position and direction of travel
         Call d%sat%R_and_V(t,r_sat,v_sat)
         D_hat = -Unit_Vector(r_sat)
         N_hat = Unit_Vector(Cross_Product(D_hat,v_sat))
+        F_hat = Cross_Product(N_hat,D_hat)
     End If
     F_hat = Cross_Product(N_hat,D_hat)
     Arr_dir_DNF = -(/ Dot_Product(Omega_hat,D_hat), &
