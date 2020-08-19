@@ -494,12 +494,15 @@ Subroutine Next_Event_Neutron(n,ScatMod,d,atm,RNG)
         !set scatter parameters for each material/mechanism and compute next event
         Do iso = 1,ScatMod%CS%n_iso
             Call ScatMod%Set_Scatter_iso(n,atm,RNG,scat,iso,n_lev,E_cm,i_E_cm)
-            If (scat%iso_cs(iso) .EQ. 0._dp) Cycle
-            Do lev = 0,n_lev
-                Call ScatMod%Set_Scatter_lev(scat,lev,E_cm,i_E_cm)
-                Call Attempt_Next_Event(n,ScatMod,d,atm,scat,scat%iso_cs(iso)*scat%lev_cs(lev))
-                If (ScatMod%elastic_only) Exit !Prevent attempts for scatters other than elastic
-            End Do
+            If (ScatMod%elastic_only) Then
+                Call ScatMod%Set_Scatter_lev(scat,0,E_cm,i_E_cm)
+                Call Attempt_Next_Event(n,ScatMod,d,atm,scat,scat%iso_cs(iso)*scat%lev_cs(0))
+            Else If (scat%iso_cs(iso) .GT. 0._dp) Then
+                Do lev = 0,n_lev
+                    Call ScatMod%Set_Scatter_lev(scat,lev,E_cm,i_E_cm)
+                    Call Attempt_Next_Event(n,ScatMod,d,atm,scat,scat%iso_cs(iso)*scat%lev_cs(lev))
+                End Do
+            End If
             Deallocate(scat%lev_cs)
         End Do
     Else
