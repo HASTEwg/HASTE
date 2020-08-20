@@ -107,19 +107,14 @@ Call Initialize_Satellite_Motion('','Conic_tab ',sat)
 Call sat%R_and_V(t2,r_sat,v_sat)
 ! Random Number Generator
 # if CAF
-Call RNG%Initialize(seed = 7777777 , thread = this_image())
+ Call RNG%Initialize(seed = 7777777 , thread = this_image())
 # else
-Call RNG%Initialize(seed = 7777777)
+ Call RNG%Initialize(seed = 7777777)
 # endif
 Write(n_En_char,'(I2)') n_En
-! Compute angle bin boundaries
+! Compute angle cosine bin boundaries
 Cos_box_grid = 2._dp
 Call Linear_Spaces(1._dp,0._dp,Cos_box_grid(:))
-Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_Cos_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-Do i = 0,n_box_Cos
-    Write(bound_unit,'(I5,ES25.16E3)') i,Cos_box_grid(i)
-End Do
-Close(bound_unit)
 ! Compute energy bin boundaries
 En_box_grid = -1._dp
 j = 0
@@ -128,33 +123,42 @@ Do i = 1,n_En-1
     j = j + n_box_En
 End Do
 Call Log_Spaces(En(n_En),10._dp*En(n_En),En_box_grid(j:j+n_box_En))
-Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_En_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-Do i = 0,n_En*n_box_En
-    Write(bound_unit,'(I5,ES25.16E3)',ADVANCE='NO') i,En_box_grid(i)/1000._dp !MeV
-    If ( Any(En.EQ.En_box_grid(i)) ) Then
-        Write(bound_unit,'(A)') ' *'
-    Else
-        Write(bound_unit,*)
-    End If
-End Do
-Close(bound_unit)
-!compute surface box boundaries
-Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_LatLon_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-Do i = 1,n_lat_bins
-    Do j = 1,n_lon_bins
-        !compute declination-hourangle for this box
-        DEC = Real(2*i-1,dp) * halfPi / Real(n_lat_bins,dp)
-        HA = Real(2*j-1,dp) * Pi / Real(n_lon_bins,dp)
-        !compute lat-lon for this surface box
-        lat = halfPi - DEC
-        lon = -(HA - Pi) - halfPi
-        If (Abs(lon) .GT. Pi) lon = lon + SIGN(TwoPi,-lon)
-        !write each surface box boundaries to file
-        Write(bound_unit,'(2(I5,2F8.1))') i , r2deg*lat-2.5_dp , r2deg*lat+2.5_dp , &
-                                        & j , r2deg*lon-2.5_dp , r2deg*lon+2.5_dp
+If (this_image().EQ.1) Then
+    !write angle cosine grid boundaries
+    Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_Cos_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
+    Do i = 0,n_box_Cos
+        Write(bound_unit,'(I5,ES25.16E3)') i,Cos_box_grid(i)
     End Do
-End Do
-Close(bound_unit)
+    Close(bound_unit)
+    !write energy grid boundaries
+    Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_En_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
+    Do i = 0,n_En*n_box_En
+        Write(bound_unit,'(I5,ES25.16E3)',ADVANCE='NO') i,En_box_grid(i)/1000._dp !MeV
+        If ( Any(En.EQ.En_box_grid(i)) ) Then
+            Write(bound_unit,'(A)') ' *'
+        Else
+            Write(bound_unit,*)
+        End If
+    End Do
+    Close(bound_unit)
+    !write surface box boundaries
+    Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_LatLon_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
+    Do i = 1,n_lat_bins
+        Do j = 1,n_lon_bins
+            !compute declination-hourangle for this box
+            DEC = Real(2*i-1,dp) * halfPi / Real(n_lat_bins,dp)
+            HA = Real(2*j-1,dp) * Pi / Real(n_lon_bins,dp)
+            !compute lat-lon for this surface box
+            lat = halfPi - DEC
+            lon = -(HA - Pi) - halfPi
+            If (Abs(lon) .GT. Pi) lon = lon + SIGN(TwoPi,-lon)
+            !write each surface box boundaries to file
+            Write(bound_unit,'(2(I5,2F8.1))') i , r2deg*lat-2.5_dp , r2deg*lat+2.5_dp , &
+                                            & j , r2deg*lon-2.5_dp , r2deg*lon+2.5_dp
+        End Do
+    End Do
+    Close(bound_unit)
+End If        
 
 # if CAF
  Do e = 1,n_En
