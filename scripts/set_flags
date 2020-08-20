@@ -73,7 +73,7 @@ while getopts 'sdmrqwp:ckvf:i' flag; do
        ;;
     f) COMP_FLAGS="${COMP_FLAGS} ${OPTARG}"
        ;;
-    i) COMP_FLAGS="${COMP_FLAGS} -g -a -pg"
+    i) COMP_FLAGS="${COMP_FLAGS} -g -pg"
        ;;
   esac
 done

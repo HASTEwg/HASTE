@@ -391,4 +391,44 @@ Function Celest_to_XYZ(alt,HA,DEC) Result(r)
          &  alt * Sin(DEC) /)
 End Function Celest_to_XYZ
 
+Subroutine Linear_Spaces(x1,x2,x)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp),Intent(In) :: x1,x2  !endpoints for spaced array, will be x(1) and x(n)
+    Real(dp),Intent(Out) :: x(:)
+    Integer :: n
+    Integer :: i
+    Real(dp) :: dx
+
+    n = Size(x)
+    If (n .GT. 2) Then
+        dx = (x2 - x1) / Real(n-1,dp)
+        Do i = 1,n-1
+            x(i) = x1 + Real(i-1,dp) * dx
+        End Do
+    End If
+    x(n) = x2
+End Subroutine Linear_Spaces
+
+Subroutine Log_Spaces(x1,x2,x)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp),Intent(In) :: x1,x2  !endpoints for spaced array, will be x(1) and x(n)
+    Real(dp),Intent(Out) :: x(:)
+    Integer :: n
+    Integer :: i
+    Real(dp) :: dx
+
+    n = Size(x)
+    If (n .GT. 2) Then
+        dx = (Log(x2) - Log(x1)) / Real(n-1,dp)
+        Do i = 1,n-1
+            x(i) = Log(x1) + Real(i-1,dp) * dx
+        End Do
+        x(1:n-1) = Exp( x(1:n-1) )
+    End If
+    x(1) = x1
+    x(n) = x2
+End Subroutine Log_Spaces
+
 End Module Utilities
