@@ -94,6 +94,7 @@ Integer :: e !counter for energy points, runs 1:n_En
 Integer :: i,j,k,l,m  !counters
 Character(2) :: e_char !character representation of energy index for file naming
 Character(2) :: n_En_char !character representation of total number of energy points, for screen updates
+Character(9) :: t2_char !character representation of time of intercept for file naming
 Real(dp) :: Dfact_err,tof_err
 Real(dp) :: lat,lon
 # if CAF
@@ -111,7 +112,6 @@ Call sat%R_and_V(t2,r_sat,v_sat)
 # else
  Call RNG%Initialize(seed = 7777777)
 # endif
-Write(n_En_char,'(I2)') n_En
 ! Compute angle cosine bin boundaries
 Cos_box_grid = 2._dp
 Call Linear_Spaces(1._dp,0._dp,Cos_box_grid(:))
@@ -123,7 +123,9 @@ Do i = 1,n_En-1
     j = j + n_box_En
 End Do
 Call Log_Spaces(En(n_En),10._dp*En(n_En),En_box_grid(j:j+n_box_En))
-If (this_image().EQ.1) Then
+# if CAF
+ If (this_image().EQ.1) Then
+# endif
     !write angle cosine grid boundaries
     Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_Cos_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
     Do i = 0,n_box_Cos
@@ -158,7 +160,11 @@ If (this_image().EQ.1) Then
         End Do
     End Do
     Close(bound_unit)
-End If        
+# if CAF
+ End If
+# endif
+Write(n_En_char,'(I2)') n_En
+Write(t2_char,'(I9.9)') NINT(t2)
 
 # if CAF
  Do e = 1,n_En
@@ -188,7 +194,7 @@ End If
     End Do
     !initialize output files for this energy
     Write(e_char,'(I2.2)') e
-    Open(NEWUNIT = map_unit , FILE = 'LPemissionMap_e'//e_char//'.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
+    Open(NEWUNIT = map_unit , FILE = 'LPemissionMap_'//t2_char//'_e'//e_char//'.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
     Write( map_unit , '(2ES25.16E3)' , ADVANCE = 'NO' ) En(e),t2
     h = 0
     h_miss = 0
