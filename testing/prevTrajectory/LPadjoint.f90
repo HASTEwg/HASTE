@@ -384,10 +384,11 @@ End Do
 # if CAF
  SYNC ALL
  If (this_image() .EQ. 1) Then
-    Do i = 1,n_En+1
-        Write(*,*)
+    Do i = 1,n_En
+        Write(*,'(A)') stat_lines(i)
     End Do
- End If
+    Write(*,*)
+End If
 # endif
 
 End Program
