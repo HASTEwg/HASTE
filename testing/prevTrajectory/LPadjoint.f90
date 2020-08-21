@@ -70,8 +70,8 @@ Type(Surface_box) :: f(1:n_lat_bins,1:n_lon_bins)
 Integer, Allocatable :: swap_iE(:)
 Type(tally_box), Allocatable :: swap_x(:)
 ! Time of intercept/detection
-Real(dp), Parameter :: t2 = 45900._dp !time of intercept
-!Real(dp), Parameter :: t2 = 84420._dp !time of intercept
+! Real(dp), Parameter :: t2 = 45900._dp !time of intercept
+Real(dp), Parameter :: t2 = 84420._dp !time of intercept
 ! Satellite data and variables
 Type(Satellite_Position_Type) :: sat
 Real(dp) :: r_sat(1:3),v_sat(1:3)  !position and velocity of the satellite at t2
@@ -80,15 +80,15 @@ Real(dp) :: Omega_hat2(1:3) !direction of neutron arrival in satellite frame
 Logical, Parameter :: Gravity = .TRUE.  !flag to set gravity on or off
 Logical :: Found  !flag for whether a trajectory was found
 Real(dp) :: r1(1:3),v1(1:3),tof !position,velocity, time of flight defining flight from the surface of the central body
-Real(dp) :: v2(1:3)
+Real(dp) :: v2(1:3) !velocity at the conclusion of the trajectory defined byr1,v1,tof
 Real(dp) :: DFact !divergence factor for the intercepting flight from emission to intercept
-Real(dp) :: Ee,zeta
+Real(dp) :: Ee,zeta  !emission energy and emission polar angle cosine
 ! 
 Real(dp) :: DEC,HA ![rad] declination and hour angle (used in place of lon/lat)
 Integer :: dec_bin,ha_bin !computed bins for dec and ha
 Integer :: En_bin,zeta_bin,b !computed bins for emission energy and emission angle cosine
 Integer :: map_unit,bound_unit  !file unit number
-Integer :: h !counter for number of histories (reused for declintion bin counter after history generation is complete)
+Integer :: h !counter for number of histories
 Integer :: h_miss !counter for number of histories started but not propagated because a trajectory was not found
 Integer :: e !counter for energy points, runs 1:n_En
 Integer :: i,j,k,l,m  !counters
@@ -172,6 +172,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
     stat_lines(e) = 'En '//e_char//'/'//n_En_char//'   *.**% (  *.**% hits) Total F: *.********E+***'
  End Do
  next_e = 1
+ SYNC ALL
  Do
     CRITICAL
         e = next_e[1]
