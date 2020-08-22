@@ -29,7 +29,7 @@ Use Astro_Utilities, Only: Lambert_Gooding
 Implicit None
 
 Type(RNG_Type) :: RNG
-Integer, Parameter :: n_trials = 100000 !this many tallies will be accumulated in the grid
+Integer :: n_trials !this many tallies will be accumulated in the grid
 ! List of energies at which to create maps
 Integer, Parameter :: n_En = 15
 Real(dp), Parameter :: En(1:n_En) = & ![keV] neutron energy at arrival in satellite frame
@@ -70,14 +70,12 @@ Integer, Parameter :: n_lat_bins = 36 , n_lon_bins = 72
 Type(Surface_box) :: f(1:n_lat_bins,1:n_lon_bins)
 Integer, Allocatable :: swap_iE(:)
 Type(tally_box), Allocatable :: swap_x(:)
-! Time of intercept/detection
-! Real(dp), Parameter :: t2 = 45900._dp !time of intercept
-Real(dp), Parameter :: t2 = 84420._dp !time of intercept
 ! Satellite data and variables
 Type(Satellite_Position_Type) :: sat
 Real(dp) :: r_sat(1:3),v_sat(1:3)  !position and velocity of the satellite at t2
 Real(dp) :: Omega_hat2(1:3) !direction of neutron arrival in satellite frame
 ! Trajectory & Divergence variables
+Real(dp) :: t2 !time of intercept
 Logical, Parameter :: Gravity = .TRUE.  !flag to set gravity on or off
 Logical :: Found  !flag for whether a trajectory was found
 Real(dp) :: r1(1:3),v1(1:3),tof !position,velocity, time of flight defining flight from the surface of the central body
@@ -98,6 +96,7 @@ Character(2) :: n_En_char !character representation of total number of energy po
 Character(9) :: t2_char !character representation of time of intercept for file naming
 Real(dp) :: Dfact_err,tof_err
 Real(dp) :: lat,lon
+Character(80) :: cmd1,cmd2,cmd3,cmd4
 # if CAF
  Integer :: next_e[*]
  Character(80) :: stat_lines(1:n_En)[*]
@@ -105,6 +104,49 @@ Real(dp) :: lat,lon
  Logical :: En_finished(1:n_En)[*]
 # endif
 
+! Set default t2 and n_trials, or get from command line
+n_trials = 100000
+    !t2 = 45900._dp !time of intercept
+t2 = 84420._dp !time of intercept
+If ( COMMAND_ARGUMENT_COUNT() .EQ. 0 ) Then !use a default time for testiing
+    cmd1 = 'empty'
+    cmd2 = 'empty'
+    cmd3 = 'empty'
+    cmd4 = 'empty'
+Else If ( COMMAND_ARGUMENT_COUNT() .EQ. 2 ) Then  !there is 1 argnment pair to read
+    Call GET_COMMAND_ARGUMENT(1,cmd1)
+    Call GET_COMMAND_ARGUMENT(2,cmd2)
+    cmd3 = 'empty'
+    cmd4 = 'empty'
+Else If ( COMMAND_ARGUMENT_COUNT() .EQ. 4 ) Then  !t2 and n_trials is provided on the command line
+    Call GET_COMMAND_ARGUMENT(1,cmd1)
+    Call GET_COMMAND_ARGUMENT(2,cmd2)
+    Call GET_COMMAND_ARGUMENT(3,cmd3)
+    Call GET_COMMAND_ARGUMENT(4,cmd4)
+Else
+    Write (*,'(A)') 'Invalid number of command arguments. Aborting.'
+    ERROR STOP
+End If
+Select Case (Trim(cmd1))
+    Case ('t2','T2')
+        Read(cmd2,*) t2
+    Case ('n','N')
+        Read(cmd2,*) n_trials
+    Case ('empty')
+        !default value is already set
+    Case Default
+        Write (*,'(A)') 'Invalid command argument specified. Aborting.'
+End Select
+Select Case (Trim(cmd3))
+    Case ('t2','T2')
+        Read(cmd4,*) t2
+    Case ('n','N')
+        Read(cmd4,*) n_trials
+    Case ('empty')
+        !default value is already set
+    Case Default
+        Write (*,'(A)') 'Invalid command argument specified. Aborting.'
+End Select
 !Satellite position & velocity
 Call Initialize_Satellite_Motion('','Conic_tab ',sat)
 Call sat%R_and_V(t2,r_sat,v_sat)
@@ -320,7 +362,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
             h_miss = h_miss + 1
         End If
 #       if CAF
-         If (MOD(h,1000).EQ.0) Then
+         If (MOD(h,10000).EQ.0) Then
             Write( new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES16.8E3)' ) & 
                  & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
                  & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Total F: ',Sum(f(:,:)%f(1))
@@ -335,9 +377,9 @@ Write(t2_char,'(I9.9)') NINT(t2)
             End If
          End If
 #       else
-         If (MOD(h,1000).EQ.0) Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES16.8E3,A)' , ADVANCE = 'NO' ) & 
-                                   & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
-                                   & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Total F: ',Sum(f(:,:)%f(1)),cr
+         If (MOD(h,10000).EQ.0) Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES16.8E3,A)' , ADVANCE = 'NO' ) & 
+                                     & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
+                                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Total F: ',Sum(f(:,:)%f(1)),cr
 #       endif
         If (h .GE. n_trials) Exit
     End Do
@@ -387,7 +429,7 @@ End Do
 # if CAF
  If (this_image() .EQ. 1) Then
     Do
-        Call Wait(50)
+        Call Wait(100)
         Do i = 1,n_En
            Write(*,'(A)') stat_lines(i)
         End Do
