@@ -28,7 +28,7 @@ Use Astro_Utilities, Only: Lambert_Gooding
 Implicit None
 
 Type(RNG_Type) :: RNG
-Integer, Parameter :: n_trials = 10000000 !this many tallies will be accumulated in the grid
+Integer, Parameter :: n_trials = 100000 !this many tallies will be accumulated in the grid
 ! List of energies at which to create maps
 Integer, Parameter :: n_En = 15
 Real(dp), Parameter :: En(1:n_En) = & ![keV] neutron energy at arrival in satellite frame
@@ -53,7 +53,7 @@ Integer, Parameter :: n_box_En = 15
 Real(dp) :: Cos_box_grid(0:n_box_Cos)
 Real(dp) :: En_box_grid(0:n_En*n_box_En)
 Type :: tally_box
-    Real(dp) :: f(1:4,1:n_box_Cos)
+    Real(dp) :: f(1:6,1:n_box_Cos)
     Integer :: c(1:n_box_Cos)
 End Type
 Type :: Surface_box
@@ -128,19 +128,20 @@ Call Log_Spaces(En(n_En),10._dp*En(n_En),En_box_grid(j:j+n_box_En))
 # endif
     !write angle cosine grid boundaries
     Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_Cos_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-    Do i = 0,n_box_Cos
-        Write(bound_unit,'(I5,ES25.16E3)') i,Cos_box_grid(i)
+    Do i = 1,n_box_Cos
+        Write(bound_unit,'(I5,2ES25.16E3)') i,Cos_box_grid(i-1),Cos_box_grid(i)
     End Do
     Close(bound_unit)
     !write energy grid boundaries
     Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_En_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-    Do i = 0,n_En*n_box_En
-        Write(bound_unit,'(I5,ES25.16E3)',ADVANCE='NO') i,En_box_grid(i)/1000._dp !MeV
-        If ( Any(En.EQ.En_box_grid(i)) ) Then
-            Write(bound_unit,'(A)') ' *'
+    Do i = 1,n_En*n_box_En
+        Write(bound_unit,'(I5)',ADVANCE='NO') i
+        If ( Any(En.EQ.En_box_grid(i-1)) ) Then
+            Write(bound_unit,'(A)',ADVANCE='NO') ' * '
         Else
-            Write(bound_unit,*)
+            Write(bound_unit,'(A)',ADVANCE='NO') '   '
         End If
+        Write(bound_unit,'(2ES25.16E3)') En_box_grid(i-1)/1000._dp,En_box_grid(i)/1000._dp !MeV
     End Do
     Close(bound_unit)
     !write surface box boundaries
@@ -196,7 +197,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
     !initialize output files for this energy
     Write(e_char,'(I2.2)') e
     Open(NEWUNIT = map_unit , FILE = 'LPemissionMap_'//t2_char//'_e'//e_char//'.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-    Write( map_unit , '(2ES25.16E3)' , ADVANCE = 'NO' ) En(e),t2
+    Write( map_unit , '(2ES25.16E3)' , ADVANCE = 'NO' ) En(e)/1000._dp,t2
     h = 0
     h_miss = 0
     Do
@@ -311,7 +312,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
             !tally counter, intensity (divergence factor), and tof (weighted by divergence factor)
             f(dec_bin,ha_bin)%x(b)%c(zeta_bin) = f(dec_bin,ha_bin)%x(b)%c(zeta_bin) + 1
             f(dec_bin,ha_bin)%x(b)%f(:,zeta_bin) = f(dec_bin,ha_bin)%x(b)%f(:,zeta_bin) + & 
-                                                 & (/ Dfact , Dfact**2 , Dfact*tof , Dfact*(tof**2) /)
+                                                 & (/ Dfact , Dfact**2 , tof , tof**2 , Dfact*tof , Dfact*(tof**2) /)
         Else
             h_miss = h_miss + 1
         End If
@@ -353,19 +354,17 @@ Write(t2_char,'(I9.9)') NINT(t2)
                         Dfact = f(i,j)%x(k)%f(1,l) / Real(h+h_miss,dp)
                         Dfact_err = Std_err( h+h_miss , f(i,j)%x(k)%f(1,l) , f(i,j)%x(k)%f(2,l) )
                         !tof
-                        tof = f(i,j)%x(k)%f(3,l) / (f(i,j)%x(k)%f(1,l) * Real(f(i,j)%x(k)%c(l),dp))
-                        tof_err = Std_err( f(i,j)%x(k)%c(l) ,                        & 
-                                         & f(i,j)%x(k)%f(3,l) / f(i,j)%x(k)%f(1,l) , & 
-                                         & f(i,j)%x(k)%f(4,l) / f(i,j)%x(k)%f(1,l)  )
+                        tof = f(i,j)%x(k)%f(5,l) / f(i,j)%x(k)%f(1,l)
+                        tof_err = Std_err( f(i,j)%x(k)%c(l) , f(i,j)%x(k)%f(3,l) , f(i,j)%x(k)%f(4,l) )
                         !Properties of a trajectory matching this tof and satellite position
                         Call Lambert_Gooding(r1,r_sat,tof,v1,v2)
                         !Write to file
                         Write( map_unit,'(4I5,I12,10ES25.16E3)') &
-                             & i,j,k,l, & 
+                             & i,j,f(i,j)%iE(k),l, & 
                              & f(i,j)%x(k)%c(l) , & 
                              & Dfact , Dfact_err , & 
                              & tof , tof_err , & 
-                             & Neutron_Energy(v1) , & 
+                             & Neutron_Energy(v1) / 1000._dp , & !MeV
                              & Dot_Product(Unit_Vector(r1),Unit_Vector(v1)) , &
                              & Unit_Vector(v2 + v_sat) , &
                              & Div_Fact_by_shooting(r1,Unit_Vector(v1),Vector_Length(v1),(/0._dp,0._dp,0._dp/),tof,v_sat,v2)
