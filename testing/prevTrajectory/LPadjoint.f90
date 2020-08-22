@@ -23,6 +23,7 @@ Use Utilities, Only: Linear_spaces
 Use Utilities, Only: Log_spaces
 Use Statistics, Only: Std_Err
 Use FileIO_Utilities, Only: cr => creturn
+Use FileIO_Utilities, Only: Wait
 Use Astro_Utilities, Only: Lambert_Gooding
 
 Implicit None
@@ -101,6 +102,7 @@ Real(dp) :: lat,lon
  Integer :: next_e[*]
  Character(80) :: stat_lines(1:n_En)[*]
  Character(80) :: new_stat_line
+ Logical :: En_finished(1:n_En)[*]
 # endif
 
 !Satellite position & velocity
@@ -172,6 +174,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
     Write(e_char,'(I2.2)') e
     stat_lines(e) = 'En '//e_char//'/'//n_En_char//'   *.**% (  *.**% hits) Total F: *.********E+***'
  End Do
+ En_finished = .FALSE.
  next_e = 1
  SYNC ALL
  Do
@@ -376,11 +379,22 @@ Write(t2_char,'(I9.9)') NINT(t2)
     End Do
     Close(map_unit)
 #   if CAF
+     En_finished(e)[1] = .TRUE.
 #   else
      Write(*,*)
 #   endif
 End Do
 # if CAF
+ If (this_image() .EQ. 1) Then
+    Do
+        Call Wait(50)
+        Do i = 1,n_En
+           Write(*,'(A)') stat_lines(i)
+        End Do
+        Write(*,'(A)',ADVANCE='NO') ACHAR(27)//'['//n_En_char//'F'
+        If ( All(En_finished) ) Exit
+    End Do
+ End If
  SYNC ALL
  If (this_image() .EQ. 1) Then
     Do i = 1,n_En
