@@ -211,8 +211,11 @@ Write(t2_char,'(I9.9)') NINT(t2)
 # if CAF
  Do e = 1,n_En
     Write(e_char,'(I2.2)') e
-    If (cmd_En) e_char = 'Ec'  !energy was specified on command line
-    stat_lines(e) = 'En '//e_char//'/'//n_En_char//'   *.**% (  *.**% hits) Total F: *.********E+***'
+    If (cmd_En) Then  !energy was specified on command line
+        stat_lines(e) = 'En na/na   *.**% (  *.**% hits) Lunar F: *.********E+***'
+    Else
+        stat_lines(e) = 'En '//e_char//'/'//n_En_char//'   *.**% (  *.**% hits) Lunar F: *.********E+***'
+    End If
  End Do
  En_finished = .FALSE.
  If (cmd_En)  En_finished = .TRUE.  !energy was specified on command line
@@ -369,9 +372,9 @@ Write(t2_char,'(I9.9)') NINT(t2)
         If (screen_progress) Then
 #           if CAF
              If (MOD(h,10000).EQ.0) Then
-                Write( new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES16.8E3)' ) & 
+                Write( new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES15.8E3)' ) & 
                      & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
-                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Total F: ',Sum(f(:,:)%f(1))
+                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(h+h_miss,dp)
                 If (this_image() .EQ. 1) Then
                     stat_lines(e) = new_stat_line
                     Do j = 1,n_En
@@ -383,9 +386,9 @@ Write(t2_char,'(I9.9)') NINT(t2)
                 End If
              End If
 #           else
-             If (MOD(h,10000).EQ.0) Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES16.8E3,A)' , ADVANCE = 'NO' ) & 
+             If (MOD(h,10000).EQ.0) Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES15.8E3,A)' , ADVANCE = 'NO' ) & 
                                          & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
-                                         & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Total F: ',Sum(f(:,:)%f(1)),cr
+                                         & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(h+h_miss,dp),cr
 #           endif
         End If
         If (h .GE. n_trials) Exit
