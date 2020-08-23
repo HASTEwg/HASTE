@@ -4,20 +4,16 @@ Use Kinds, Only: dp
 Use Satellite_Motion, Only: Satellite_Position_Type
 Use Satellite_Motion, Only: Initialize_Satellite_Motion
 Use Random_Numbers, Only: RNG_Type
-Use Detectors, Only: Grid_info_type
-Use Detectors, Only: Define_Grid_Info
 Use Neutron_Utilities, Only: Neutron_Speed
 Use Neutron_Utilities, Only: Neutron_Energy
 Use Find_Trajectory, Only: Prev_Event_Trajectory
 Use Diverge_Approx, Only: Div_Fact_by_shooting
-Use Neutron_Scatter, Only: Scattered_Angles
 Use Random_Directions, Only: Isotropic_Omega_Hat
 Use Global, Only: Pi,TwoPi,halfPi
 Use Global, Only: r2deg
 Use Global, Only: Z_hat,X_hat,Y_hat
 Use Global, Only: rot_moon
 Use Utilities, Only: Unit_Vector
-Use Utilities, Only: Cross_Product
 Use Utilities, Only: Vector_Length
 Use Utilities, Only: Linear_spaces
 Use Utilities, Only: Log_spaces
@@ -32,22 +28,23 @@ Type(RNG_Type) :: RNG
 Integer :: n_trials !this many tallies will be accumulated in the grid
 ! List of energies at which to create maps
 Integer, Parameter :: n_En = 15
-Real(dp), Parameter :: En(1:n_En) = & ![keV] neutron energy at arrival in satellite frame
-                                    & 1000._dp * (/ 1.e-8_dp,   & 
-                                                  & 2.5e-8_dp,  & 
-                                                  & 1.e-7_dp,   & 
-                                                  & 2.e-7_dp,   & 
-                                                  & 3.e-7_dp,   & 
-                                                  & 4.e-7_dp,   & 
-                                                  & 5.e-7_dp,   & 
-                                                  & 6.e-7_dp,   & 
-                                                  & 8.e-7_dp,   & 
-                                                  & 1.e-6_dp,   & 
-                                                  & 3.16e-6_dp, & 
-                                                  & 1.e-5_dp,   & 
-                                                  & 1.e-4_dp,   & 
-                                                  & 1.e-3_dp,   & 
-                                                  & 1.e-2_dp    /)  ![keV]
+Real(dp), Parameter :: En_list(1:n_En) = & ![keV] neutron energy at arrival in satellite frame
+                                         & 1000._dp * (/ 1.e-8_dp,   & 
+                                                       & 2.5e-8_dp,  & 
+                                                       & 1.e-7_dp,   & 
+                                                       & 2.e-7_dp,   & 
+                                                       & 3.e-7_dp,   & 
+                                                       & 4.e-7_dp,   & 
+                                                       & 5.e-7_dp,   & 
+                                                       & 6.e-7_dp,   & 
+                                                       & 8.e-7_dp,   & 
+                                                       & 1.e-6_dp,   & 
+                                                       & 3.16e-6_dp, & 
+                                                       & 1.e-5_dp,   & 
+                                                       & 1.e-4_dp,   & 
+                                                       & 1.e-3_dp,   & 
+                                                       & 1.e-2_dp    /)  ![keV]
+Real(dp) :: En  ![keV] current detection energy of interest
 ! Surface grids
 Integer, Parameter :: n_box_Cos = 12
 Integer, Parameter :: n_box_En = 15
@@ -99,6 +96,8 @@ Real(dp) :: lat,lon
 Character(80) :: cmd1,cmd2
 Logical :: screen_progress
 Logical :: skip_next_cmd
+Logical :: cmd_En
+Real(dp) :: En_cmd
 # if CAF
  Integer :: next_e[*]
  Character(80) :: stat_lines(1:n_En)[*]
@@ -114,6 +113,7 @@ t2 = 84420._dp !time of intercept
 screen_progress = .TRUE.
 !Get command line arguments
 skip_next_cmd = .FALSE.
+cmd_En = .FALSE.
 b = COMMAND_ARGUMENT_COUNT()
 If ( b .NE. 0 ) Then
     Do i = 1,b
@@ -123,13 +123,19 @@ If ( b .NE. 0 ) Then
         End If
         Call GET_COMMAND_ARGUMENT(i,cmd1)
         Select Case (Trim(cmd1))
-            Case ('t2','T2')
+            Case ('t2','T2','t','T')
                 Call GET_COMMAND_ARGUMENT(i+1,cmd2)
                 Read(cmd2,*) t2
                 skip_next_cmd = .TRUE.
-            Case ('n','N')
+            Case ('n','N','n_trials')
                 Call GET_COMMAND_ARGUMENT(i+1,cmd2)
                 Read(cmd2,*) n_trials
+                skip_next_cmd = .TRUE.
+            Case ('e','E','En','Ed')
+                Call GET_COMMAND_ARGUMENT(i+1,cmd2)
+                Read(cmd2,*) En_cmd
+                En_cmd = 1000._dp * En_cmd !convert MeV input into keV
+                cmd_En = .TRUE.
                 skip_next_cmd = .TRUE.
             Case ('quiet','QUIET','Quiet','q','Q')
                 screen_progress = .FALSE.
@@ -154,10 +160,10 @@ Call Linear_Spaces(1._dp,0._dp,Cos_box_grid(:))
 En_box_grid = -1._dp
 j = 0
 Do i = 1,n_En-1
-    Call Log_Spaces(En(i),En(i+1),En_box_grid(j:j+n_box_En))
+    Call Log_Spaces(En_list(i),En_list(i+1),En_box_grid(j:j+n_box_En))
     j = j + n_box_En
 End Do
-Call Log_Spaces(En(n_En),10._dp*En(n_En),En_box_grid(j:j+n_box_En))
+Call Log_Spaces(En_list(n_En),10._dp*En_list(n_En),En_box_grid(j:j+n_box_En))
 # if CAF
  If (this_image().EQ.1) Then
 # endif
@@ -171,7 +177,7 @@ Call Log_Spaces(En(n_En),10._dp*En(n_En),En_box_grid(j:j+n_box_En))
     Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_En_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
     Do i = 1,n_En*n_box_En
         Write(bound_unit,'(I5)',ADVANCE='NO') i
-        If ( Any(En.EQ.En_box_grid(i-1)) ) Then
+        If ( Any(En_list.EQ.En_box_grid(i-1)) ) Then
             Write(bound_unit,'(A)',ADVANCE='NO') ' * '
         Else
             Write(bound_unit,'(A)',ADVANCE='NO') '   '
@@ -199,15 +205,17 @@ Call Log_Spaces(En(n_En),10._dp*En(n_En),En_box_grid(j:j+n_box_En))
 # if CAF
  End If
 # endif
+
 Write(n_En_char,'(I2)') n_En
 Write(t2_char,'(I9.9)') NINT(t2)
-
 # if CAF
  Do e = 1,n_En
     Write(e_char,'(I2.2)') e
+    If (cmd_En) e_char = 'Ec'  !energy was specified on command line
     stat_lines(e) = 'En '//e_char//'/'//n_En_char//'   *.**% (  *.**% hits) Total F: *.********E+***'
  End Do
  En_finished = .FALSE.
+ If (cmd_En)  En_finished = .TRUE.  !energy was specified on command line
  next_e = 1
  SYNC ALL
  Do
@@ -216,9 +224,12 @@ Write(t2_char,'(I9.9)') NINT(t2)
         next_e[1] = next_e[1] + 1
     END CRITICAL
     If (e .GT. n_En) Exit
+    If (this_image().NE.1 .AND. cmd_En) Exit  !image 1 will execute the single energy from the command line
 # else
  Do e = 1,n_En
 # endif
+    En = En_list(e)
+    If (cmd_En) En = En_cmd
     !initialize tallies for this energy
     Do j = 1,n_lon_bins
         Do i = 1,n_lat_bins
@@ -232,15 +243,16 @@ Write(t2_char,'(I9.9)') NINT(t2)
     End Do
     !initialize output files for this energy
     Write(e_char,'(I2.2)') e
+    If (cmd_En) e_char = 'Ec'  !energy was specified on command line
     Open(NEWUNIT = map_unit , FILE = 'LPemissionMap_'//t2_char//'_e'//e_char//'.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-    Write( map_unit , '(2ES25.16E3)' , ADVANCE = 'NO' ) En(e)/1000._dp,t2
+    Write( map_unit , '(2ES25.16E3)' , ADVANCE = 'NO' ) En/1000._dp , t2
     h = 0
     h_miss = 0
     Do
         !choose a random direction of arrival at the detector
         Omega_hat2 = Isotropic_Omega_Hat(RNG)
         !check if an emission is possible at the surface at this energy to result in this rendezvous
-        Call Prev_Event_Trajectory(sat, Gravity, t2, -Omega_hat2*Neutron_Speed(En(e)), Found, r1, v1, tof)
+        Call Prev_Event_Trajectory(sat, Gravity, t2, -Omega_hat2*Neutron_Speed(En), Found, r1, v1, tof)
         If (found) Then
             h = h + 1
             !compute the declination and right-ascension indexes for this emission point
@@ -251,22 +263,23 @@ Write(t2_char,'(I9.9)') NINT(t2)
             dec_bin = 1 + Floor(Real(n_lat_bins,dp) * DEC / Pi)
             ha_bin = 1 + Floor(Real(n_lon_bins,dp) * HA / TwoPi)
             !Compute divergence
-            v2 = -Omega_hat2*Neutron_Speed(En(e)) + v_sat
+            v2 = -Omega_hat2*Neutron_Speed(En) + v_sat
             DFact = Div_Fact_by_shooting(r1,Unit_Vector(v1),Vector_Length(v1),(/0._dp,0._dp,0._dp/),tof,v_sat,v2)
             !Compute emission energy bin, first by walking through En which is irregular, then by direct computation
             Ee = Neutron_Energy(v1)
             En_bin = 0
             If (e .LT. n_En) Then
                 Do j = e+1,n_En
-                    If (Ee .LT. En(j)) Then !this Ee fits in the segment of energy bins before En(j)
-                        En_bin = (j-1)*n_box_En + Ceiling( Real(n_box_En,dp) * (Log(Ee)-Log(En(j-1))) / (Log(En(j))-Log(En(j-1))) )
+                    If (Ee .LT. En_list(j)) Then !this Ee fits in the segment of energy bins before En(j)
+                        En_bin = (j-1)*n_box_En + Ceiling( Real(n_box_En,dp) * (Log(Ee)-Log(En_list(j-1))) & 
+                                                         & / (Log(En_list(j))-Log(En_list(j-1))) )
                         Exit
                     End If
                 End Do
             Else !special handling for the last batch of energies because they're above the end of the normal grid
-                If (Ee .LT. 10._dp*En(n_En)) Then !this Ee fits in the segment of energy bins before En(j)
-                    En_bin = n_En*n_box_En + & 
-                           & Ceiling( Real(n_box_En,dp) * (Log(Ee)-Log(En(n_En))) / (Log(10._dp*En(n_En))-Log(En(n_En))) )
+                If (Ee .LT. 10._dp*En_list(n_En)) Then !this Ee fits in the segment of energy bins before En(j)
+                    En_bin = n_En*n_box_En + Ceiling( Real(n_box_En,dp) * (Log(Ee)-Log(En_list(n_En))) & 
+                                                    & / (Log(10._dp*En_list(n_En))-Log(En_list(n_En))) )
                 Else
                     Print*,'ENERGY OUT OF BOUNDS:',Ee
                     ERROR STOP
@@ -421,17 +434,18 @@ Write(t2_char,'(I9.9)') NINT(t2)
          Write(*,*)
 #       endif
     End If
+    If (cmd_En) Exit  !energy was specified on command line
 End Do
 # if CAF
  If (screen_progress) Then
     If (this_image() .EQ. 1) Then
         Do
+            If ( All(En_finished) ) Exit
             Call Wait(100)
             Do i = 1,n_En
             Write(*,'(A)') stat_lines(i)
             End Do
             Write(*,'(A)',ADVANCE='NO') ACHAR(27)//'['//n_En_char//'F'
-            If ( All(En_finished) ) Exit
         End Do
     End If
     SYNC ALL
