@@ -15,7 +15,7 @@ Use Random_Directions, Only: Isotropic_Omega_Hat
 Use Global, Only: Pi,TwoPi,halfPi
 Use Global, Only: r2deg
 Use Global, Only: Z_hat,X_hat,Y_hat
-Use Global, Only: n_life
+Use Global, Only: rot_moon
 Use Utilities, Only: Unit_Vector
 Use Utilities, Only: Cross_Product
 Use Utilities, Only: Vector_Length
@@ -255,6 +255,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
             !compute the declination and right-ascension indexes for this emission point
             DEC = ACOS( Dot_Product(Z_hat,Unit_Vector(r1)) )
             HA = Atan2( Dot_Product(Unit_Vector(r1),X_hat) , Dot_Product(Unit_Vector(r1),Y_hat) )
+            HA = HA + tof*rot_moon  !correct for rotation of the lunar surface during tof
             If (HA .LT. 0._dp) HA = HA + TwoPi
             dec_bin = 1 + Floor(Real(n_lat_bins,dp) * DEC / Pi)
             ha_bin = 1 + Floor(Real(n_lon_bins,dp) * HA / TwoPi)
