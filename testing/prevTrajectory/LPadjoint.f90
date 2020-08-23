@@ -96,7 +96,9 @@ Character(2) :: n_En_char !character representation of total number of energy po
 Character(9) :: t2_char !character representation of time of intercept for file naming
 Real(dp) :: Dfact_err,tof_err
 Real(dp) :: lat,lon
-Character(80) :: cmd1,cmd2,cmd3,cmd4
+Character(80) :: cmd1,cmd2
+Logical :: screen_progress
+Logical :: skip_next_cmd
 # if CAF
  Integer :: next_e[*]
  Character(80) :: stat_lines(1:n_En)[*]
@@ -104,49 +106,38 @@ Character(80) :: cmd1,cmd2,cmd3,cmd4
  Logical :: En_finished(1:n_En)[*]
 # endif
 
-! Set default t2 and n_trials, or get from command line
+! Set default t2 and n_trials, defaults are for testing and can be overridden by command line
 n_trials = 100000
-    !t2 = 45900._dp !time of intercept
+!t2 = 45900._dp !time of intercept
 t2 = 84420._dp !time of intercept
-If ( COMMAND_ARGUMENT_COUNT() .EQ. 0 ) Then !use a default time for testiing
-    cmd1 = 'empty'
-    cmd2 = 'empty'
-    cmd3 = 'empty'
-    cmd4 = 'empty'
-Else If ( COMMAND_ARGUMENT_COUNT() .EQ. 2 ) Then  !there is 1 argnment pair to read
-    Call GET_COMMAND_ARGUMENT(1,cmd1)
-    Call GET_COMMAND_ARGUMENT(2,cmd2)
-    cmd3 = 'empty'
-    cmd4 = 'empty'
-Else If ( COMMAND_ARGUMENT_COUNT() .EQ. 4 ) Then  !t2 and n_trials is provided on the command line
-    Call GET_COMMAND_ARGUMENT(1,cmd1)
-    Call GET_COMMAND_ARGUMENT(2,cmd2)
-    Call GET_COMMAND_ARGUMENT(3,cmd3)
-    Call GET_COMMAND_ARGUMENT(4,cmd4)
-Else
-    Write (*,'(A)') 'Invalid number of command arguments. Aborting.'
-    ERROR STOP
+! Set default to send progress updates to screen
+screen_progress = .TRUE.
+!Get command line arguments
+skip_next_cmd = .FALSE.
+b = COMMAND_ARGUMENT_COUNT()
+If ( b .NE. 0 ) Then
+    Do i = 1,b
+        If (skip_next_cmd) Then !the i-th command was already read as the second element of an argument pair
+            skip_next_cmd = .FALSE.
+            Cycle
+        End If
+        Call GET_COMMAND_ARGUMENT(i,cmd1)
+        Select Case (Trim(cmd1))
+            Case ('t2','T2')
+                Call GET_COMMAND_ARGUMENT(i+1,cmd2)
+                Read(cmd2,*) t2
+                skip_next_cmd = .TRUE.
+            Case ('n','N')
+                Call GET_COMMAND_ARGUMENT(i+1,cmd2)
+                Read(cmd2,*) n_trials
+                skip_next_cmd = .TRUE.
+            Case ('quiet','QUIET','Quiet','q','Q')
+                screen_progress = .FALSE.
+            Case Default
+                Write (*,'(A)') 'Invalid command argument specified. Aborting.'
+        End Select
+    End Do
 End If
-Select Case (Trim(cmd1))
-    Case ('t2','T2')
-        Read(cmd2,*) t2
-    Case ('n','N')
-        Read(cmd2,*) n_trials
-    Case ('empty')
-        !default value is already set
-    Case Default
-        Write (*,'(A)') 'Invalid command argument specified. Aborting.'
-End Select
-Select Case (Trim(cmd3))
-    Case ('t2','T2')
-        Read(cmd4,*) t2
-    Case ('n','N')
-        Read(cmd4,*) n_trials
-    Case ('empty')
-        !default value is already set
-    Case Default
-        Write (*,'(A)') 'Invalid command argument specified. Aborting.'
-End Select
 !Satellite position & velocity
 Call Initialize_Satellite_Motion('','Conic_tab ',sat)
 Call sat%R_and_V(t2,r_sat,v_sat)
@@ -278,7 +269,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
                            & Ceiling( Real(n_box_En,dp) * (Log(Ee)-Log(En(n_En))) / (Log(10._dp*En(n_En))-Log(En(n_En))) )
                 Else
                     Print*,'ENERGY OUT OF BOUNDS:',Ee
-                    STOP
+                    ERROR STOP
                 End If
             End If
             !compute emission direction bin
@@ -362,26 +353,28 @@ Write(t2_char,'(I9.9)') NINT(t2)
         Else
             h_miss = h_miss + 1
         End If
-#       if CAF
-         If (MOD(h,10000).EQ.0) Then
-            Write( new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES16.8E3)' ) & 
-                 & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
-                 & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Total F: ',Sum(f(:,:)%f(1))
-            If (this_image() .EQ. 1) Then
-                stat_lines(e) = new_stat_line
-                Do j = 1,n_En
-                    Write(*,'(A)') stat_lines(j)
-                End Do
-                Write(*,'(A)',ADVANCE='NO') ACHAR(27)//'['//n_En_char//'F'
-            Else
-                stat_lines(e)[1] = new_stat_line
-            End If
-         End If
-#       else
-         If (MOD(h,10000).EQ.0) Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES16.8E3,A)' , ADVANCE = 'NO' ) & 
-                                     & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
-                                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Total F: ',Sum(f(:,:)%f(1)),cr
-#       endif
+        If (screen_progress) Then
+#           if CAF
+             If (MOD(h,10000).EQ.0) Then
+                Write( new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES16.8E3)' ) & 
+                     & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
+                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Total F: ',Sum(f(:,:)%f(1))
+                If (this_image() .EQ. 1) Then
+                    stat_lines(e) = new_stat_line
+                    Do j = 1,n_En
+                        Write(*,'(A)') stat_lines(j)
+                    End Do
+                    Write(*,'(A)',ADVANCE='NO') ACHAR(27)//'['//n_En_char//'F'
+                Else
+                    stat_lines(e)[1] = new_stat_line
+                End If
+             End If
+#           else
+             If (MOD(h,10000).EQ.0) Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES16.8E3,A)' , ADVANCE = 'NO' ) & 
+                                         & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
+                                         & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Total F: ',Sum(f(:,:)%f(1)),cr
+#           endif
+        End If
         If (h .GE. n_trials) Exit
     End Do
     Write(map_unit,'(2I12)') h,h_miss
@@ -421,30 +414,34 @@ Write(t2_char,'(I9.9)') NINT(t2)
         End Do
     End Do
     Close(map_unit)
-#   if CAF
-     En_finished(e)[1] = .TRUE.
-#   else
-     Write(*,*)
-#   endif
+    If (screen_Progress) Then
+#       if CAF
+         En_finished(e)[1] = .TRUE.
+#       else
+         Write(*,*)
+#       endif
+    End If
 End Do
 # if CAF
- If (this_image() .EQ. 1) Then
-    Do
-        Call Wait(100)
-        Do i = 1,n_En
-           Write(*,'(A)') stat_lines(i)
+ If (screen_progress) Then
+    If (this_image() .EQ. 1) Then
+        Do
+            Call Wait(100)
+            Do i = 1,n_En
+            Write(*,'(A)') stat_lines(i)
+            End Do
+            Write(*,'(A)',ADVANCE='NO') ACHAR(27)//'['//n_En_char//'F'
+            If ( All(En_finished) ) Exit
         End Do
-        Write(*,'(A)',ADVANCE='NO') ACHAR(27)//'['//n_En_char//'F'
-        If ( All(En_finished) ) Exit
-    End Do
+    End If
+    SYNC ALL
+    If (this_image() .EQ. 1) Then
+        Do i = 1,n_En
+            Write(*,'(A)') stat_lines(i)
+        End Do
+        Write(*,*)
+    End If
  End If
- SYNC ALL
- If (this_image() .EQ. 1) Then
-    Do i = 1,n_En
-        Write(*,'(A)') stat_lines(i)
-    End Do
-    Write(*,*)
-End If
 # endif
 
 End Program
