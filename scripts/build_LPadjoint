@@ -43,8 +43,6 @@ FNAME="Neutron_Scatter"; . ./compile_it
 FNAME="Satellite_Motion"; . ./compile_it
 FNAME="Find_Trajectory"; . ./compile_it
 FNAME="Diverge_approx"; . ./compile_it
-FNAME="Tallies"; . ./compile_it
-FNAME="Detectors"; . ./compile_it
 
 #TEST PROGRAM
 SRC_PATH="../testing/prevTrajectory/"
