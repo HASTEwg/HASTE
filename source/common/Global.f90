@@ -64,12 +64,13 @@ Module Global
     Real(dp), Parameter :: Earth_orbit_a = 149.6E6_dp ![km]
     Real(dp), Parameter :: Earth_SOI = Earth_orbit_a * (Earth_mass / Sun_mass)**0.4_dp  ![km]
 
-
 !  Moon and Gravitation
     Real(dp), Parameter :: R_moon = 1737.4_dp  ![km] Mean volumetric radius of the moon
     Real(dp), Parameter :: grav_parameter_moon = 4904.8695_dp  ![km^3 / s^2]  gravitational parameter of the moon
     Real(dp), Parameter :: Escape_speed_moon = &  !minimum speed to escape the moon's gravitational influence from the surface
                                & Sqrt(2._dp * grav_parameter_moon / R_moon)  ![km/s]
+    Real(dp), Parameter :: Sid_Lunar_Day_sec = 3600._dp * 665.728_dp  !number of seconds in a sidereal lunar day
+    Real(dp), Parameter :: rot_Moon = TwoPi / Sid_Lunar_Day_sec  ![rad/s] Mean rotational speed of the Earth (radians per SIDEREAL second)
     Real(dp), Parameter :: g0_moon = grav_parameter_moon / R_moon  ![km/s^2] lunar acceleration due to gravity
     Real(dp), Parameter :: Moon_mass = 0.07346E24_dp  ![kg]
     Real(dp), Parameter :: Moon_orbit_a = 0.3844E6_dp ![km]
