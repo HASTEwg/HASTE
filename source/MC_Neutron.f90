@@ -496,7 +496,7 @@ Subroutine Next_Event_Neutron(n,ScatMod,d,atm,RNG)
             Call ScatMod%Set_Scatter_iso(n,atm,RNG,scat,iso,n_lev,E_cm,i_E_cm)
             If (ScatMod%elastic_only) Then
                 Call ScatMod%Set_Scatter_lev(scat,0,E_cm,i_E_cm)
-                Call Attempt_Next_Event(n,ScatMod,d,atm,scat,scat%iso_cs(iso)*Sum(scat%lev_cs(0:n_lev))
+                Call Attempt_Next_Event( n,ScatMod,d,atm,scat,scat%iso_cs(iso)*Sum(scat%lev_cs(0:n_lev)) )
             Else If (scat%iso_cs(iso) .GT. 0._dp) Then
                 Do lev = 0,n_lev
                     Call ScatMod%Set_Scatter_lev(scat,lev,E_cm,i_E_cm)
