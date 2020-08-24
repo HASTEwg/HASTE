@@ -220,7 +220,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
             Call Read_Ang_Dist_file(cs_file_name,E_scratch,Ang_Dist_scratch,n_p,ltt,just_n = .TRUE.)
             n_energies = n_energies + n_p
         End If
-        If (.NOT. elastic_only) Then  !need inelastic level cross section files
+        ! If (.NOT. elastic_only) Then  !need inelastic level cross section files
             Do j = 1,n_inelastic_lev
                 Write(j_char,'(I2.2)') j
                 cs_file_name = file_name_start//'_inel'//j_char//'.txt'
@@ -232,7 +232,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
                     n_energies = n_energies + n_p
                 End If
             End Do
-        End If
+        ! End If
     End Do
     !Allocate scratch arrays for energy
     Allocate(E_uni_scratch(1:n_energies))
@@ -271,7 +271,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
             n_start = n_start + n_p
             Deallocate(E_scratch,Ang_Dist_scratch)
         End If
-        If (.NOT. elastic_only) Then  !need inelastic level cross section files
+        ! If (.NOT. elastic_only) Then  !need inelastic level cross section files
             Do j = 1,n_inelastic_lev
                 Write(j_char,'(I2.2)') j
                 cs_file_name = file_name_start//'_inel'//j_char//'.txt'
@@ -287,7 +287,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
                     Deallocate(E_scratch,Ang_Dist_scratch)
                 End If
             End Do
-        End If
+        ! End If
     End Do
     !E_scratch is now a HUGE list of all the energies in all the files we're going to use, sort and eliminate duplicates
     Call Union_Sort(E_uni_scratch,n_energies,E_min,E_max)
@@ -331,19 +331,19 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
             Deallocate(E_scratch,CS_scratch,Interp_scratch)
         End Do
         Deallocate(abs_mode_names)
-        If (elastic_only) Then
-            CS%lev_cs(i)%n_lev = 0
-            Allocate(CS%lev_cs(i)%Q(0:0))
-            Allocate(CS%lev_cs(i)%thresh(0:0))
-            Allocate(CS%lev_cs(i)%sig(0:0))
-            If (aniso_dist) Allocate(CS%lev_cs(i)%da(0:0))
-        Else
+        ! If (elastic_only) Then
+        !     CS%lev_cs(i)%n_lev = 0
+        !     Allocate(CS%lev_cs(i)%Q(0:0))
+        !     Allocate(CS%lev_cs(i)%thresh(0:0))
+        !     Allocate(CS%lev_cs(i)%sig(0:0))
+        !     If (aniso_dist) Allocate(CS%lev_cs(i)%da(0:0))
+        ! Else
             CS%lev_cs(i)%n_lev = n_inelastic_lev
             Allocate(CS%lev_cs(i)%Q(0:n_inelastic_lev))
             Allocate(CS%lev_cs(i)%thresh(0:n_inelastic_lev))
             Allocate(CS%lev_cs(i)%sig(0:n_inelastic_lev))
             If (aniso_dist) Allocate(CS%lev_cs(i)%da(0:n_inelastic_lev))
-        End If
+        ! End If
         If (has_resonance) Then
             CS%has_res_cs(i) = has_resonance
             cs_file_name = file_name_start//'_abs_n_g_res.txt'
@@ -388,7 +388,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
                 End Do
             End If
         End If
-        If (.NOT. elastic_only) Then  !need inelastic level cross section files
+        ! If (.NOT. elastic_only) Then  !need inelastic level cross section files
             CS%lev_cs(i)%Q = -1._dp
             CS%lev_cs(i)%Q(0) = 0._dp
             CS%lev_cs(i)%thresh = -1
@@ -427,7 +427,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
                     End If
                 End If
             End Do
-        End If
+        ! End If
     End Do
     CS%Mn = neutron_mass * Sum(CS%An) / CS%n_iso
     !make sure isotopic fractions are normalized
