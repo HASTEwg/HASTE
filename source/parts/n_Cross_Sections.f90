@@ -629,19 +629,11 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
         End Do
         !N2H For verbose output, write a summary of absorption modes for this isotope
         !!  SCATTERING INTERACTION CROSS SECTIONS
-        If (elastic_only) Then
-            CS%lev_cs(i)%n_lev = 0
-            Allocate(CS%lev_cs(i)%Q(0:0))
-            Allocate(CS%lev_cs(i)%thresh(0:0))
-            Allocate(CS%lev_cs(i)%sig(0:0))
-            If (aniso_dist) Allocate(CS%lev_cs(i)%da(0:0))
-        Else
-            CS%lev_cs(i)%n_lev = n_inel_lev(i)
-            Allocate(CS%lev_cs(i)%Q(0:n_inel_lev(i)))
-            Allocate(CS%lev_cs(i)%thresh(0:n_inel_lev(i)))
-            Allocate(CS%lev_cs(i)%sig(0:n_inel_lev(i)))
-            If (aniso_dist) Allocate(CS%lev_cs(i)%da(0:n_inel_lev(i)))
-        End If
+        CS%lev_cs(i)%n_lev = n_inel_lev(i)
+        Allocate(CS%lev_cs(i)%Q(0:n_inel_lev(i)))
+        Allocate(CS%lev_cs(i)%thresh(0:n_inel_lev(i)))
+        Allocate(CS%lev_cs(i)%sig(0:n_inel_lev(i)))
+        If (aniso_dist) Allocate(CS%lev_cs(i)%da(0:n_inel_lev(i)))
         !check if resonance cross sections are present
         Call Find_MFMT(ENDF_unit,1,451)
         !the next read statement on ENDF_unit will read the first line of MF=1, MT=451
@@ -728,76 +720,74 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
             End If
         End If
         !!  INELASTIC SCATTER
-        If (.NOT. elastic_only) Then  !need inelastic level cross section files
-            CS%lev_cs(i)%Q = -1._dp
-            CS%lev_cs(i)%Q(0) = 0._dp
-            CS%lev_cs(i)%thresh = -1
-            CS%lev_cs(i)%thresh(0) = 0
-            Do j = 1,n_inel_lev(i)
-                !!  INELASTIC SCATTER INTERACTION CROSS SECTION
-                !Find this interaction in the ENDF tape (MF=3, MT=50+j)
-                Call Find_MFMT(ENDF_unit,3,50+j)
-                !the next read statement on ENDF_unit will read the first line of MF=3, MT=50+j
-                Call Read_sig_sect(ENDF_unit,Q_scratch,An_scratch,E_scratch,sig_scratch,Interp_scratch,n_p,n_r)
-                If (Trim_CS_for_E(n_p,E_scratch,sig_scratch,n_r,Interp_scratch,E_min,E_max)) Then
-                    CS%lev_cs(i)%Q(j) = Q_scratch
-                    Call Map_and_Store_CS( CS%n_E_uni, & 
-                                         & CS%E_uni, & 
-                                         & n_p, & 
-                                         & E_scratch, & 
-                                         & sig_scratch, & 
-                                         & n_r, & 
-                                         & Interp_Scratch, & 
-                                         & CS%lev_cs(i)%sig(j), & 
-                                         & CS%lev_cs(i)%thresh(j) )
+        CS%lev_cs(i)%Q = -1._dp
+        CS%lev_cs(i)%Q(0) = 0._dp
+        CS%lev_cs(i)%thresh = -1
+        CS%lev_cs(i)%thresh(0) = 0
+        Do j = 1,n_inel_lev(i)
+            !!  INELASTIC SCATTER INTERACTION CROSS SECTION
+            !Find this interaction in the ENDF tape (MF=3, MT=50+j)
+            Call Find_MFMT(ENDF_unit,3,50+j)
+            !the next read statement on ENDF_unit will read the first line of MF=3, MT=50+j
+            Call Read_sig_sect(ENDF_unit,Q_scratch,An_scratch,E_scratch,sig_scratch,Interp_scratch,n_p,n_r)
+            If (Trim_CS_for_E(n_p,E_scratch,sig_scratch,n_r,Interp_scratch,E_min,E_max)) Then
+                CS%lev_cs(i)%Q(j) = Q_scratch
+                Call Map_and_Store_CS( CS%n_E_uni, & 
+                                        & CS%E_uni, & 
+                                        & n_p, & 
+                                        & E_scratch, & 
+                                        & sig_scratch, & 
+                                        & n_r, & 
+                                        & Interp_Scratch, & 
+                                        & CS%lev_cs(i)%sig(j), & 
+                                        & CS%lev_cs(i)%thresh(j) )
+            End If
+            Deallocate(E_scratch,sig_scratch,Interp_scratch)
+            If (v) Then  !write the stored values for this inelastic scatter interaction cross section
+                Write(v_unit,'(A,I0,A,I0,A)') Trim(isotope_names(i))//' MF=',3,', MT=',50+j,' (sig, inelastic)'
+                Call Write_stored_sig(v_unit,CS%lev_cs(i)%sig(j),CS%n_E_uni,CS%E_uni)
+            End If
+            !!  INELASTIC SCATTER ANGULAR DISTRIBUTION
+            If (aniso_dist) Then  !need inelastic level ang dist files
+                !Find this interaction in the ENDF tape (MF=4, MT=50+j)
+                Call Find_MFMT(ENDF_unit,4,50+j)
+                !the next read statement on ENDF_unit will read the first line of MF=4, MT=50+j
+                Call Read_da_sect(ENDF_unit,E_scratch,Ang_dist_scratch,n_p,LTT)
+                If (LTT .EQ. 0) Then
+                    CS%lev_cs(i)%da(j)%n_da = 0
+                    CS%lev_cs(i)%da(j)%is_iso = .TRUE.
+                Else
+                    If (Trim_AD_for_E(n_p,E_scratch,Ang_dist_scratch,E_min,E_max)) Then
+                        Call Map_and_Store_AD( CS%n_E_uni, & 
+                                                & CS%E_uni, & 
+                                                & n_p, & 
+                                                & E_scratch, & 
+                                                & Ang_dist_scratch, & 
+                                                & CS%lev_cs(i)%da(j), & 
+                                                & CS%lev_cs(i)%thresh(j) )
+                    End If
+                    Deallocate(E_scratch,Ang_dist_scratch)
                 End If
-                Deallocate(E_scratch,sig_scratch,Interp_scratch)
-                If (v) Then  !write the stored values for this inelastic scatter interaction cross section
-                    Write(v_unit,'(A,I0,A,I0,A)') Trim(isotope_names(i))//' MF=',3,', MT=',50+j,' (sig, inelastic)'
-                    Call Write_stored_sig(v_unit,CS%lev_cs(i)%sig(j),CS%n_E_uni,CS%E_uni)
+                If (v) Then  !write the stored values for this inelastic scatter angular distribution
+                    Write(v_unit,'(A,I0,A,I0,A)') Trim(isotope_names(i))//' MF=',4,', MT=',50+j,' (da, inelastic)'
+                    Call Write_stored_AD(v_unit,CS%lev_cs(i)%da(j),CS%n_E_uni,CS%E_uni)
                 End If
-                !!  INELASTIC SCATTER ANGULAR DISTRIBUTION
-                If (aniso_dist) Then  !need inelastic level ang dist files
-                    !Find this interaction in the ENDF tape (MF=4, MT=50+j)
-                    Call Find_MFMT(ENDF_unit,4,50+j)
-                    !the next read statement on ENDF_unit will read the first line of MF=4, MT=50+j
-                    Call Read_da_sect(ENDF_unit,E_scratch,Ang_dist_scratch,n_p,LTT)
-                    If (LTT .EQ. 0) Then
-                        CS%lev_cs(i)%da(j)%n_da = 0
-                        CS%lev_cs(i)%da(j)%is_iso = .TRUE.
-                    Else
-                        If (Trim_AD_for_E(n_p,E_scratch,Ang_dist_scratch,E_min,E_max)) Then
-                            Call Map_and_Store_AD( CS%n_E_uni, & 
-                                                 & CS%E_uni, & 
-                                                 & n_p, & 
-                                                 & E_scratch, & 
-                                                 & Ang_dist_scratch, & 
-                                                 & CS%lev_cs(i)%da(j), & 
-                                                 & CS%lev_cs(i)%thresh(j) )
+                If (LTT .EQ. 1) Then
+                    If (MaxVal(CS%lev_cs(i)%da(j)%da(:)%n_a) .GT. CS%n_a_max) CS%n_a_max = MaxVal(CS%lev_cs(i)%da(j)%da(:)%n_a)
+                Else If (LTT .EQ. 2) Then
+                    If (MaxVal(CS%lev_cs(i)%da(j)%da(:)%n_a) .GT. CS%n_a_tab_max) & 
+                        & CS%n_a_tab_max = MaxVal(CS%lev_cs(i)%da(j)%da(:)%n_a)
+                Else If (LTT .EQ. 3) Then
+                    Do k = 1,CS%lev_cs(i)%da(j)%n_da
+                        If (CS%lev_cs(i)%da(j)%da(k)%is_legendre) Then
+                            If (CS%lev_cs(i)%da(j)%da(k)%n_a .GT. CS%n_a_max) CS%n_a_max = CS%lev_cs(i)%da(j)%da(k)%n_a
+                        Else If (CS%lev_cs(i)%da(j)%da(k)%is_tab) Then
+                            If (CS%lev_cs(i)%da(j)%da(k)%n_a .GT. CS%n_a_tab_max) CS%n_a_tab_max = CS%lev_cs(i)%da(j)%da(k)%n_a
                         End If
-                        Deallocate(E_scratch,Ang_dist_scratch)
-                    End If
-                    If (v) Then  !write the stored values for this inelastic scatter angular distribution
-                        Write(v_unit,'(A,I0,A,I0,A)') Trim(isotope_names(i))//' MF=',4,', MT=',50+j,' (da, inelastic)'
-                        Call Write_stored_AD(v_unit,CS%lev_cs(i)%da(j),CS%n_E_uni,CS%E_uni)
-                    End If
-                    If (LTT .EQ. 1) Then
-                        If (MaxVal(CS%lev_cs(i)%da(j)%da(:)%n_a) .GT. CS%n_a_max) CS%n_a_max = MaxVal(CS%lev_cs(i)%da(j)%da(:)%n_a)
-                    Else If (LTT .EQ. 2) Then
-                        If (MaxVal(CS%lev_cs(i)%da(j)%da(:)%n_a) .GT. CS%n_a_tab_max) & 
-                            & CS%n_a_tab_max = MaxVal(CS%lev_cs(i)%da(j)%da(:)%n_a)
-                    Else If (LTT .EQ. 3) Then
-                        Do k = 1,CS%lev_cs(i)%da(j)%n_da
-                            If (CS%lev_cs(i)%da(j)%da(k)%is_legendre) Then
-                                If (CS%lev_cs(i)%da(j)%da(k)%n_a .GT. CS%n_a_max) CS%n_a_max = CS%lev_cs(i)%da(j)%da(k)%n_a
-                            Else If (CS%lev_cs(i)%da(j)%da(k)%is_tab) Then
-                                If (CS%lev_cs(i)%da(j)%da(k)%n_a .GT. CS%n_a_tab_max) CS%n_a_tab_max = CS%lev_cs(i)%da(j)%da(k)%n_a
-                            End If
-                        End Do
-                    End If
+                    End Do
                 End If
-            End Do
-        End If
+            End If
+        End Do
         !N2H For verbose output, write a summary of scattering modes for this isotope
     End Do
     CS%Mn = neutron_mass * Sum(CS%An) / CS%n_iso
