@@ -598,13 +598,13 @@ Subroutine Read_Ang_Dist_file(Coeff_file_name,E_list,da_list,n_p,LTT,just_n)
             Read(coeff_unit,'(I11)') da_list(i)%n_a
             Allocate(da_list(i)%a(0:da_list(i)%n_a))
             da_list(i)%a = 0._dp
-            Allocate(da_list(i)%ua(1:da_list(i)%n_a,1:2))
+            Allocate(da_list(i)%ua(1:2,1:da_list(i)%n_a))
             da_list(i)%ua = 0._dp
             Do j = 1,da_list(i)%n_a
                 If (mod(j,3).EQ.0 .OR. j.EQ.da_list(i)%n_a) Then !this is the last entry on a line, read and advance
-                    Read(coeff_unit,'(2E11.6E1)', ADVANCE = 'YES') da_list(i)%ua(j,1), da_list(i)%ua(j,2)
+                    Read(coeff_unit,'(2E11.6E1)', ADVANCE = 'YES') da_list(i)%ua(1,j), da_list(i)%ua(2,j)
                 Else !read the entry without advancing
-                    Read(coeff_unit,'(2E11.6E1)', ADVANCE = 'NO') da_list(i)%ua(j,1), da_list(i)%ua(j,2)
+                    Read(coeff_unit,'(2E11.6E1)', ADVANCE = 'NO') da_list(i)%ua(1,j), da_list(i)%ua(2,j)
                 End If
             End Do
         End Do
@@ -645,13 +645,13 @@ Subroutine Read_Ang_Dist_file(Coeff_file_name,E_list,da_list,n_p,LTT,just_n)
             Read(coeff_unit,'(I11)') da_list(i)%n_a
             Allocate(da_list(i)%a(0:da_list(i)%n_a))
             da_list(i)%a = 0._dp
-            Allocate(da_list(i)%ua(1:da_list(i)%n_a,1:2))
+            Allocate(da_list(i)%ua(1:2,1:da_list(i)%n_a))
             da_list(i)%ua = 0._dp
             Do j = 1,da_list(i)%n_a
                 If (mod(j,3).EQ.0 .OR. j.EQ.da_list(i)%n_a) Then !this is the last entry on a line, read and advance
-                    Read(coeff_unit,'(2E11.6E1)', ADVANCE = 'YES') da_list(i)%ua(j,1), da_list(i)%ua(j,2)
+                    Read(coeff_unit,'(2E11.6E1)', ADVANCE = 'YES') da_list(i)%ua(1,j), da_list(i)%ua(2,j)
                 Else !read the entry without advancing
-                    Read(coeff_unit,'(2E11.6E1)', ADVANCE = 'NO') da_list(i)%ua(j,1), da_list(i)%ua(j,2)
+                    Read(coeff_unit,'(2E11.6E1)', ADVANCE = 'NO') da_list(i)%ua(1,j), da_list(i)%ua(2,j)
                 End If
             End Do
         End Do
