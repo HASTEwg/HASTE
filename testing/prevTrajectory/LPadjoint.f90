@@ -205,11 +205,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
 # if CAF
  Do e = 1,n_En
     Write(e_char,'(I2.2)') e
-    If (cmd_En) Then  !energy was specified on command line
-        stat_lines(e) = 'En na/na   *.**% (  *.**% hits) Lunar F: *.********E+***'
-    Else
-        stat_lines(e) = 'En '//e_char//'/'//n_En_char//'   *.**% (  *.**% hits) Lunar F: *.********E+***'
-    End If
+    stat_lines(e) = 'En '//e_char//'/'//n_En_char//'   *.**% (  *.**% hits) Lunar F: *.********E+***'
  End Do
  En_finished = .FALSE.
  next_e = 1
