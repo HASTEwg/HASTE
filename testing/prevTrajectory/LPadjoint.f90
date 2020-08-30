@@ -88,9 +88,9 @@ Integer :: En_bin_start
 Real(dp), Allocatable :: scratch(:)
 # if CAF
  Integer :: next_e[*]
- Character(80) :: stat_lines(1:n_En)[*]
+ Character(80), Allocatable :: stat_lines(:)[:]
  Character(80) :: new_stat_line
- Logical :: En_finished(1:n_En)[*]
+ Logical :: En_finished(:)[:]
 # endif
 
 ! Set default t2 and n_trials, defaults are for testing and can be overridden by command line
@@ -200,13 +200,15 @@ Call sat%R_and_V(t2,r_sat,v_sat)
  End If
 # endif
 
-Write(n_En_char,'(I2)') n_En
+Write(n_En_char,'(I2.2)') n_En
 Write(t2_char,'(I9.9)') NINT(t2)
 # if CAF
+ Allocate(stat_lines(1:n_En)[*])
  Do e = 1,n_En
     Write(e_char,'(I2.2)') e
     stat_lines(e) = 'En '//e_char//'/'//n_En_char//'   *.**% (  *.**% hits) Lunar F: *.********E+***'
  End Do
+ Allocate(En_finished(1:n_En)[*])
  En_finished = .FALSE.
  next_e = 1
  SYNC ALL
@@ -366,7 +368,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
         If (screen_progress) Then
 #           if CAF
              If (MOD(h,10000).EQ.0) Then
-                Write( new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES15.8E3)' ) & 
+                Write( new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES15.8E3)') & 
                      & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
                      & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(h+h_miss,dp)
                 If (this_image() .EQ. 1) Then
