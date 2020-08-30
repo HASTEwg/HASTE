@@ -70,6 +70,8 @@ Module FileIO_Utilities
     Private :: Log_Message_CSPC  !Public via LOG_MESSAGE
     Private :: Log_Message_CDP   !Public via LOG_MESSAGE
     Private :: Log_Message_CDPC  !Public via LOG_MESSAGE
+    Private :: Open_for_Read_List  !support routine for READ_LIST
+    Private :: Read_List_DP          !Public via READ_LIST
     
     Interface Var_to_file
         Module Procedure SP_to_file
@@ -128,6 +130,11 @@ Module FileIO_Utilities
         Module Procedure Log_Message_CDP
         Module Procedure Log_Message_CDPC
     End Interface Log_Message
+
+    Interface Read_List
+        Module Procedure Read_List_SP
+        Module Procedure Read_List_DP
+    End Interface
 
 !  Character & I/O constants for LINUX vs Windows file systems
 #   if LIN_OS
@@ -1300,5 +1307,88 @@ Subroutine Wait(ms)
         End If
     End Do
 End Subroutine Wait
+
+Subroutine Open_for_Read_List(file_name,unit,stat)
+    Implicit None
+    Character(*), Intent(In) :: file_name
+    Integer, Intent(Out) :: unit
+    Integer, Intent(Out) :: stat
+    
+    Open(NEWUNIT = unit , FILE = file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+End Subroutine Open_for_Read_List
+
+Subroutine Read_List_SP(file_name,n,r,delete_file)
+    Use Kinds, Only: sp
+    Implicit None
+    Character(*), Intent(In) :: file_name
+    Integer, Intent(Out) :: n
+    Real(sp), Allocatable, Intent(Out) :: r(:)
+    Logical, Intent(In), Optional :: delete_file
+    Integer :: unit,stat
+    Character(max_line_len) :: trash
+    Integer :: i
+
+    Call Open_for_Read_List(file_name,unit,stat)
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('Read_List_SP','open',file_name,stat)
+    n = 0
+    Do
+        Read(unit , '(A)' , IOSTAT = stat) trash
+        If (stat .LT. 0) Then
+            Exit
+        Else If (stat .GT. 0) Then
+            Call File_err_for_Var_to_from_File('Read_List_SP','read',file_name,stat)
+        End If
+        n = n + 1
+    End Do
+    Rewind(unit)
+    Allocate(r(1:n))
+    r = 0._sp
+    Do i = 1,n
+        Read(unit , '(A)' ) trash
+        Read(trash,*) r(i)
+    End Do
+    If (Present(delete_file)) Then
+        Call Close_for_Var_from_File(unit,delete_file)
+    Else
+        Close(unit)
+    End If
+End Subroutine Read_List_SP
+
+Subroutine Read_List_DP(file_name,n,r,delete_file)
+    Use Kinds, Only: dp
+    Implicit None
+    Character(*), Intent(In) :: file_name
+    Integer, Intent(Out) :: n
+    Real(dp), Allocatable, Intent(Out) :: r(:)
+    Logical, Intent(In), Optional :: delete_file
+    Integer :: unit,stat
+    Character(max_line_len) :: trash
+    Integer :: i
+
+    Call Open_for_Read_List(file_name,unit,stat)
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('Read_List_DP','open',file_name,stat)
+    n = 0
+    Do
+        Read(unit , '(A)' , IOSTAT = stat) trash
+        If (stat .LT. 0) Then
+            Exit
+        Else If (stat .GT. 0) Then
+            Call File_err_for_Var_to_from_File('Read_List_DP','read',file_name,stat)
+        End If
+        n = n + 1
+    End Do
+    Rewind(unit)
+    Allocate(r(1:n))
+    r = 0._dp
+    Do i = 1,n
+        Read(unit , '(A)' ) trash
+        Read(trash,*) r(i)
+    End Do
+    If (Present(delete_file)) Then
+        Call Close_for_Var_from_File(unit,delete_file)
+    Else
+        Close(unit)
+    End If
+End Subroutine Read_List_DP
 
 End Module FileIO_Utilities

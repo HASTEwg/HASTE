@@ -20,6 +20,8 @@ Use Utilities, Only: Log_spaces
 Use Statistics, Only: Std_Err
 Use FileIO_Utilities, Only: cr => creturn
 Use FileIO_Utilities, Only: Wait
+Use FileIO_Utilities, Only: slash
+Use FileIO_Utilities, Only: Read_List
 Use Astro_Utilities, Only: Lambert_Gooding
 
 Implicit None
@@ -27,32 +29,17 @@ Implicit None
 Type(RNG_Type) :: RNG
 Integer :: n_trials !this many tallies will be accumulated in the grid
 ! List of energies at which to create maps
-Integer, Parameter :: n_En = 15
-Real(dp), Parameter :: En_list(1:n_En) = & ![keV] neutron energy at arrival in satellite frame
-                                         & 1000._dp * (/ 1.e-8_dp,   & 
-                                                       & 2.5e-8_dp,  & 
-                                                       & 1.e-7_dp,   & 
-                                                       & 2.e-7_dp,   & 
-                                                       & 3.e-7_dp,   & 
-                                                       & 4.e-7_dp,   & 
-                                                       & 5.e-7_dp,   & 
-                                                       & 6.e-7_dp,   & 
-                                                       & 8.e-7_dp,   & 
-                                                       & 1.e-6_dp,   & 
-                                                       & 3.16e-6_dp, & 
-                                                       & 1.e-5_dp,   & 
-                                                       & 1.e-4_dp,   & 
-                                                       & 1.e-3_dp,   & 
-                                                       & 1.e-2_dp    /)  ![keV]
+Integer :: n_En = 15
+Real(dp), Allocatable :: En_list(:) ![keV] neutron energy at arrival in satellite frame
 Real(dp) :: En  ![keV] current detection energy of interest
 ! Surface grids
-Integer, Parameter :: n_box_Cos = 12
-Integer, Parameter :: n_box_En = 15
-Real(dp) :: Cos_box_grid(0:n_box_Cos)
-Real(dp) :: En_box_grid(0:n_En*n_box_En)
+Integer :: n_bin_Cos
+Integer :: n_bin_En
+Real(dp), Allocatable :: Cos_bin_grid(:)
+Real(dp), Allocatable :: En_bin_grid(:)
 Type :: tally_box
-    Real(dp) :: f(1:6,1:n_box_Cos)
-    Integer :: c(1:n_box_Cos)
+    Real(dp), Allocatable :: f(:,:) !1:6,1:n_box_Cos
+    Integer, Allocatable :: c(:) !1:n_box_Cos
 End Type
 Type :: Surface_box
     Logical :: hit
@@ -96,8 +83,9 @@ Real(dp) :: lat,lon
 Character(80) :: cmd1,cmd2
 Logical :: screen_progress
 Logical :: skip_next_cmd
-Logical :: cmd_En
-Real(dp) :: En_cmd
+Integer :: n_scratch
+Integer :: En_bin_start
+Real(dp), Allocatable :: scratch(:)
 # if CAF
  Integer :: next_e[*]
  Character(80) :: stat_lines(1:n_En)[*]
@@ -112,8 +100,8 @@ t2 = 84420._dp !time of intercept
 ! Set default to send progress updates to screen
 screen_progress = .TRUE.
 !Get command line arguments
+n_En = -1
 skip_next_cmd = .FALSE.
-cmd_En = .FALSE.
 b = COMMAND_ARGUMENT_COUNT()
 If ( b .NE. 0 ) Then
     Do i = 1,b
@@ -132,10 +120,10 @@ If ( b .NE. 0 ) Then
                 Read(cmd2,*) n_trials
                 skip_next_cmd = .TRUE.
             Case ('e','E','En','Ed')
+                n_En = 1
+                Allocate(En_list(1:1))
                 Call GET_COMMAND_ARGUMENT(i+1,cmd2)
-                Read(cmd2,*) En_cmd
-                En_cmd = 1000._dp * En_cmd !convert MeV input into keV
-                cmd_En = .TRUE.
+                Read(cmd2,*) En_list(1)
                 skip_next_cmd = .TRUE.
             Case ('quiet','QUIET','Quiet','q','Q')
                 screen_progress = .FALSE.
@@ -144,45 +132,51 @@ If ( b .NE. 0 ) Then
         End Select
     End Do
 End If
-!Satellite position & velocity
+! Read in detection energies
+If (n_EN .LT. 1) Call Read_List('grid'//slash//'Ed.txt',n_En,En_list)
+En_list = En_list * 1000._dp  !convert to keV
+! Read in angle cosine bin boundaries
+Call Read_List('grid'//slash//'cos_grid.txt',n_scratch,scratch)
+n_bin_Cos = n_scratch - 1
+Allocate(Cos_bin_grid(0:n_bin_Cos))
+Cos_bin_grid(0:n_bin_Cos) = scratch(1:n_scratch)
+Deallocate(scratch)
+! Read in energy bin boundaries
+Call Read_List('grid'//slash//'en_grid.txt',n_scratch,scratch)
+n_bin_En = n_scratch - 1
+Allocate(En_bin_grid(0:n_bin_En))
+En_bin_grid(0:n_bin_En) = scratch(1:n_scratch)
+Deallocate(scratch)
+En_bin_grid = En_bin_grid * 1000._dp  !convert to keV
+! Initialize satellite position & velocity
 Call Initialize_Satellite_Motion('','Conic_tab ',sat)
 Call sat%R_and_V(t2,r_sat,v_sat)
-! Random Number Generator
+! Initialize Random Number Generator
 # if CAF
  Call RNG%Initialize(seed = 7777777 , thread = this_image())
 # else
  Call RNG%Initialize(seed = 7777777)
 # endif
-! Compute angle cosine bin boundaries
-Cos_box_grid = 2._dp
-Call Linear_Spaces(1._dp,0._dp,Cos_box_grid(:))
-! Compute energy bin boundaries
-En_box_grid = -1._dp
-j = 0
-Do i = 1,n_En-1
-    Call Log_Spaces(En_list(i),En_list(i+1),En_box_grid(j:j+n_box_En))
-    j = j + n_box_En
-End Do
-Call Log_Spaces(En_list(n_En),10._dp*En_list(n_En),En_box_grid(j:j+n_box_En))
+! Write detection energies and energy-angle grid boundaries to file
 # if CAF
  If (this_image().EQ.1) Then
 # endif
+    !write detection energies
+    Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_Ed_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
+    Do i = 1,n_En
+        Write(bound_unit,'(I5,2ES25.16E3)') i,En_list(i)
+    End Do
+    Close(bound_unit)
     !write angle cosine grid boundaries
     Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_Cos_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-    Do i = 1,n_box_Cos
-        Write(bound_unit,'(I5,2ES25.16E3)') i,Cos_box_grid(i-1),Cos_box_grid(i)
+    Do i = 1,n_bin_Cos
+        Write(bound_unit,'(I5,2ES25.16E3)') i,Cos_bin_grid(i-1),Cos_bin_grid(i)
     End Do
     Close(bound_unit)
     !write energy grid boundaries
     Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_En_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-    Do i = 1,n_En*n_box_En
-        Write(bound_unit,'(I5)',ADVANCE='NO') i
-        If ( Any(En_list.EQ.En_box_grid(i-1)) ) Then
-            Write(bound_unit,'(A)',ADVANCE='NO') ' * '
-        Else
-            Write(bound_unit,'(A)',ADVANCE='NO') '   '
-        End If
-        Write(bound_unit,'(2ES25.16E3)') En_box_grid(i-1)/1000._dp,En_box_grid(i)/1000._dp !MeV
+    Do i = 1,n_bin_En
+        Write(bound_unit,'(I5,2ES25.16E3)') i,En_bin_grid(i-1)/1000._dp,En_bin_grid(i)/1000._dp !MeV
     End Do
     Close(bound_unit)
     !write surface box boundaries
@@ -218,7 +212,6 @@ Write(t2_char,'(I9.9)') NINT(t2)
     End If
  End Do
  En_finished = .FALSE.
- If (cmd_En)  En_finished = .TRUE.  !energy was specified on command line
  next_e = 1
  SYNC ALL
  Do
@@ -227,12 +220,17 @@ Write(t2_char,'(I9.9)') NINT(t2)
         next_e[1] = next_e[1] + 1
     END CRITICAL
     If (e .GT. n_En) Exit
-    If (this_image().NE.1 .AND. cmd_En) Exit  !image 1 will execute the single energy from the command line
 # else
  Do e = 1,n_En
 # endif
     En = En_list(e)
-    If (cmd_En) En = En_cmd
+    En_bin_start = n_bin_En + 5
+    Do i = 1,n_bin_En
+        If (En.GE.En_bin_grid(i-1) .AND. En.LT.En_bin_grid(i)) Then
+            En_bin_start = i
+            Exit
+        End If
+    End Do
     !initialize tallies for this energy
     Do j = 1,n_lon_bins
         Do i = 1,n_lat_bins
@@ -246,7 +244,6 @@ Write(t2_char,'(I9.9)') NINT(t2)
     End Do
     !initialize output files for this energy
     Write(e_char,'(I2.2)') e
-    If (cmd_En) e_char = 'Ec'  !energy was specified on command line
     Open(NEWUNIT = map_unit , FILE = 'LPemissionMap_'//t2_char//'_e'//e_char//'.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
     Write( map_unit , '(2ES25.16E3)' , ADVANCE = 'NO' ) En/1000._dp , t2
     h = 0
@@ -268,29 +265,24 @@ Write(t2_char,'(I9.9)') NINT(t2)
             !Compute divergence
             v2 = -Omega_hat2*Neutron_Speed(En) + v_sat
             DFact = Div_Fact_by_shooting(r1,Unit_Vector(v1),Vector_Length(v1),(/0._dp,0._dp,0._dp/),tof,v_sat,v2)
-            !Compute emission energy bin, first by walking through En which is irregular, then by direct computation
+            !Find emission energy bin
             Ee = Neutron_Energy(v1)
             En_bin = 0
-            If (e .LT. n_En) Then
-                Do j = e+1,n_En
-                    If (Ee .LT. En_list(j)) Then !this Ee fits in the segment of energy bins before En(j)
-                        En_bin = (j-1)*n_box_En + Ceiling( Real(n_box_En,dp) * (Log(Ee)-Log(En_list(j-1))) & 
-                                                         & / (Log(En_list(j))-Log(En_list(j-1))) )
-                        Exit
-                    End If
-                End Do
-            Else !special handling for the last batch of energies because they're above the end of the normal grid
-                If (Ee .LT. 10._dp*En_list(n_En)) Then !this Ee fits in the segment of energy bins before En(j)
-                    En_bin = n_En*n_box_En + Ceiling( Real(n_box_En,dp) * (Log(Ee)-Log(En_list(n_En))) & 
-                                                    & / (Log(10._dp*En_list(n_En))-Log(En_list(n_En))) )
-                Else
-                    Print*,'ENERGY OUT OF BOUNDS:',Ee
-                    ERROR STOP
+            Do j = En_bin_start,n_bin_En
+                If (Ee.GE.En_bin_grid(j-1) .AND. Ee.LT.En_bin_grid(j)) Then
+                    En_bin = j
+                    Exit
                 End If
-            End If
-            !compute emission direction bin
+            End Do
+            !Find emission direction bin
             zeta = Dot_Product(Unit_Vector(r1),Unit_Vector(v1))
-            zeta_bin = Ceiling( (1._dp - zeta) * Real(n_box_Cos,dp) )
+            zeta_bin = 0
+            Do j = 1,n_bin_Cos
+                If (zeta.LE.Cos_bin_grid(j-1) .AND. zeta.GT.Cos_bin_grid(j)) Then
+                    zeta_bin = j
+                    Exit
+                End If
+            End Do
             !Check if this surface box has been initialized
             b = 0
             If (.NOT.f(dec_bin,ha_bin)%hit) Then !initialize the bin
@@ -299,7 +291,9 @@ Write(t2_char,'(I9.9)') NINT(t2)
                 Allocate(f(dec_bin,ha_bin)%x(1:1))
                 Allocate(f(dec_bin,ha_bin)%iE(1:1))
                 f(dec_bin,ha_bin)%iE = En_bin
+                Allocate(f(dec_bin,ha_bin)%x(1)%f(1:6,1:n_bin_Cos))
                 f(dec_bin,ha_bin)%x(1)%f = 0._dp
+                Allocate(f(dec_bin,ha_bin)%x(1)%c(1:n_bin_Cos))
                 f(dec_bin,ha_bin)%x(1)%c = 0
                 b = 1
             Else !surface box is initialized, check that this energy is allocated, if not, initialize it
@@ -328,7 +322,9 @@ Write(t2_char,'(I9.9)') NINT(t2)
                     swap_iE = f(dec_bin,ha_bin)%iE
                     Allocate(swap_x(1:f(dec_bin,ha_bin)%x_size))
                     Do l = 1,f(dec_bin,ha_bin)%x_size
+                        Allocate(swap_x(l)%c(1:n_bin_Cos))
                         swap_x(l)%c = f(dec_bin,ha_bin)%x(l)%c
+                        Allocate(swap_x(l)%f(1:6,1:n_bin_Cos))
                         swap_x(l)%f = f(dec_bin,ha_bin)%x(l)%f
                     End Do
                     !deallocate primary lists
@@ -338,7 +334,9 @@ Write(t2_char,'(I9.9)') NINT(t2)
                     Allocate(f(dec_bin,ha_bin)%iE(1:f(dec_bin,ha_bin)%x_size+1))
                     f(dec_bin,ha_bin)%iE(:) = -1
                     Allocate(f(dec_bin,ha_bin)%x(1:f(dec_bin,ha_bin)%x_size+1))
+                    Allocate(f(dec_bin,ha_bin)%x(b)%c(1:n_bin_Cos))
                     f(dec_bin,ha_bin)%x(b)%c = 0
+                    Allocate(f(dec_bin,ha_bin)%x(b)%f(1:6,1:n_bin_Cos))
                     f(dec_bin,ha_bin)%x(b)%f = 0._dp
                     m = 0
                     Do l = 1,f(dec_bin,ha_bin)%x_size+1
@@ -386,9 +384,11 @@ Write(t2_char,'(I9.9)') NINT(t2)
                 End If
              End If
 #           else
-             If (MOD(h,10000).EQ.0) Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES15.8E3,A)' , ADVANCE = 'NO' ) & 
-                                         & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
-                                         & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(h+h_miss,dp),cr
+             If (MOD(h,10000).EQ.0) Then
+                Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES15.8E3,A)' , ADVANCE = 'NO' ) & 
+                     & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
+                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(h+h_miss,dp),cr
+             End If
 #           endif
         End If
         If (h .GE. n_trials) Exit
@@ -403,7 +403,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
                 r1 = Cos(DEC) * Z_hat + Sqrt(1._dp - Cos(DEC)**2) * (Cos(HA) * Y_hat + Sin(HA) * X_hat)
                 !walk through the energy-angle lists for this surface box, writing each result to file
                 Do k = 1,f(i,j)%x_size
-                    Do l = 1,n_box_Cos
+                    Do l = 1,n_bin_Cos
                         If (f(i,j)%x(k)%c(l) .EQ. 0) Cycle
                         !intensity
                         Dfact = f(i,j)%x(k)%f(1,l) / Real(h+h_miss,dp)
@@ -423,7 +423,6 @@ Write(t2_char,'(I9.9)') NINT(t2)
                              & Dot_Product(Unit_Vector(r1),Unit_Vector(v1)) , &
                              & Unit_Vector(v2 + v_sat) , &
                              & Div_Fact_by_shooting(r1,Unit_Vector(v1),Vector_Length(v1),(/0._dp,0._dp,0._dp/),tof,v_sat,v2)
-
                     End Do
                 End Do
             End If
@@ -437,7 +436,6 @@ Write(t2_char,'(I9.9)') NINT(t2)
          Write(*,*)
 #       endif
     End If
-    If (cmd_En) Exit  !energy was specified on command line
 End Do
 # if CAF
  If (screen_progress) Then
