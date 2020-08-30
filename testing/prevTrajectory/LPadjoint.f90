@@ -90,7 +90,7 @@ Real(dp), Allocatable :: scratch(:)
  Integer :: next_e[*]
  Character(80), Allocatable :: stat_lines(:)[:]
  Character(80) :: new_stat_line
- Logical :: En_finished(:)[:]
+ Logical, Allocatable :: En_finished(:)[:]
 # endif
 
 ! Set default t2 and n_trials, defaults are for testing and can be overridden by command line
