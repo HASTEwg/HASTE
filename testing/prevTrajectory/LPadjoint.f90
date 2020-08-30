@@ -164,7 +164,7 @@ Call sat%R_and_V(t2,r_sat,v_sat)
     !write detection energies
     Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_Ed_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
     Do i = 1,n_En
-        Write(bound_unit,'(I5,2ES25.16E3)') i,En_list(i)
+        Write(bound_unit,'(I5,2ES25.16E3)') i,En_list(i)/1000._dp
     End Do
     Close(bound_unit)
     !write angle cosine grid boundaries
