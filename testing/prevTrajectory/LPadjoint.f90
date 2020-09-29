@@ -13,6 +13,7 @@ Use Global, Only: Pi,TwoPi,halfPi
 Use Global, Only: r2deg
 Use Global, Only: Z_hat,X_hat,Y_hat
 Use Global, Only: rot_moon
+Use Global, Only: R_moon
 Use Utilities, Only: Unit_Vector
 Use Utilities, Only: Vector_Length
 Use Utilities, Only: Linear_spaces
@@ -370,7 +371,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
              If (MOD(h,10000).EQ.0) Then
                 Write( new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES15.8E3)') & 
                      & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
-                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(h+h_miss,dp)
+                     & 100._dp*Real(h,dp)/Real(h,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(h,dp)
                 If (this_image() .EQ. 1) Then
                     stat_lines(e) = new_stat_line
                     Do j = 1,n_En
@@ -385,7 +386,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
              If (MOD(h,10000).EQ.0) Then
                 Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES15.8E3,A)' , ADVANCE = 'NO' ) & 
                      & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
-                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(h+h_miss,dp),cr
+                     & 100._dp*Real(h,dp)/Real(h,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(h,dp),cr
              End If
 #           endif
         End If
@@ -398,14 +399,14 @@ Write(t2_char,'(I9.9)') NINT(t2)
                 !compute position vector at the lat-lon center of this surface box
                 DEC = Real(2*i-1,dp) * halfPi / Real(n_lat_bins,dp)
                 HA = Real(2*j-1,dp) * Pi / Real(n_lon_bins,dp)
-                r1 = Cos(DEC) * Z_hat + Sqrt(1._dp - Cos(DEC)**2) * (Cos(HA) * Y_hat + Sin(HA) * X_hat)
+                r1 = R_moon * ( Cos(DEC) * Z_hat + Sqrt(1._dp - Cos(DEC)**2) * (Cos(HA) * Y_hat + Sin(HA) * X_hat) )
                 !walk through the energy-angle lists for this surface box, writing each result to file
                 Do k = 1,f(i,j)%x_size
                     Do l = 1,n_bin_Cos
                         If (f(i,j)%x(k)%c(l) .EQ. 0) Cycle
                         !intensity
-                        Dfact = f(i,j)%x(k)%f(1,l) / Real(h+h_miss,dp)
-                        Dfact_err = Std_err( h+h_miss , f(i,j)%x(k)%f(1,l) , f(i,j)%x(k)%f(2,l) )
+                        Dfact = f(i,j)%x(k)%f(1,l) / Real(h,dp)
+                        Dfact_err = Std_err( h , f(i,j)%x(k)%f(1,l) , f(i,j)%x(k)%f(2,l) )
                         !tof
                         tof = f(i,j)%x(k)%f(5,l) / f(i,j)%x(k)%f(1,l)
                         tof_err = Std_err( f(i,j)%x(k)%c(l) , f(i,j)%x(k)%f(3,l) , f(i,j)%x(k)%f(4,l) )
