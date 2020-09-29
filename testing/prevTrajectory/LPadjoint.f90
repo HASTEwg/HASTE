@@ -371,7 +371,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
              If (MOD(h,10000).EQ.0) Then
                 Write( new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES15.8E3)') & 
                      & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
-                     & 100._dp*Real(h,dp)/Real(h,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(h,dp)
+                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(Max(h,1),dp)
                 If (this_image() .EQ. 1) Then
                     stat_lines(e) = new_stat_line
                     Do j = 1,n_En
@@ -386,7 +386,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
              If (MOD(h,10000).EQ.0) Then
                 Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES15.8E3,A)' , ADVANCE = 'NO' ) & 
                      & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
-                     & 100._dp*Real(h,dp)/Real(h,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(h,dp),cr
+                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(Max(h,1),dp),cr
              End If
 #           endif
         End If
