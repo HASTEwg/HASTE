@@ -1,0 +1,18 @@
+&AtmosphereList
+!-----------------------------------------------------------------------------------------------------------------------------------
+atmosphere_model = 'USstd1976'           !<'USstd1976','IsoThermal','None'>
+                                         ! Selects an atmosphere model to determine the bulk properties of the scattering medium.
+                                         ! 'None' will disable all scattering calculations and compute only the direct 
+                                         !        contributions unattenuated by a scattering medium
+ref_density = 1225.0002517923321962      ![g/m^3]  If atmosphere_model is 'Isothermal', reference density to use, default is 
+                                         !         sea-level standard density from US Standard Atmosphere 1976
+isothermal_temp = 273.15                 ![K]  If atmosphere model is 'IsoThermal', specify temp to use, default is sea-level std 
+                                         !     temp
+Z_top_atm = 86.                          ![km]  Geometric height of top of atmosphere model
+Z_bot_atm = 0.                           ![km]  Geometric height of bottom of atmosphere model
+wind_N = 0.                              ![km/s]  Northerly global wind velocity component
+wind_E = 0.                              ![km/s]  Easterly global wind velocity component
+composition = 'N14'                      !<'All','N14_O16','N14_O16_Ar40','N14','N15','O16','O17','O18','Ar40'>
+                                         ! Selects from pre-formatted setup files for atmospheric compositions and cross sections
+!-----------------------------------------------------------------------------------------------------------------------------------
+/
