@@ -10,7 +10,7 @@ Use Find_Trajectory, Only: Prev_Event_Trajectory
 Use Diverge_Approx, Only: Div_Fact_by_shooting
 Use Random_Directions, Only: Isotropic_Omega_Hat
 Use Global, Only: Pi,TwoPi,halfPi
-Use Global, Only: r2deg
+Use Global, Only: r2deg,deg2r
 Use Global, Only: Z_hat,X_hat,Y_hat
 Use Global, Only: rot_moon
 Use Global, Only: R_moon
@@ -30,7 +30,7 @@ Implicit None
 Type(RNG_Type) :: RNG
 Integer :: n_trials !this many tallies will be accumulated in the grid
 ! List of energies at which to create maps
-Integer :: n_En = 15
+Integer :: n_En
 Real(dp), Allocatable :: En_list(:) ![keV] neutron energy at arrival in satellite frame
 Real(dp) :: En  ![keV] current detection energy of interest
 ! Surface grids
@@ -44,7 +44,6 @@ Type :: tally_box
 End Type
 Type :: Surface_box
     Logical :: hit
-    Real(dp) :: f(1:4)
     Integer :: c
     Integer :: x_size
     Integer, Allocatable :: iE(:)
@@ -53,6 +52,7 @@ End Type
 ! Tally grid
 Integer, Parameter :: n_lat_bins = 36 , n_lon_bins = 72
 Type(Surface_box) :: f(1:n_lat_bins,1:n_lon_bins)
+Real(dp) :: D_tally,F_tally
 Integer, Allocatable :: swap_iE(:)
 Type(tally_box), Allocatable :: swap_x(:)
 ! Satellite data and variables
@@ -79,7 +79,7 @@ Integer :: i,j,k,l,m  !counters
 Character(2) :: e_char !character representation of energy index for file naming
 Character(2) :: n_En_char !character representation of total number of energy points, for screen updates
 Character(9) :: t2_char !character representation of time of intercept for file naming
-Real(dp) :: Dfact_err,tof_err
+Real(dp) :: Ffact,Ffact_err,tof_err
 Real(dp) :: lat,lon
 Character(80) :: cmd1,cmd2
 Logical :: screen_progress
@@ -87,6 +87,8 @@ Logical :: skip_next_cmd
 Integer :: n_scratch
 Integer :: En_bin_start
 Real(dp), Allocatable :: scratch(:)
+Logical :: Ed_in_bins
+Real(dp) :: dEd
 # if CAF
  Integer :: next_e[*]
  Character(80), Allocatable :: stat_lines(:)[:]
@@ -100,6 +102,8 @@ n_trials = 100000
 t2 = 84420._dp !time of intercept
 ! Set default to send progress updates to screen
 screen_progress = .TRUE.
+! Set default to treat detector energy grid as bin boundaries
+Ed_in_bins = .TRUE.
 !Get command line arguments
 n_En = -1
 skip_next_cmd = .FALSE.
@@ -128,6 +132,8 @@ If ( b .NE. 0 ) Then
                 skip_next_cmd = .TRUE.
             Case ('quiet','QUIET','Quiet','q','Q')
                 screen_progress = .FALSE.
+            Case ('points','POINTS','Points','p','P')
+                Ed_in_bins = .FALSE.
             Case Default
                 Write (*,'(A)') 'Invalid command argument specified. Aborting.'
         End Select
@@ -165,7 +171,7 @@ Call sat%R_and_V(t2,r_sat,v_sat)
     !write detection energies
     Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_Ed_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
     Do i = 1,n_En
-        Write(bound_unit,'(I5,2ES25.16E3)') i,En_list(i)/1000._dp
+        Write(bound_unit,'(I5,2ES25.16E3)') i,En_list(i)/1000._dp !MeV
     End Do
     Close(bound_unit)
     !write angle cosine grid boundaries
@@ -192,8 +198,9 @@ Call sat%R_and_V(t2,r_sat,v_sat)
             lon = -(HA - Pi) - halfPi
             If (Abs(lon) .GT. Pi) lon = lon + SIGN(TwoPi,-lon)
             !write each surface box boundaries to file
-            Write(bound_unit,'(2(I5,2F8.1))') i , r2deg*lat-2.5_dp , r2deg*lat+2.5_dp , &
-                                            & j , r2deg*lon-2.5_dp , r2deg*lon+2.5_dp
+            Write(bound_unit,'(2(I5,2F8.1),ES25.16E3)') i , r2deg*lat-2.5_dp , r2deg*lat+2.5_dp , &
+                                                      & j , r2deg*lon-2.5_dp , r2deg*lon+2.5_dp , & 
+                                                      & R_moon**2 * deg2r*5._dp * (Cos(DEC-deg2r*2.5) - Cos(DEC+deg2r*2.5))
         End Do
     End Do
     Close(bound_unit)
@@ -201,6 +208,7 @@ Call sat%R_and_V(t2,r_sat,v_sat)
  End If
 # endif
 
+If (Ed_in_bins) n_En = n_En - 1
 Write(n_En_char,'(I2.2)') n_En
 Write(t2_char,'(I9.9)') NINT(t2)
 # if CAF
@@ -222,7 +230,13 @@ Write(t2_char,'(I9.9)') NINT(t2)
 # else
  Do e = 1,n_En
 # endif
-    En = En_list(e)
+    If (Ed_in_bins) Then
+        dEd = En_List(e+1) - En_List(e)
+        En = En_List(e) + RNG%Get_random() * dEd
+    Else
+        dEd = 1._dp
+        En = En_list(e)
+    End If
     En_bin_start = n_bin_En + 5
     Do i = 1,n_bin_En
         If (En.GE.En_bin_grid(i-1) .AND. En.LT.En_bin_grid(i)) Then
@@ -231,10 +245,11 @@ Write(t2_char,'(I9.9)') NINT(t2)
         End If
     End Do
     !initialize tallies for this energy
+    D_tally = 0._dp
+    F_tally = 0._dp
     Do j = 1,n_lon_bins
         Do i = 1,n_lat_bins
             f(i,j)%hit = .FALSE.
-            f(i,j)%f = 0._dp
             f(i,j)%c = 0
             f(i,j)%x_size = 0
             If ( Allocated(f(i,j)%iE) ) Deallocate(f(i,j)%iE)
@@ -244,7 +259,11 @@ Write(t2_char,'(I9.9)') NINT(t2)
     !initialize output files for this energy
     Write(e_char,'(I2.2)') e
     Open(NEWUNIT = map_unit , FILE = 'LPemissionMap_'//t2_char//'_e'//e_char//'.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-    Write( map_unit , '(2ES25.16E3)' , ADVANCE = 'NO' ) En/1000._dp , t2
+    If (Ed_in_bins) Then
+        Write( map_unit , '(3ES25.16E3)' , ADVANCE = 'NO' ) En_List(e)/1000._dp , En_List(e+1)/1000._dp , t2
+    Else
+        Write( map_unit , '(3ES25.16E3)' , ADVANCE = 'NO' ) En_List(e)/1000._dp , En/1000._dp , t2
+    End If
     h = 0
     h_miss = 0
     Do
@@ -291,7 +310,6 @@ Write(t2_char,'(I9.9)') NINT(t2)
                 Allocate(f(dec_bin,ha_bin)%iE(1:1))
                 f(dec_bin,ha_bin)%iE = En_bin
                 Allocate(f(dec_bin,ha_bin)%x(1)%f(1:6,1:n_bin_Cos))
-                f(dec_bin,ha_bin)%x(1)%f = 0._dp
                 Allocate(f(dec_bin,ha_bin)%x(1)%c(1:n_bin_Cos))
                 f(dec_bin,ha_bin)%x(1)%c = 0
                 b = 1
@@ -357,21 +375,23 @@ Write(t2_char,'(I9.9)') NINT(t2)
                 End If
             End If
             !Increment the tally counter for this surface box
-            f(dec_bin,ha_bin)%f(:) = f(dec_bin,ha_bin)%f(:) + (/ Dfact , Dfact**2 , Dfact*tof , (Dfact*tof)**2 /)
+            D_tally = D_tally + Dfact
+            F_tally = F_tally + 1._dp/Dfact
             f(dec_bin,ha_bin)%c = f(dec_bin,ha_bin)%c + 1
             !tally counter, intensity (divergence factor), and tof (weighted by divergence factor)
             f(dec_bin,ha_bin)%x(b)%c(zeta_bin) = f(dec_bin,ha_bin)%x(b)%c(zeta_bin) + 1
             f(dec_bin,ha_bin)%x(b)%f(:,zeta_bin) = f(dec_bin,ha_bin)%x(b)%f(:,zeta_bin) + & 
-                                                 & (/ Dfact , Dfact**2 , tof , tof**2 , Dfact*tof , Dfact*(tof**2) /)
+                                                 & (/ 1._dp/Dfact , (1._dp/Dfact)**2 , tof , tof**2 , Dfact*tof , Dfact /)
         Else
             h_miss = h_miss + 1
         End If
         If (screen_progress) Then
+            If (h .GT. 0) Then
 #           if CAF
-             If (MOD(h,10000).EQ.0) Then
+             If (MOD(h,10000) .EQ. 0) Then
                 Write( new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES15.8E3)') & 
-                     & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
-                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(Max(h,1),dp)
+                     & 'En ' , e , '/'//n_En_char//' ' , 100._dp*Real(h,dp)/Real(n_trials,dp) , '% (' , &
+                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp) , '% hits) Lunar F: ' , F_tally/Real(h,dp)
                 If (this_image() .EQ. 1) Then
                     stat_lines(e) = new_stat_line
                     Do j = 1,n_En
@@ -383,12 +403,13 @@ Write(t2_char,'(I9.9)') NINT(t2)
                 End If
              End If
 #           else
-             If (MOD(h,10000).EQ.0) Then
+             If (MOD(h,10000) .EQ. 0) Then
                 Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES15.8E3,A)' , ADVANCE = 'NO' ) & 
-                     & 'En ',e,'/'//n_En_char//' ',100._dp*Real(h,dp)/Real(n_trials,dp),'% (', &
-                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp),'% hits) Lunar F: ',Sum(f(:,:)%f(1))/Real(Max(h,1),dp),cr
+                     & 'En ' , e , '/'//n_En_char//' ' , 100._dp*Real(h,dp)/Real(n_trials,dp) , '% (' , &
+                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp) , '% hits) Lunar F: ' , F_tally/Real(h,dp) , cr
              End If
 #           endif
+            End If
         End If
         If (h .GE. n_trials) Exit
     End Do
@@ -405,10 +426,10 @@ Write(t2_char,'(I9.9)') NINT(t2)
                     Do l = 1,n_bin_Cos
                         If (f(i,j)%x(k)%c(l) .EQ. 0) Cycle
                         !intensity
-                        Dfact = f(i,j)%x(k)%f(1,l) / Real(h,dp)
-                        Dfact_err = Std_err( h , f(i,j)%x(k)%f(1,l) , f(i,j)%x(k)%f(2,l) )
+                        Ffact = f(i,j)%x(k)%f(1,l) / Real(f(i,j)%x(k)%c(l),dp)
+                        Ffact_err = Std_err( f(i,j)%x(k)%c(l) , f(i,j)%x(k)%f(1,l) , f(i,j)%x(k)%f(2,l) )
                         !tof
-                        tof = f(i,j)%x(k)%f(5,l) / f(i,j)%x(k)%f(1,l)
+                        tof = f(i,j)%x(k)%f(5,l) / f(i,j)%x(k)%f(6,l)
                         tof_err = Std_err( f(i,j)%x(k)%c(l) , f(i,j)%x(k)%f(3,l) , f(i,j)%x(k)%f(4,l) )
                         !Properties of a trajectory matching this tof and satellite position
                         Call Lambert_Gooding(r1,r_sat,tof,v1,v2)
@@ -416,7 +437,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
                         Write( map_unit,'(4I5,I12,10ES25.16E3)') &
                              & i,j,f(i,j)%iE(k),l, & 
                              & f(i,j)%x(k)%c(l) , & 
-                             & Dfact , Dfact_err , & 
+                             & Ffact , Ffact_err , & 
                              & tof , tof_err , & 
                              & Neutron_Energy(v1) / 1000._dp , & !MeV
                              & Dot_Product(Unit_Vector(r1),Unit_Vector(v1)) , &
