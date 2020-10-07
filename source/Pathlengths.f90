@@ -25,6 +25,10 @@ Module Pathlengths
     Public :: EPL_upward
     Public :: R_close_approach
     Public :: deltaZ
+#   if TEPL
+     Public :: zeta_downward
+     Public :: S_upward
+#   endif
     
     Interface Next_Event_L_to_edge
         Module Procedure NE_L_to_edge_straight
@@ -133,7 +137,7 @@ Function EPL(atm,r0,z0,zeta0,s) Result(L)
     Real(dp), Intent(In) :: s
     Real(dp) :: L1,L2
     Real(dp) :: s_ca,r_ca,z_ca
-    Real(dp) :: z1,zeta1
+    Real(dp) :: z1,r1,zeta1
     
     If (zeta0 .LT. 0._dp) Then  !direction is downward
         s_ca = -zeta0 * r0
@@ -147,8 +151,9 @@ Function EPL(atm,r0,z0,zeta0,s) Result(L)
             L = L1 + L2
         Else  !just a downward segment
             z1 = z0 + deltaZ(r0,zeta0,s)
-            zeta1 = -zeta_downward(r0,r_ca)
-            Call EPL_upward(atm,Rc+z1,zeta1,z1,L,z0)
+            r1 = Rc + z1
+            zeta1 = -zeta_downward(r1,r_ca)
+            Call EPL_upward(atm,r1,zeta1,z1,L,z0)
         End If
     Else  !direction is upward
         z1 = z0 + deltaZ(r0,zeta0,s)
