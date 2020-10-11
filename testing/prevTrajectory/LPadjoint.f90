@@ -9,7 +9,7 @@ Use Neutron_Utilities, Only: Neutron_Energy
 Use Find_Trajectory, Only: Prev_Event_Trajectory
 Use Diverge_Approx, Only: Div_Fact_by_shooting
 Use Random_Directions, Only: Isotropic_Omega_Hat
-Use Global, Only: Pi,TwoPi,halfPi
+Use Global, Only: Pi,TwoPi,halfPi,fourPi
 Use Global, Only: r2deg,deg2r
 Use Global, Only: Z_hat,X_hat,Y_hat
 Use Global, Only: rot_moon
@@ -231,7 +231,6 @@ Write(t2_char,'(I9.9)') NINT(t2)
 # endif
     If (Ed_in_bins) Then
         dEd = En_List(e+1) - En_List(e)
-        En = En_List(e) + RNG%Get_random() * dEd
     Else
         dEd = 1._dp
         En = En_list(e)
@@ -259,6 +258,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
     h = 0
     h_miss = 0
     Do
+        If (Ed_in_bins) En = En_List(e) + RNG%Get_random() * dEd
         !choose a random direction of arrival at the detector
         Omega_hat2 = Isotropic_Omega_Hat(RNG)
         !check if an emission is possible at the surface at this energy to result in this rendezvous
@@ -371,7 +371,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
             End If
             !Increment the tally counter for this surface box
             D_tally = D_tally + Dfact
-            F_tally = F_tally + 1._dp/Dfact
+            F_tally = F_tally + (1._dp / Dfact)
             f(dec_bin,ha_bin)%c = f(dec_bin,ha_bin)%c + 1
             !tally counter, intensity (divergence factor), and tof (weighted by divergence factor)
             f(dec_bin,ha_bin)%x(b)%c(zeta_bin) = f(dec_bin,ha_bin)%x(b)%c(zeta_bin) + 1
@@ -386,7 +386,8 @@ Write(t2_char,'(I9.9)') NINT(t2)
              If (MOD(h,10000) .EQ. 0) Then
                 Write( new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES15.8E3)') & 
                      & 'En ' , e , '/'//n_En_char//' ' , 100._dp*Real(h,dp)/Real(n_trials,dp) , '% (' , &
-                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp) , '% hits) Lunar F: ' , F_tally/Real(h,dp)
+                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp) , '% hits) Lunar F: ' , & 
+                     & F_tally / Real(h,dp)
                 If (this_image() .EQ. 1) Then
                     stat_lines(e) = new_stat_line
                     Do j = 1,n_En
@@ -401,7 +402,8 @@ Write(t2_char,'(I9.9)') NINT(t2)
              If (MOD(h,10000) .EQ. 0) Then
                 Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES15.8E3,A)' , ADVANCE = 'NO' ) & 
                      & 'En ' , e , '/'//n_En_char//' ' , 100._dp*Real(h,dp)/Real(n_trials,dp) , '% (' , &
-                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp) , '% hits) Lunar F: ' , F_tally/Real(h,dp) , cr
+                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp) , '% hits) Lunar F: ' , & 
+                     & F_tally / Real(h,dp) , cr
              End If
 #           endif
             End If
