@@ -39,7 +39,7 @@ Integer :: n_bin_En
 Real(dp), Allocatable :: Cos_bin_grid(:)
 Real(dp), Allocatable :: En_bin_grid(:)
 Type :: tally_box
-    Real(dp), Allocatable :: f(:,:) !1:6,1:n_box_Cos
+    Real(dp), Allocatable :: f(:,:) !1:5,1:n_box_Cos
     Integer, Allocatable :: c(:) !1:n_box_Cos
 End Type
 Type :: Surface_box
@@ -79,13 +79,12 @@ Integer :: i,j,k,l,m  !counters
 Character(2) :: e_char !character representation of energy index for file naming
 Character(2) :: n_En_char !character representation of total number of energy points, for screen updates
 Character(9) :: t2_char !character representation of time of intercept for file naming
-Real(dp) :: Ffact,Ffact_err,tof_err
+Real(dp) :: Dfact_err,tof_err
 Real(dp) :: lat,lon
 Character(80) :: cmd1,cmd2
 Logical :: screen_progress
 Logical :: skip_next_cmd
 Integer :: n_scratch
-Integer :: En_bin_start
 Real(dp), Allocatable :: scratch(:)
 Logical :: Ed_in_bins
 Real(dp) :: dEd
@@ -237,13 +236,6 @@ Write(t2_char,'(I9.9)') NINT(t2)
         dEd = 1._dp
         En = En_list(e)
     End If
-    En_bin_start = n_bin_En + 5
-    Do i = 1,n_bin_En
-        If (En.GE.En_bin_grid(i-1) .AND. En.LT.En_bin_grid(i)) Then
-            En_bin_start = i
-            Exit
-        End If
-    End Do
     !initialize tallies for this energy
     D_tally = 0._dp
     F_tally = 0._dp
@@ -286,7 +278,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
             !Find emission energy bin
             Ee = Neutron_Energy(v1)
             En_bin = 0
-            Do j = En_bin_start,n_bin_En
+            Do j = 1,n_bin_En
                 If (Ee.GE.En_bin_grid(j-1) .AND. Ee.LT.En_bin_grid(j)) Then
                     En_bin = j
                     Exit
@@ -303,13 +295,14 @@ Write(t2_char,'(I9.9)') NINT(t2)
             End Do
             !Check if this surface box has been initialized
             b = 0
-            If (.NOT.f(dec_bin,ha_bin)%hit) Then !initialize the bin
+            If (.NOT.f(dec_bin,ha_bin)%hit) Then !initialize the surface bin
                 f(dec_bin,ha_bin)%hit = .TRUE.
                 f(dec_bin,ha_bin)%x_size = 1
                 Allocate(f(dec_bin,ha_bin)%x(1:1))
                 Allocate(f(dec_bin,ha_bin)%iE(1:1))
                 f(dec_bin,ha_bin)%iE = En_bin
-                Allocate(f(dec_bin,ha_bin)%x(1)%f(1:6,1:n_bin_Cos))
+                Allocate(f(dec_bin,ha_bin)%x(1)%f(1:5,1:n_bin_Cos))
+                f(dec_bin,ha_bin)%x(1)%f = 0._dp
                 Allocate(f(dec_bin,ha_bin)%x(1)%c(1:n_bin_Cos))
                 f(dec_bin,ha_bin)%x(1)%c = 0
                 b = 1
@@ -341,7 +334,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
                     Do l = 1,f(dec_bin,ha_bin)%x_size
                         Allocate(swap_x(l)%c(1:n_bin_Cos))
                         swap_x(l)%c = f(dec_bin,ha_bin)%x(l)%c
-                        Allocate(swap_x(l)%f(1:6,1:n_bin_Cos))
+                        Allocate(swap_x(l)%f(1:5,1:n_bin_Cos))
                         swap_x(l)%f = f(dec_bin,ha_bin)%x(l)%f
                     End Do
                     !deallocate primary lists
@@ -351,10 +344,12 @@ Write(t2_char,'(I9.9)') NINT(t2)
                     Allocate(f(dec_bin,ha_bin)%iE(1:f(dec_bin,ha_bin)%x_size+1))
                     f(dec_bin,ha_bin)%iE(:) = -1
                     Allocate(f(dec_bin,ha_bin)%x(1:f(dec_bin,ha_bin)%x_size+1))
-                    Allocate(f(dec_bin,ha_bin)%x(b)%c(1:n_bin_Cos))
-                    f(dec_bin,ha_bin)%x(b)%c = 0
-                    Allocate(f(dec_bin,ha_bin)%x(b)%f(1:6,1:n_bin_Cos))
-                    f(dec_bin,ha_bin)%x(b)%f = 0._dp
+                    Do l = 1,f(dec_bin,ha_bin)%x_size+1
+                        Allocate(f(dec_bin,ha_bin)%x(l)%c(1:n_bin_Cos))
+                        f(dec_bin,ha_bin)%x(l)%c = 0
+                        Allocate(f(dec_bin,ha_bin)%x(l)%f(1:5,1:n_bin_Cos))
+                        f(dec_bin,ha_bin)%x(l)%f = 0._dp
+                    End Do
                     m = 0
                     Do l = 1,f(dec_bin,ha_bin)%x_size+1
                         If (l .EQ. b) Then
@@ -381,7 +376,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
             !tally counter, intensity (divergence factor), and tof (weighted by divergence factor)
             f(dec_bin,ha_bin)%x(b)%c(zeta_bin) = f(dec_bin,ha_bin)%x(b)%c(zeta_bin) + 1
             f(dec_bin,ha_bin)%x(b)%f(:,zeta_bin) = f(dec_bin,ha_bin)%x(b)%f(:,zeta_bin) + & 
-                                                 & (/ 1._dp/Dfact , (1._dp/Dfact)**2 , tof , tof**2 , Dfact*tof , Dfact /)
+                                                 & (/ Dfact , Dfact**2 , tof , tof**2 , Dfact*tof /)
         Else
             h_miss = h_miss + 1
         End If
@@ -426,10 +421,10 @@ Write(t2_char,'(I9.9)') NINT(t2)
                     Do l = 1,n_bin_Cos
                         If (f(i,j)%x(k)%c(l) .EQ. 0) Cycle
                         !intensity
-                        Ffact = f(i,j)%x(k)%f(1,l) / Real(f(i,j)%x(k)%c(l),dp)
-                        Ffact_err = Std_err( f(i,j)%x(k)%c(l) , f(i,j)%x(k)%f(1,l) , f(i,j)%x(k)%f(2,l) )
+                        Dfact = f(i,j)%x(k)%f(1,l) / Real(f(i,j)%x(k)%c(l),dp)
+                        Dfact_err = Std_err( f(i,j)%x(k)%c(l) , f(i,j)%x(k)%f(1,l) , f(i,j)%x(k)%f(2,l) )
                         !tof
-                        tof = f(i,j)%x(k)%f(5,l) / f(i,j)%x(k)%f(6,l)
+                        tof = f(i,j)%x(k)%f(5,l) / f(i,j)%x(k)%f(1,l)
                         tof_err = Std_err( f(i,j)%x(k)%c(l) , f(i,j)%x(k)%f(3,l) , f(i,j)%x(k)%f(4,l) )
                         !Properties of a trajectory matching this tof and satellite position
                         Call Lambert_Gooding(r1,r_sat,tof,v1,v2)
@@ -437,7 +432,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
                         Write( map_unit,'(4I5,I12,10ES25.16E3)') &
                              & i,j,f(i,j)%iE(k),l, & 
                              & f(i,j)%x(k)%c(l) , & 
-                             & Ffact , Ffact_err , & 
+                             & Dfact , Dfact_err , & 
                              & tof , tof_err , & 
                              & Neutron_Energy(v1) / 1000._dp , & !MeV
                              & Dot_Product(Unit_Vector(r1),Unit_Vector(v1)) , &

@@ -174,59 +174,100 @@ Function Velocity_of_Periapsis(r,v) Result(vp)
     End If
 End Function Velocity_of_Periapsis
 
-Recursive Function Time_to_R(r0,v0,radius,t_min,t_max,t_guess,allow_recursion) Result(t)
+Function Time_to_R(r0,v0,radius,t_min,t_max) Result(t)
     Use Kinds, Only: dp
-    Use Utilities, Only: Vector_Length
-    Use Utilities, Only: Unit_Vector
-    Use Utilities, Only: Converged
     Implicit None
     Real(dp) :: t
     Real(dp), Intent(In) :: r0(1:3)
     Real(dp), Intent(In) :: v0(1:3)
     Real(dp), Intent(In) :: radius
     Real(dp), Intent(In) :: t_min,t_max
-    Real(dp), Intent(In), Optional :: t_guess
-    Logical, Intent(In), Optional :: allow_recursion
-    Real(dp) :: t1,t2,t_old
-    Real(dp) :: r(1:3),v(1:3)
-    Integer :: i,j
-    Real(dp) :: r_mag
+    Real(dp) :: t1,t2
     
-    If (Abs(Dot_Product(r0,v0)) .LT. 1.E-12_dp) Then !initial conditions too close to periapsis, perturb and recurse
-        Call Kepler_Gooding(r0,v0,t_min,r,v)
-        t = t_min + Time_to_R(r,v,radius,0._dp,t_max-t_min)
-        Return
-    End If
     t1 = t_min
     t2 = t_max
-    If (Present(t_guess)) Then
-        t = t_guess
-    Else
-        t = 0.5_dp * (t1 + t2)
+    t = 0.5_dp * (t1 + t2)
+    !attempt Newton's method first
+    If (Time_to_R_Newton(r0,v0,radius,t1,t2,t)) Return  !normal exit
+    !Newton's method failed to converge on a root within known boundaries, use bisection for a starter
+    If (Time_to_R_Bisect(r0,v0,radius,t1,t2,t,starter=.TRUE.)) Then  !bisection has refined the starter
+        !attempt Newton again with the better starter
+        If (Time_to_R_Newton(r0,v0,radius,t1,t2,t)) Return
+    Else  !bisection failed to refine the starter
+        Print*,'ERROR:  Astro_Utilities: Time_to_R:  Bisection failed to refine starter'
+        ERROR STOP
     End If
+    !If Newton failed again, fall back on an exhaustive bisection search
+    If (Time_to_R_Bisect(r0,v0,radius,t1,t2,t,starter=.FALSE.)) Then
+        Return
+    Else
+        Print*,'ERROR:  Astro_Utilities: Time_to_R:  Failed to converge on a root.'
+        ERROR STOP
+    End If
+End Function Time_to_R
+
+Function Time_to_R_Newton(r0,v0,radius,t1,t2,t) Result(bingo)
+    Use Kinds, Only: dp
+    Use Utilities, Only: Vector_Length
+    Use Utilities, Only: Converged
+    Implicit None
+    Logical :: bingo
+    Real(dp), Intent(In) :: r0(1:3)
+    Real(dp), Intent(In) :: v0(1:3)
+    Real(dp), Intent(In) :: radius
+    Real(dp), Intent(in) :: t1,t2
+    Real(dp), Intent(InOut) :: t
+    Integer :: i
+    Real(dp) :: t_old
+    Real(dp) :: r(1:3),v(1:3)
+    Real(dp) :: r_mag
+
+    bingo = .FALSE.
     Do i = 1,100
         t_old = t
         Call Kepler_Gooding(r0,v0,t,r,v)
         r_mag = Vector_Length(r)
         t = t_old - (r_mag - radius) / Dot_Product(r/r_mag,v)
-        If (Converged(t,t_old,rTol=1.E-12_dp,aTol=1.E-9_dp)) Return  !normal exit
-        If (Present(t_guess)) Cycle  !ignore bounds for a recursive call, the starter may wander, but should... be good enough
-        If (t.LT.t1 .OR. t.GT.t2) Exit  !Newton's method has diverged from known bounds, use bisection for a better start
-    End Do
-    If (Present(allow_recursion)) Then  !check if recursion is allowed
-        If (.NOT. allow_recursion) Then  !recursion disallowed
-            Print *,'ERROR:  Astro_Utilities: Time_to_R:  Failed to converge on a root for t. Recursion disallowed.'
-            ERROR STOP
+        If (t.LT.t1 .OR. t.GT.t2) Return  !Newton's method has diverged from known bounds, unconverged exit
+        If (Converged(t,t_old,rTol=1.E-12_dp,aTol=1.E-9_dp)) Then
+            bingo = .TRUE.
+            Return  !normal exit
         End If
-    Else If (Present(t_guess)) Then
-        !This is a recursive call, newton with a bisection headstart has failed
-        Print *,'ERROR:  Astro_Utilities: Time_to_R:  Failed to converge on a root for t after recursion.'
-        ERROR STOP
+    End Do
+End Function Time_to_R_Newton
+
+Function Time_to_R_Bisect(r0,v0,radius,t1,t2,t,starter) Result(bingo)
+    Use Kinds, Only: dp
+    Use Utilities, Only: Vector_Length
+    Use Utilities, Only: Converged
+    Implicit None
+    Logical :: bingo
+    Real(dp), Intent(In) :: r0(1:3)
+    Real(dp), Intent(In) :: v0(1:3)
+    Real(dp), Intent(In) :: radius
+    Real(dp), Intent(InOut) :: t1,t2
+    Real(dp), Intent(InOut) :: t
+    Logical, Intent(In) :: starter
+    Real(dp) :: reltol,abstol
+    Integer :: i
+    Real(dp) :: t_old
+    Real(dp) :: r(1:3),v(1:3)
+
+    bingo = .FALSE.
+    If (starter) Then
+        reltol = 1.E-3_dp
+        abstol = 1._dp
+    Else
+        reltol = 1.E-9_dp
+        abstol = 1.E-12_dp
     End If
     t_old = t2
-    Do j = 1,1000
+    Do i = 1,2054  !2054 stages is the number of bisections to get from HUGE to TINY in in double precision
         t = 0.5_dp * (t1 + t2)
-        If (Converged(t,t_old,rTol=1.E-3_dp,aTol=1.E-3_dp)) Exit
+        If (Converged(t,t_old,rTol=reltol,aTol=abstol)) Then
+            bingo = .TRUE.
+            Return !normal exit
+        End If
         Call Kepler_Gooding(r0,v0,t,r,v) 
         If (Dot_Product(r,v) .GT. 0._dp) Then !ascending trajectory
             If (Vector_Length(r) .GT. radius) Then !time too late
@@ -243,8 +284,7 @@ Recursive Function Time_to_R(r0,v0,radius,t_min,t_max,t_guess,allow_recursion) R
         End If
         t_old = t
     End Do
-    t = Time_to_R(r0,v0,radius,t1,t2,t_guess = t)
-End Function Time_to_R
+End Function Time_to_R_Bisect
 
 Function Hits_Center(r1,r2,v1,v2)
     Use Kinds, Only: dp
