@@ -158,6 +158,12 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
         Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  direct_contribution must be .TRUE. for &
                            &n_scatters = 0',kill=.TRUE.)
     End If
+    If (direct_contribution) Then
+        If (n_scatters.NE.0 .OR. .NOT.estimate_each_scatter) Then
+            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  direct_contribution cannot be TRUE w/ &
+                               &either n_scatters.NE.0 or estimate_each_scatter=FALSE ',kill=.TRUE.)
+        End If
+    End If
     Select Case (scatter_model)
         Case('IsoCM')
             ScatMod%aniso_dist = .FALSE.
@@ -167,14 +173,7 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
             Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Undefined scatter model',kill=.TRUE.)
     End Select
     ScatMod%n_scatters = n_scatters
-    If (direct_contribution) Then
-        If (n_scatters.EQ.0 .OR. estimate_each_scatter) Then
-            ScatMod%direct_contribution = direct_contribution
-        Else
-            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  direct_contribution cannot be TRUE w/ &
-                               &n_scatters.NE.0 or estimate_each_scatter=FALSE ',kill=.TRUE.)
-        End If
-    End If
+    ScatMod%direct_contribution = direct_contribution
     If (atm_model_i .EQ. -1) Then !scattering should be disabled by no atmosphere model selected
         If (n_scatters.NE.0 .OR. .NOT.direct_contribution) Then
             Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  With no atmosphere model n_scatters must be 0 &
@@ -192,11 +191,11 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
         Case('An-fast')
             !UNDONE Fast analog option not yet implemented
             !ScatMod%fast_analog = .TRUE.
-            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Fast Analog Monte-Carlo game not &
+            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Fast Analog Monte-Carlo pathlength game not &
                                &yet implemented',kill=.TRUE.)
             ERROR STOP
         Case Default
-            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Undefined Monte-Carlo game',kill=.TRUE.)
+            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Undefined Monte-Carlo pathlength game',kill=.TRUE.)
     End Select
     ScatMod%roulette = roulette
     If (roulette) Then
@@ -216,7 +215,7 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
     End If
     ScatMod%Neutron_Decay = Neutron_Decay
     ScatMod%Doppler_Broaden = Doppler_Broaden
-    If (Any( (/Thermal_Motion,Rotating_Earth,Wind/) )) Then
+    If (Any( (/ Thermal_Motion , Rotating_Earth , Wind /) )) Then
         ScatMod%Target_Motion = .TRUE.
     Else
         ScatMod%Target_Motion = .FALSE.
@@ -228,10 +227,10 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
     ScatMod%next_events = 0_id
     ScatMod%n_no_tally = 0_id
     ScatMod%n_uncounted = 0_id
-    If (atm_model_i .NE. -1) Then !cross sections are not needed if atmosphere is disabled
-        ScatMod%cs_loaded = .TRUE.
+    If (atm_model_i .NE. -1) Then !load cross sections
         ScatMod%CS = Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ScatMod%aniso_dist,E_min,E_max)
-        !initialize scatter parameters for sampled scatter, except the lev_cs array (it is not used for the sampled scatter)
+        ScatMod%cs_loaded = .TRUE.
+        !initialize scatter CS arrays for sampled scatters, except the lev_cs array (used for sampled scatters)
         Allocate(ScatMod%scat%a(0:ScatMod%CS%n_a_max))
         ScatMod%scat%a = 0._dp
         Allocate(ScatMod%scat%a_tab1(1:2,1:ScatMod%CS%n_a_tab_max))
@@ -240,7 +239,7 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
         ScatMod%scat%a_tab2 = 0._dp
         Allocate(ScatMod%scat%iso_cs(1:ScatMod%CS%n_iso))
         ScatMod%scat%iso_cs = 0._dp
-    Else
+    Else !cross sections are not needed if atmosphere is disabled
         ScatMod%cs_loaded = .FALSE.
     End If
     If (Worker_Index() .EQ. 1) Then
@@ -342,7 +341,7 @@ Subroutine Sample_Scatter(ScatMod,n,atm,RNG)
     Else
         ScatMod%scat%vA = ScatMod%scat%vAir
     End If
-    !convert energy to the center of mass of the collision frame, storing side effects for later use as well
+    !convert energy to the center of mass of the collision frame, storing side effects for later use
     v0 = Neutron_Speed(n%E) * n%Omega_hat
     ScatMod%scat%u = (v0 + ScatMod%scat%An * ScatMod%scat%vA) / (ScatMod%scat%An + 1._dp)
     v0cm = v0 - ScatMod%scat%u
@@ -511,7 +510,7 @@ Subroutine Set_Scatter_iso(ScatMod,n,atm,RNG,scat,iso,n_lev,E_cm,i_E_cm)
     Else
         scat%vA = scat%vAir
     End If
-    !convert energy to the center of mass of the collision frame, storing side effects for later use as well
+    !convert energy to the center of mass of the collision frame, storing side effects for later use
     v0 = Neutron_Speed(n%E) * n%Omega_hat
     scat%u = (v0 + scat%An * scat%vA) / (scat%An + 1._dp)
     v0cm = v0 - scat%u
