@@ -159,9 +159,9 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
                            &n_scatters = 0',kill=.TRUE.)
     End If
     If (direct_contribution) Then
-        If (n_scatters.NE.0 .OR. .NOT.estimate_each_scatter) Then
+        If (n_scatters.GT.0 .OR. .NOT.estimate_each_scatter) Then
             Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  direct_contribution cannot be TRUE w/ &
-                               &either n_scatters.NE.0 or estimate_each_scatter=FALSE ',kill=.TRUE.)
+                               &either n_scatters.GT.0 or estimate_each_scatter=FALSE ',kill=.TRUE.)
         End If
     End If
     Select Case (scatter_model)
