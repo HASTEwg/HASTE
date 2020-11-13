@@ -126,7 +126,7 @@ d_U_source = -1.                 ![km/s]  Upward direction of 'front' source
 source_E_dist = 'Line'        !<'Line','Uniform','Watt235','Type03','Type05','Type08','Type13','Egroups','EAgroups'>
                                  !  'Line' energy = E_high, 
                                  !  'Uniform' energy uniformly distributed E_high to E_low, 
-                                 !  'Watt235' watt distribution for fission of U-235 from Kneif,
+                                 !  'Watt235' watt distribution for fission of U-235 from Kneif with cutoff energy at E_high,
                                  !  'Type03' fission, 
                                  !  'Type05' boosted fision, 
                                  !  'Type08' thermonuclear, 

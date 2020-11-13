@@ -83,7 +83,7 @@ Module n_Cross_Sections
         Real(dp), Allocatable :: iso_Fractions(:)  !has dimension 1:n_iso, fractional abundance of each isotope in the total atmo
         Real(dp), Allocatable :: An(:)  ![neutron masses] has dimension 1:n_iso, mass (in neutron masses) of isotope nucleus
         Real(dp) :: Mn  ![kg] mean mass (in KILOGRAMS) of nuclei in the atmosphere
-        Integer :: n_a_max,n_a_tab_max  !max number of coefficents in angular distribution cross sections
+        Integer :: n_a_max,n_a_tab_max  !max number of coefficients in angular distribution cross sections
         Type(lev_sig_Type), Allocatable :: lev_cs(:)  !has dimension 1:n_iso, cross sections and angular distributions for each 
                                                       !inelastic level for each isotope
         Type(abs_sig_Type), Allocatable :: abs_cs(:)  !has dimension 1:n_iso, cross sections for each absorption type for each 
@@ -538,7 +538,7 @@ Subroutine Read_Ang_Dist_file(Coeff_file_name,E_list,da_list,n_p,LTT,just_n)
     If (LTT .EQ. 3) Then !need to add more energies from later in the file
         !advance in the file to the end of the Legendre section
         Do i = 1,n_p
-            !The first line in each energy contains the energy in eV in the second position and the number of Legendre coefficents 
+            !The first line in each energy contains the energy in eV in the second position and the number of Legendre coefficients 
             !in the 5th position
             Read(coeff_unit,'(4E11.6E1,I11)') trash, trash, trash, trash, n_a_scratch
             Do j = 1,n_a_scratch
@@ -573,7 +573,7 @@ Subroutine Read_Ang_Dist_file(Coeff_file_name,E_list,da_list,n_p,LTT,just_n)
         da_list%is_legendre = .TRUE.
         da_list%is_tab = .FALSE.
         Do i = 1,n_p
-            !The first line in each energy contains the energy in eV in the second position and the number of Legendre coefficents 
+            !The first line in each energy contains the energy in eV in the second position and the number of Legendre coefficients 
             !in the 5th position
             Read(coeff_unit,'(4E11.6E1,I11)') trash, E_list(i), trash, trash, da_list(i)%n_a
             Allocate(da_list(i)%a(0:da_list(i)%n_a))
@@ -613,7 +613,7 @@ Subroutine Read_Ang_Dist_file(Coeff_file_name,E_list,da_list,n_p,LTT,just_n)
         Do i = 1,n_p
             da_list(i)%is_legendre = .TRUE.
             da_list(i)%is_tab = .FALSE.
-            !The first line in each energy contains the energy in eV in the second position and the number of Legendre coefficents 
+            !The first line in each energy contains the energy in eV in the second position and the number of Legendre coefficients 
             !in the 5th position
             Read(coeff_unit,'(4E11.6E1,I11)') trash, E_list(i), trash, trash, da_list(i)%n_a
             Allocate(da_list(i)%a(0:da_list(i)%n_a))

@@ -189,7 +189,7 @@ Do !run histories, periodically updating progress to the display if required
                       & HH,':',MM,':',SS, & !ETTC
                       & Real(n_img*ScatterModel%next_events(1),dp) / (dt / 60._dp), & !Next-Events per minute
                       & Real(n_img*p,dp) / (dt / 60._dp), & !Histories per minute
-                      & 100._dp * Real(p,dp) / Real(n_done,dp),'%', & !Percent efficency
+                      & 100._dp * Real(p,dp) / Real(n_done,dp),'%', & !Percent efficiency
                       & creturn
             End If 
         End If
@@ -269,7 +269,7 @@ If (i_img .EQ. 1) Then
               & 0,':',0,':',0, & !ETTC
               & Real(ScatterModel%next_events(1),dp) / (Sum(t_runs) / 60._dp), & !Next-Events per minute
               & Real(Sum(n_hist_run),dp) / (Sum(t_runs) / 60._dp), & !Histories per minute
-              & 100._dp * Real(Sum(n_hist_hit),dp) / Real(Sum(n_hist_run),dp),'%' !Percent efficency
+              & 100._dp * Real(Sum(n_hist_hit),dp) / Real(Sum(n_hist_run),dp),'%' !Percent efficiency
     End If
     !Write results
     Write(*,'(A)', ADVANCE = 'NO') 'Writing output... '

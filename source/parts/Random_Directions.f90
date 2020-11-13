@@ -235,7 +235,7 @@ Function Neutron_Anisotropic_mu0cm_tablePDF(n1,ua1,n2,ua2,Econv,RNG) Result(mu0c
         ! maxP = Max(MaxVal(ua1(:,2)),MaxVal(ua2(:,2)))
         maxP = Exp(Max(MaxVal(ua1(:,2)),MaxVal(ua2(:,2))))
     Else !extrapolating outside range E1 to E2
-        maxP = 1._dp  !this is not the most efficent, but this case would not be encountered frequently
+        maxP = 1._dp  !this is not the most efficient, but this case would not be encountered frequently
     End If
     Do
         mu0cm = 2._dp * RNG%Get_Random() - 1._dp

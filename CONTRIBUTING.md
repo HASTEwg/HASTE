@@ -14,7 +14,7 @@ We're open to ANY contributions to improve the project, but expect *energetic* d
 - **NO deleted or depreciated language features.** This includes `GOTO`, `ASSIGN`, integer `FORMAT`, and `PAUSE` among others. Use modern and standard-compliant code in these instances.
   - Avoid use of obsolescent features such as `COMMON` blocks, `DATA` statements, and `FORALL` statements or constructs (there are better modern ways to achieve the same behavior).
 - **NO implicit typing... EVER.** All types **must** be explicitly declared. ALL modules and procedures **must** have **`Implicit None`** declared in their scope. Mixed-type arithmetic should be coded with explicit standard-compliant type-conversions.
-- Order your indexes appropriately for efficent memory access. Fortran array indexes are in **column-major** order. If an array is going to be sliced or accessed sequentially frequently, the index along which it is going to be sliced should be the lowest dimension. i.e.:
+- Order your indexes appropriately for efficient memory access. Fortran array indexes are in **column-major** order. If an array is going to be sliced or accessed sequentially frequently, the index along which it is going to be sliced should be the lowest dimension. i.e.:
   - Slicing:
     - `a(:,1)` accesses a slice of the array that is stored contiguously in memory (this is fast).
     - `a(1,:)` must construct the slice from elements that are **not** adjacent to one another in memory (this is slow).
