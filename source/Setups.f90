@@ -661,7 +661,7 @@ Subroutine Write_Setup_Information(n_img,t_runs,t_waits,n_h_hit,n_h_run,RNG,path
                                      & Sum(n_h_run), & 
                                      & ' total run, (', & 
                                      & 100._dp*Real(Sum(n_h_hit),dp)/Real(Sum(n_h_run),dp), & 
-                                     & '% efficency)'
+                                     & '% efficiency)'
     Write(unit,'(A)') '  Histories per image/thread:'
     Write(unit,'(A11,2A17)') 'Image','Contributing','Total Run'
     Write(unit,'(A11,2A17)') '-----','---------------','---------------'

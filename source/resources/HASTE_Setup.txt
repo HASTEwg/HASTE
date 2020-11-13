@@ -75,7 +75,7 @@ n_scatters = 0                  ! Number of scatters to allow during a history, 
 direct_contribution = .TRUE.     !<.TRUE.,.FALSE.>  Sets whether a first-event (direct contribution) is computed for each history,
                                  !                  MUST be TRUE for n_scatters = 0
 estimate_each_scatter = .TRUE.   !<.TRUE.,.FALSE.>  Sets whether a next-event is computed at each scatter or just the final scatter,
-                                 !                  MUST be TRUE for n_scatters = -1
+                                 !                  MUST be TRUE for n_scatters = -1 or n_scatters = 0
 scatter_model = 'AnIsoCM'        !<'AnisoCM','IsoCM'>  Selects model for scatter angle selection
 elastic_only = .FALSE.           !<.TRUE.,.FALSE.>  TRUE suppreses inelastic scatter
 suppress_absorption = .TRUE.     !<.TRUE.,.FALSE.>  TRUE suppresses absorption at each scatter
@@ -126,7 +126,7 @@ d_U_source = -1.                 ![km/s]  Upward direction of 'front' source
 source_E_dist = 'Watt235'        !<'Line','Uniform','Watt235','Type03','Type05','Type08','Type13','Egroups','EAgroups'>
                                  !  'Line' energy = E_high, 
                                  !  'Uniform' energy uniformly distributed E_high to E_low, 
-                                 !  'Watt235' watt distribution for fission of U-235 from Kneif,
+                                 !  'Watt235' watt distribution for fission of U-235 from Kneif with cutoff energy at E_high,
                                  !  'Type03' fission, 
                                  !  'Type05' boosted fision, 
                                  !  'Type08' thermonuclear, 

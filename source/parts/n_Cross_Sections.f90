@@ -99,7 +99,7 @@ Module n_Cross_Sections
         Real(dp), Allocatable :: iso_Fractions(:)  !has dimension 1:n_iso, fractional abundance of each isotope in the total atm
         Real(dp), Allocatable :: An(:)  ![neutron masses] has dimension 1:n_iso, mass (in neutron masses) of isotope nucleus
         Real(dp) :: Mn  ![kg] mean mass (in KILOGRAMS) of nuclei in the atmosphere
-        Integer :: n_a_max,n_a_tab_max  !max number of coefficents in angular distribution cross sections
+        Integer :: n_a_max,n_a_tab_max  !max number of coefficients in angular distribution cross sections
         Type(lev_sig_Type), Allocatable :: lev_cs(:)  !has dimension 1:n_iso, cross sections and angular distributions for each 
                                                       !inelastic level for each isotope
         Type(abs_sig_Type), Allocatable :: abs_cs(:)  !has dimension 1:n_iso, cross sections for each absorption type for each 
@@ -444,7 +444,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
                                     !advance in the file to the end of the Legendre section
                                     Do j = 1,n_p
                                         !The first line in each energy contains the energy in eV in the second position and the 
-                                        !number of Legendre coefficents in the 5th position
+                                        !number of Legendre coefficients in the 5th position
                                         Read(ENDF_unit,'(A44,I11)') trash_c, n_a
                                         n_a_lines = (n_a / 6)  !integer divide
                                         If (Mod(n_a,6) .GT. 0) n_a_lines = n_a_lines + 1
@@ -467,7 +467,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
                                 If (LTT .EQ. 1) Then  !da is lists of legendre coeffs
                                     Do j = 1,n_p
                                         !The first line in each energy contains the energy in eV in the second position and the 
-                                        !number of Legendre coefficents in the 5th position
+                                        !number of Legendre coefficients in the 5th position
                                         Read(ENDF_unit,'(A11,E11.6E1,A22,I11)') trash_c, E_uni_scratch(n_start+j), trash_c, n_a
                                         n_a_lines = (n_a / 6)  !integer divide
                                         If (Mod(n_a,6) .GT. 0) n_a_lines = n_a_lines + 1
@@ -493,7 +493,7 @@ Function Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ani
                                     !Read in low energy Legendre points
                                     Do j = 1,n_p
                                         !The first line in each energy contains the energy in eV in the second position and the 
-                                        !number of Legendre coefficents in the 5th position
+                                        !number of Legendre coefficients in the 5th position
                                         Read(ENDF_unit,'(A11,E11.6E1,A22,I11)') trash_c, E_uni_scratch(n_start+j), trash_c, n_a
                                         n_a_lines = (n_a / 6)  !integer divide
                                         If (Mod(n_a,6) .GT. 0) n_a_lines = n_a_lines + 1
@@ -1040,7 +1040,7 @@ Subroutine Read_da_sect(da_unit,E_list,da_list,n_p,LTT)
         !Advance in the file to the end of the Legendre section
         n_skipped_lines = 0
         Do i = 1,n_p
-            !The first line in each energy contains the energy in eV in the second position and the number of Legendre coefficents 
+            !The first line in each energy contains the energy in eV in the second position and the number of Legendre coefficients 
             !in the 5th position
             Read(da_unit,'(A44,I11)') trash_c, n_a
             n_skipped_lines = n_skipped_lines + 1
@@ -1069,7 +1069,7 @@ Subroutine Read_da_sect(da_unit,E_list,da_list,n_p,LTT)
         da_list%is_legendre = .TRUE.
         da_list%is_tab = .FALSE.
         Do i = 1,n_p
-            !The first line in each energy contains the energy in eV in the second position and the number of Legendre coefficents 
+            !The first line in each energy contains the energy in eV in the second position and the number of Legendre coefficients 
             !in the 5th position
             Read(da_unit,'(4E11.6E1,I11)') trash, E_list(i), trash, trash, da_list(i)%n_a
             Allocate(da_list(i)%a(0:da_list(i)%n_a))
@@ -1110,7 +1110,7 @@ Subroutine Read_da_sect(da_unit,E_list,da_list,n_p,LTT)
         Do i = 1,n_p
             da_list(i)%is_legendre = .TRUE.
             da_list(i)%is_tab = .FALSE.
-            !The first line in each energy contains the energy in eV in the second position and the number of Legendre coefficents 
+            !The first line in each energy contains the energy in eV in the second position and the number of Legendre coefficients 
             !in the 5th position
             Read(da_unit,'(4E11.6E1,I11)') trash, E_list(i), trash, trash, da_list(i)%n_a
             Allocate(da_list(i)%a(0:da_list(i)%n_a))
