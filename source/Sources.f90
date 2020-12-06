@@ -336,6 +336,7 @@ Subroutine Sample_Source(s,RNG,n)
     Use Global, Only: R_center
     Use Global, Only: Z_hat
     Use Global, Only: X_hat
+    Use Global, Only: fourPi
     Use Random_Numbers, Only: RNG_Type
     Use Neutron_Scatter, Only: Neutron_Type
     Use Random_Directions, Only: Isotropic_Omega_hat
@@ -359,6 +360,7 @@ Subroutine Sample_Source(s,RNG,n)
     Real(dp), Parameter :: one_third = 1._dp / 3._dp
     Real(dp), Parameter :: two_thirds = 2._dp / 3._dp
     
+    n%weight = 1._dp
     !Sample emission time
     If (s%point_time) Then
         n%t = s%t_start
@@ -371,10 +373,13 @@ Subroutine Sample_Source(s,RNG,n)
             n%r = s%r
         Case (source_geom_Sphere_S)
             n%r = s%r + s%rad * Isotropic_Omega_hat(RNG)
+            n%weight = fourPi * s%rad**2
         Case (source_geom_Sphere_V)
             n%r = s%r + RNG%Get_Random() * s%rad * Isotropic_Omega_hat(RNG)
+            n%weight = fourPi * s%rad**3 / 3._dp
         Case (source_geom_Sphere_V_unif)
             n%r = s%r + Cube_root(RNG%Get_Random()) * s%rad * Isotropic_Omega_hat(RNG)
+            n%weight = fourPi * s%rad**3 / 3._dp
         Case (source_geom_Albedo)
             !In the Albedo case, the orientation of the source must be adjusted to be at this emission point for this history
             s%A_hat = Isotropic_Omega_hat(RNG)
@@ -385,7 +390,8 @@ Subroutine Sample_Source(s,RNG,n)
             End If
             s%C_hat = Cross_Product(s%A_hat,s%B_hat)
             n%r = s%rad * s%A_hat
-    End Select
+            n%weight = fourPi * s%rad**2
+        End Select
     If (.NOT.s%point_time .AND. s%has_velocity) Then  !update source position based on source velocity and elapsed time
         !N2H This implementation assumes linear motion of the source (no other motion types are presently supported)
         n%r = n%r + n%t * s%v
@@ -429,7 +435,6 @@ Subroutine Sample_Source(s,RNG,n)
                 n%Omega_hat = mu_omega_2_OmegaHat(mu,omega)
         End Select
     End If
-    n%weight = 1._dp
     If (s%source_data) Then
         Write(s%source_unit,'(9ES27.16E3)') n%t,n%r,n%E0ef,n%Omega_hat,n%weight
         s%source_data_c = s%source_data_c + 1
