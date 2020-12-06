@@ -166,7 +166,7 @@ If (i_img .EQ. 1) Then
         Write(*,'(A)') '    % Comp    ETTC     NE/min      H/min     % Eff'
         Write(*,'(A)') '    ------  --------  ---------  ---------  -------'
         !Initialize progress to screen
-        Write(*,'(F9.2,A11,ES11.3E2,F8.2,A1,A)',ADVANCE='NO') & 
+        Write(*,'(F9.2,A11,2ES11.3E2,F8.2,A1,A)',ADVANCE='NO') & 
               & 0._dp,'%  **:**:**',0._dp,0._dp,0._dp,'%',creturn
     End If
 End If

@@ -38,8 +38,9 @@ Integer :: n_bin_Cos
 Integer :: n_bin_En
 Real(dp), Allocatable :: Cos_bin_grid(:)
 Real(dp), Allocatable :: En_bin_grid(:)
+Integer, Parameter :: p = 8
 Type :: tally_box
-    Real(dp), Allocatable :: f(:,:) !1:5,1:n_box_Cos
+    Real(dp), Allocatable :: f(:,:) !1:p,1:n_box_Cos
     Integer, Allocatable :: c(:) !1:n_box_Cos
 End Type
 Type :: Surface_box
@@ -52,7 +53,7 @@ End Type
 ! Tally grid
 Integer, Parameter :: n_lat_bins = 36 , n_lon_bins = 72
 Type(Surface_box) :: f(1:n_lat_bins,1:n_lon_bins)
-Real(dp) :: D_tally,F_tally
+Real(dp) :: D_tally
 Integer, Allocatable :: swap_iE(:)
 Type(tally_box), Allocatable :: swap_x(:)
 ! Satellite data and variables
@@ -196,7 +197,7 @@ Call sat%R_and_V(t2,r_sat,v_sat)
             lat = halfPi - DEC
             lon = -(HA - Pi) - halfPi
             If (Abs(lon) .GT. Pi) lon = lon + SIGN(TwoPi,-lon)
-            !write each surface box boundaries to file
+            !write each surface box boundaries and area to file
             Write(bound_unit,'(2(I5,2F8.1),ES25.16E3)') i , r2deg*lat-2.5_dp , r2deg*lat+2.5_dp , &
                                                       & j , r2deg*lon-2.5_dp , r2deg*lon+2.5_dp , & 
                                                       & R_moon**2 * deg2r*5._dp * (Cos(DEC-deg2r*2.5) - Cos(DEC+deg2r*2.5))
@@ -237,7 +238,6 @@ Write(t2_char,'(I9.9)') NINT(t2)
     End If
     !initialize tallies for this energy
     D_tally = 0._dp
-    F_tally = 0._dp
     Do j = 1,n_lon_bins
         Do i = 1,n_lat_bins
             f(i,j)%hit = .FALSE.
@@ -301,7 +301,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
                 Allocate(f(dec_bin,ha_bin)%x(1:1))
                 Allocate(f(dec_bin,ha_bin)%iE(1:1))
                 f(dec_bin,ha_bin)%iE = En_bin
-                Allocate(f(dec_bin,ha_bin)%x(1)%f(1:5,1:n_bin_Cos))
+                Allocate(f(dec_bin,ha_bin)%x(1)%f(1:p,1:n_bin_Cos))
                 f(dec_bin,ha_bin)%x(1)%f = 0._dp
                 Allocate(f(dec_bin,ha_bin)%x(1)%c(1:n_bin_Cos))
                 f(dec_bin,ha_bin)%x(1)%c = 0
@@ -334,7 +334,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
                     Do l = 1,f(dec_bin,ha_bin)%x_size
                         Allocate(swap_x(l)%c(1:n_bin_Cos))
                         swap_x(l)%c = f(dec_bin,ha_bin)%x(l)%c
-                        Allocate(swap_x(l)%f(1:5,1:n_bin_Cos))
+                        Allocate(swap_x(l)%f(1:p,1:n_bin_Cos))
                         swap_x(l)%f = f(dec_bin,ha_bin)%x(l)%f
                     End Do
                     !deallocate primary lists
@@ -347,7 +347,7 @@ Write(t2_char,'(I9.9)') NINT(t2)
                     Do l = 1,f(dec_bin,ha_bin)%x_size+1
                         Allocate(f(dec_bin,ha_bin)%x(l)%c(1:n_bin_Cos))
                         f(dec_bin,ha_bin)%x(l)%c = 0
-                        Allocate(f(dec_bin,ha_bin)%x(l)%f(1:5,1:n_bin_Cos))
+                        Allocate(f(dec_bin,ha_bin)%x(l)%f(1:p,1:n_bin_Cos))
                         f(dec_bin,ha_bin)%x(l)%f = 0._dp
                     End Do
                     m = 0
@@ -370,13 +370,15 @@ Write(t2_char,'(I9.9)') NINT(t2)
                 End If
             End If
             !Increment the tally counter for this surface box
-            D_tally = D_tally + Dfact
-            F_tally = F_tally + (1._dp / Dfact)
+            DEC = Real(2*dec_bin-1,dp) * halfPi / Real(n_lat_bins,dp)
+            HA = Real(2*ha_bin-1,dp) * Pi / Real(n_lon_bins,dp)
+            D_tally = D_tally + Dfact * R_moon**2 * deg2r*5._dp * (Cos(DEC-deg2r*2.5) - Cos(DEC+deg2r*2.5))
             f(dec_bin,ha_bin)%c = f(dec_bin,ha_bin)%c + 1
             !tally counter, intensity (divergence factor), and tof (weighted by divergence factor)
             f(dec_bin,ha_bin)%x(b)%c(zeta_bin) = f(dec_bin,ha_bin)%x(b)%c(zeta_bin) + 1
             f(dec_bin,ha_bin)%x(b)%f(:,zeta_bin) = f(dec_bin,ha_bin)%x(b)%f(:,zeta_bin) + & 
-                                                 & (/ Dfact , Dfact**2 , tof , tof**2 , Dfact*tof /)
+                                                 & (/ Dfact , Dfact**2 , tof , tof**2 , Dfact*tof , &
+                                                 &    Dfact*r1(1) , Dfact*r1(2) , Dfact*r1(3) /)
         Else
             h_miss = h_miss + 1
         End If
@@ -386,8 +388,8 @@ Write(t2_char,'(I9.9)') NINT(t2)
              If (MOD(h,10000) .EQ. 0) Then
                 Write( new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES15.8E3)') & 
                      & 'En ' , e , '/'//n_En_char//' ' , 100._dp*Real(h,dp)/Real(n_trials,dp) , '% (' , &
-                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp) , '% hits) Lunar F: ' , & 
-                     & F_tally / Real(h,dp)
+                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp) , '% hits) Mean Lunar F: ' , & 
+                     & D_tally / Real(h,dp)
                 If (this_image() .EQ. 1) Then
                     stat_lines(e) = new_stat_line
                     Do j = 1,n_En
@@ -402,8 +404,8 @@ Write(t2_char,'(I9.9)') NINT(t2)
              If (MOD(h,10000) .EQ. 0) Then
                 Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES15.8E3,A)' , ADVANCE = 'NO' ) & 
                      & 'En ' , e , '/'//n_En_char//' ' , 100._dp*Real(h,dp)/Real(n_trials,dp) , '% (' , &
-                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp) , '% hits) Lunar F: ' , & 
-                     & F_tally / Real(h,dp) , cr
+                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp) , '% hits) Mean Lunar F: ' , & 
+                     & D_tally / Real(h,dp) , cr
              End If
 #           endif
             End If
@@ -415,13 +417,16 @@ Write(t2_char,'(I9.9)') NINT(t2)
         Do j = 1,n_lon_bins
             If (f(i,j)%hit) Then
                 !compute position vector at the lat-lon center of this surface box
-                DEC = Real(2*i-1,dp) * halfPi / Real(n_lat_bins,dp)
-                HA = Real(2*j-1,dp) * Pi / Real(n_lon_bins,dp)
-                r1 = R_moon * ( Cos(DEC) * Z_hat + Sqrt(1._dp - Cos(DEC)**2) * (Cos(HA) * Y_hat + Sin(HA) * X_hat) )
+                ! DEC = Real(2*i-1,dp) * halfPi / Real(n_lat_bins,dp)
+                ! HA = Real(2*j-1,dp) * Pi / Real(n_lon_bins,dp)
+                ! r1 = R_moon * ( Cos(DEC) * Z_hat + Sqrt(1._dp - Cos(DEC)**2) * (Cos(HA) * Y_hat + Sin(HA) * X_hat) )
                 !walk through the energy-angle lists for this surface box, writing each result to file
                 Do k = 1,f(i,j)%x_size
                     Do l = 1,n_bin_Cos
                         If (f(i,j)%x(k)%c(l) .EQ. 0) Cycle
+                        !emission location
+                        r1 = f(i,j)%x(k)%f(6:8,l) / f(i,j)%x(k)%f(1,l)
+                        r1 = Unit_Vector(r1) * R_moon
                         !intensity
                         Dfact = f(i,j)%x(k)%f(1,l) / Real(f(i,j)%x(k)%c(l),dp)
                         Dfact_err = Std_err( f(i,j)%x(k)%c(l) , f(i,j)%x(k)%f(1,l) , f(i,j)%x(k)%f(2,l) )
