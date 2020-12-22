@@ -18,6 +18,7 @@ Use Utilities, Only: Unit_Vector
 Use Utilities, Only: Vector_Length
 Use Utilities, Only: Linear_spaces
 Use Utilities, Only: Log_spaces
+Use Utilities, Only: Bisection_Search
 Use Statistics, Only: Std_Err
 Use FileIO_Utilities, Only: cr => creturn
 Use FileIO_Utilities, Only: Wait
@@ -52,8 +53,8 @@ Type :: Surface_box
 End Type
 ! Tally grid
 Integer, Parameter :: n_lat_bins = 36 , n_lon_bins = 72
-Type(Surface_box) :: f(1:n_lat_bins,1:n_lon_bins)
-Real(dp) :: D_tally
+Type(Surface_box), Allocatable :: f(:,:,:)  !(1:n_lat_bins,1:n_lon_bins,1:n_En)
+Real(dp) :: F_tally
 Integer, Allocatable :: swap_iE(:)
 Type(tally_box), Allocatable :: swap_x(:)
 ! Satellite data and variables
@@ -78,7 +79,6 @@ Integer :: h_miss !counter for number of histories started but not propagated be
 Integer :: e !counter for energy points, runs 1:n_En
 Integer :: i,j,k,l,m  !counters
 Character(2) :: e_char !character representation of energy index for file naming
-Character(2) :: n_En_char !character representation of total number of energy points, for screen updates
 Character(9) :: t2_char !character representation of time of intercept for file naming
 Real(dp) :: Dfact_err,tof_err
 Real(dp) :: lat,lon
@@ -87,14 +87,6 @@ Logical :: screen_progress
 Logical :: skip_next_cmd
 Integer :: n_scratch
 Real(dp), Allocatable :: scratch(:)
-Logical :: Ed_in_bins
-Real(dp) :: dEd
-# if CAF
- Integer :: next_e[*]
- Character(80), Allocatable :: stat_lines(:)[:]
- Character(80) :: new_stat_line
- Logical, Allocatable :: En_finished(:)[:]
-# endif
 
 ! Set default t2 and n_trials, defaults are for testing and can be overridden by command line
 n_trials = 100000
@@ -102,10 +94,7 @@ n_trials = 100000
 t2 = 84420._dp !time of intercept
 ! Set default to send progress updates to screen
 screen_progress = .TRUE.
-! Set default to treat detector energy grid as bin boundaries
-Ed_in_bins = .TRUE.
 !Get command line arguments
-n_En = -1
 skip_next_cmd = .FALSE.
 b = COMMAND_ARGUMENT_COUNT()
 If ( b .NE. 0 ) Then
@@ -124,24 +113,19 @@ If ( b .NE. 0 ) Then
                 Call GET_COMMAND_ARGUMENT(i+1,cmd2)
                 Read(cmd2,*) n_trials
                 skip_next_cmd = .TRUE.
-            Case ('e','E','En','Ed')
-                n_En = 1
-                Allocate(En_list(1:1))
-                Call GET_COMMAND_ARGUMENT(i+1,cmd2)
-                Read(cmd2,*) En_list(1)
-                skip_next_cmd = .TRUE.
             Case ('quiet','QUIET','Quiet','q','Q')
                 screen_progress = .FALSE.
-            Case ('points','POINTS','Points','p','P')
-                Ed_in_bins = .FALSE.
             Case Default
                 Write (*,'(A)') 'Invalid command argument specified. Aborting.'
         End Select
     End Do
 End If
-! Read in detection energies
-If (n_EN .LT. 1) Call Read_List('grid'//slash//'Ed.txt',n_En,En_list)
-En_list = En_list * 1000._dp  !convert to keV
+! Read in detection energy bins
+Call Read_List('grid'//slash//'Ed.txt',n_scratch,scratch)
+n_En = n_scratch - 1
+Allocate(En_list(0:n_En))
+En_list(0:n_En) = scratch(1:n_scratch) * 1000._dp  !convert to keV
+Deallocate(scratch)
 ! Read in angle cosine bin boundaries
 Call Read_List('grid'//slash//'cos_grid.txt',n_scratch,scratch)
 n_bin_Cos = n_scratch - 1
@@ -152,113 +136,61 @@ Deallocate(scratch)
 Call Read_List('grid'//slash//'en_grid.txt',n_scratch,scratch)
 n_bin_En = n_scratch - 1
 Allocate(En_bin_grid(0:n_bin_En))
-En_bin_grid(0:n_bin_En) = scratch(1:n_scratch)
+En_bin_grid(0:n_bin_En) = scratch(1:n_scratch) * 1000._dp  !convert to keV
 Deallocate(scratch)
-En_bin_grid = En_bin_grid * 1000._dp  !convert to keV
 ! Initialize satellite position & velocity
 Call Initialize_Satellite_Motion('','Conic_tab ',sat)
 Call sat%R_and_V(t2,r_sat,v_sat)
 ! Initialize Random Number Generator
-# if CAF
- Call RNG%Initialize(seed = 7777777 , thread = this_image())
-# else
- Call RNG%Initialize(seed = 7777777)
-# endif
+Call RNG%Initialize(seed = 7777777)
 ! Write detection energies and energy-angle grid boundaries to file
-# if CAF
- If (this_image().EQ.1) Then
-# endif
-    !write detection energies
-    Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_Ed_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-    Do i = 1,n_En
-        Write(bound_unit,'(I5,2ES25.16E3)') i,En_list(i)/1000._dp !MeV
-    End Do
-    Close(bound_unit)
-    !write angle cosine grid boundaries
-    Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_Cos_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-    Do i = 1,n_bin_Cos
-        Write(bound_unit,'(I5,2ES25.16E3)') i,Cos_bin_grid(i-1),Cos_bin_grid(i)
-    End Do
-    Close(bound_unit)
-    !write energy grid boundaries
-    Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_En_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-    Do i = 1,n_bin_En
-        Write(bound_unit,'(I5,2ES25.16E3)') i,En_bin_grid(i-1)/1000._dp,En_bin_grid(i)/1000._dp !MeV
-    End Do
-    Close(bound_unit)
-    !write surface box boundaries
-    Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_LatLon_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-    Do i = 1,n_lat_bins
-        Do j = 1,n_lon_bins
-            !compute declination-hourangle for this box
-            DEC = Real(2*i-1,dp) * halfPi / Real(n_lat_bins,dp)
-            HA = Real(2*j-1,dp) * Pi / Real(n_lon_bins,dp)
-            !compute lat-lon for this surface box
-            lat = halfPi - DEC
-            lon = -(HA - Pi) - halfPi
-            If (Abs(lon) .GT. Pi) lon = lon + SIGN(TwoPi,-lon)
-            !write each surface box boundaries and area to file
-            Write(bound_unit,'(2(I5,2F8.1),ES25.16E3)') i , r2deg*lat-2.5_dp , r2deg*lat+2.5_dp , &
-                                                      & j , r2deg*lon-2.5_dp , r2deg*lon+2.5_dp , & 
-                                                      & R_moon**2 * deg2r*5._dp * (Cos(DEC-deg2r*2.5) - Cos(DEC+deg2r*2.5))
-        End Do
-    End Do
-    Close(bound_unit)
-# if CAF
- End If
-# endif
-
-If (Ed_in_bins) n_En = n_En - 1
-Write(n_En_char,'(I2.2)') n_En
-Write(t2_char,'(I9.9)') NINT(t2)
-# if CAF
- Allocate(stat_lines(1:n_En)[*])
- Do e = 1,n_En
-    Write(e_char,'(I2.2)') e
-    stat_lines(e) = 'En '//e_char//'/'//n_En_char//'   *.**% (  *.**% hits) Lunar F: *.********E+***'
- End Do
- Allocate(En_finished(1:n_En)[*])
- En_finished = .FALSE.
- next_e = 1
- SYNC ALL
- Do
-    CRITICAL
-        e = next_e[1]
-        next_e[1] = next_e[1] + 1
-    END CRITICAL
-    If (e .GT. n_En) Exit
-# else
- Do e = 1,n_En
-# endif
-    If (Ed_in_bins) Then
-        dEd = En_List(e+1) - En_List(e)
-    Else
-        dEd = 1._dp
-        En = En_list(e)
-    End If
-    !initialize tallies for this energy
-    D_tally = 0._dp
+!write detection energies
+Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_Ed_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
+Do i = 1,n_En
+    Write(bound_unit,'(I5,2ES25.16E3)') i,En_list(i-1)/1000._dp,En_list(i)/1000._dp !MeV
+End Do
+Close(bound_unit)
+!write angle cosine grid boundaries
+Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_Cos_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
+Do i = 1,n_bin_Cos
+    Write(bound_unit,'(I5,2ES25.16E3)') i,Cos_bin_grid(i-1),Cos_bin_grid(i)
+End Do
+Close(bound_unit)
+!write energy grid boundaries
+Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_En_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
+Do i = 1,n_bin_En
+    Write(bound_unit,'(I5,2ES25.16E3)') i,En_bin_grid(i-1)/1000._dp,En_bin_grid(i)/1000._dp !MeV
+End Do
+Close(bound_unit)
+!write surface box boundaries
+Open(NEWUNIT = bound_unit , FILE = 'LPemissionMap_LatLon_grid.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
+Do i = 1,n_lat_bins
     Do j = 1,n_lon_bins
-        Do i = 1,n_lat_bins
-            f(i,j)%hit = .FALSE.
-            f(i,j)%c = 0
-            f(i,j)%x_size = 0
-            If ( Allocated(f(i,j)%iE) ) Deallocate(f(i,j)%iE)
-            If ( Allocated(f(i,j)%x) ) Deallocate(f(i,j)%x)
-        End Do
+        !compute declination-hourangle for this box
+        DEC = Real(2*i-1,dp) * halfPi / Real(n_lat_bins,dp)
+        HA = Real(2*j-1,dp) * Pi / Real(n_lon_bins,dp)
+        !compute lat-lon for this surface box
+        lat = halfPi - DEC
+        lon = -(HA - Pi) - halfPi
+        If (Abs(lon) .GT. Pi) lon = lon + SIGN(TwoPi,-lon)
+        !write each surface box boundaries and area to file
+        Write(bound_unit,'(2(I5,2F8.1),ES25.16E3)') i , r2deg*lat-2.5_dp , r2deg*lat+2.5_dp , &
+                                                    & j , r2deg*lon-2.5_dp , r2deg*lon+2.5_dp , & 
+                                                    & R_moon**2 * deg2r*5._dp * (Cos(DEC-deg2r*2.5) - Cos(DEC+deg2r*2.5))
     End Do
-    !initialize output files for this energy
-    Write(e_char,'(I2.2)') e
-    Open(NEWUNIT = map_unit , FILE = 'LPemissionMap_'//t2_char//'_e'//e_char//'.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
-    If (Ed_in_bins) Then
-        Write( map_unit , '(3ES25.16E3)' , ADVANCE = 'NO' ) En_List(e)/1000._dp , En_List(e+1)/1000._dp , t2
-    Else
-        Write( map_unit , '(3ES25.16E3)' , ADVANCE = 'NO' ) En_List(e)/1000._dp , En/1000._dp , t2
-    End If
-    h = 0
-    h_miss = 0
+End Do
+Close(bound_unit)
+!initialize main array and output files
+Allocate( f(1:n_lat_bins,1:n_lon_bins,1:n_En) )
+f(:,:,:)%hit = .FALSE.
+F_tally = 0._dp
+h = 0
+h_miss = 0
+Do
+    !choose a random energy of arrival at the detector
+    En = En_List(0) + RNG%Get_random() * (En_List(n_En) - En_List(0))
+    e = Bisection_Search(En, En_List, n_En+1) - 1
     Do
-        If (Ed_in_bins) En = En_List(e) + RNG%Get_random() * dEd
         !choose a random direction of arrival at the detector
         Omega_hat2 = Isotropic_Omega_Hat(RNG)
         !check if an emission is possible at the surface at this energy to result in this rendezvous
@@ -277,168 +209,138 @@ Write(t2_char,'(I9.9)') NINT(t2)
             DFact = Div_Fact_by_shooting(r1,Unit_Vector(v1),Vector_Length(v1),(/0._dp,0._dp,0._dp/),tof,v_sat,v2)
             !Find emission energy bin
             Ee = Neutron_Energy(v1)
-            En_bin = 0
-            Do j = 1,n_bin_En
-                If (Ee.GE.En_bin_grid(j-1) .AND. Ee.LT.En_bin_grid(j)) Then
-                    En_bin = j
-                    Exit
-                End If
-            End Do
+            En_bin = Bisection_Search(Ee, En_bin_grid, n_bin_En+1) - 1
             !Find emission direction bin
             zeta = Dot_Product(Unit_Vector(r1),Unit_Vector(v1))
-            zeta_bin = 0
-            Do j = 1,n_bin_Cos
-                If (zeta.LE.Cos_bin_grid(j-1) .AND. zeta.GT.Cos_bin_grid(j)) Then
-                    zeta_bin = j
-                    Exit
-                End If
-            End Do
+            zeta_bin = Bisection_Search(zeta, Cos_bin_grid, n_bin_Cos+1) - 1
             !Check if this surface box has been initialized
             b = 0
-            If (.NOT.f(dec_bin,ha_bin)%hit) Then !initialize the surface bin
-                f(dec_bin,ha_bin)%hit = .TRUE.
-                f(dec_bin,ha_bin)%x_size = 1
-                Allocate(f(dec_bin,ha_bin)%x(1:1))
-                Allocate(f(dec_bin,ha_bin)%iE(1:1))
-                f(dec_bin,ha_bin)%iE = En_bin
-                Allocate(f(dec_bin,ha_bin)%x(1)%f(1:p,1:n_bin_Cos))
-                f(dec_bin,ha_bin)%x(1)%f = 0._dp
-                Allocate(f(dec_bin,ha_bin)%x(1)%c(1:n_bin_Cos))
-                f(dec_bin,ha_bin)%x(1)%c = 0
+            If (.NOT.f(dec_bin,ha_bin,e)%hit) Then !initialize the surface bin
+                f(dec_bin,ha_bin,e)%hit = .TRUE.
+                f(dec_bin,ha_bin,e)%x_size = 1
+                Allocate(f(dec_bin,ha_bin,e)%x(1:1))
+                Allocate(f(dec_bin,ha_bin,e)%iE(1:1))
+                f(dec_bin,ha_bin,e)%iE = En_bin
+                Allocate(f(dec_bin,ha_bin,e)%x(1)%f(1:p,1:n_bin_Cos))
+                f(dec_bin,ha_bin,e)%x(1)%f = 0._dp
+                Allocate(f(dec_bin,ha_bin,e)%x(1)%c(1:n_bin_Cos))
+                f(dec_bin,ha_bin,e)%x(1)%c = 0
                 b = 1
             Else !surface box is initialized, check that this energy is allocated, if not, initialize it
-                If ( Any(f(dec_bin,ha_bin)%iE .EQ. En_bin) ) Then !E bin is already present, find its place in the list
-                    Do k = 1,f(dec_bin,ha_bin)%x_size
-                        If (En_bin .EQ. f(dec_bin,ha_bin)%iE(k)) Then
+                If ( Any(f(dec_bin,ha_bin,e)%iE .EQ. En_bin) ) Then !E bin is already present, find its place in the list
+                    Do k = 1,f(dec_bin,ha_bin,e)%x_size
+                        If (En_bin .EQ. f(dec_bin,ha_bin,e)%iE(k)) Then
                             b = k
                             Exit
                         End If
                     End Do
                     !b holds the index of the correct bin
                 Else !insert and initialize E bin
-                    Do k = 1,f(dec_bin,ha_bin)%x_size
-                        If (En_bin .LT. f(dec_bin,ha_bin)%iE(k)) Then
+                    Do k = 1,f(dec_bin,ha_bin,e)%x_size
+                        If (En_bin .LT. f(dec_bin,ha_bin,e)%iE(k)) Then
                             b = k
                             Exit
                         End If
-                        If (k .EQ. f(dec_bin,ha_bin)%x_size) Then
+                        If (k .EQ. f(dec_bin,ha_bin,e)%x_size) Then
                             b = k + 1
                             Exit
                         End If
                     End Do
                     !b holds the index at which to insert the new energy bin
                     !copy current lists into temporary storage
-                    Allocate(swap_iE(1:f(dec_bin,ha_bin)%x_size))
-                    swap_iE = f(dec_bin,ha_bin)%iE
-                    Allocate(swap_x(1:f(dec_bin,ha_bin)%x_size))
-                    Do l = 1,f(dec_bin,ha_bin)%x_size
+                    Allocate(swap_iE(1:f(dec_bin,ha_bin,e)%x_size))
+                    swap_iE = f(dec_bin,ha_bin,e)%iE
+                    Allocate(swap_x(1:f(dec_bin,ha_bin,e)%x_size))
+                    Do l = 1,f(dec_bin,ha_bin,e)%x_size
                         Allocate(swap_x(l)%c(1:n_bin_Cos))
-                        swap_x(l)%c = f(dec_bin,ha_bin)%x(l)%c
+                        swap_x(l)%c = f(dec_bin,ha_bin,e)%x(l)%c
                         Allocate(swap_x(l)%f(1:p,1:n_bin_Cos))
-                        swap_x(l)%f = f(dec_bin,ha_bin)%x(l)%f
+                        swap_x(l)%f = f(dec_bin,ha_bin,e)%x(l)%f
                     End Do
                     !deallocate primary lists
-                    Deallocate(f(dec_bin,ha_bin)%iE)
-                    Deallocate(f(dec_bin,ha_bin)%x)
+                    Deallocate(f(dec_bin,ha_bin,e)%iE)
+                    Deallocate(f(dec_bin,ha_bin,e)%x)
                     !reallocate one element longer and copy lists back, inserting the new value at k
-                    Allocate(f(dec_bin,ha_bin)%iE(1:f(dec_bin,ha_bin)%x_size+1))
-                    f(dec_bin,ha_bin)%iE(:) = -1
-                    Allocate(f(dec_bin,ha_bin)%x(1:f(dec_bin,ha_bin)%x_size+1))
-                    Do l = 1,f(dec_bin,ha_bin)%x_size+1
-                        Allocate(f(dec_bin,ha_bin)%x(l)%c(1:n_bin_Cos))
-                        f(dec_bin,ha_bin)%x(l)%c = 0
-                        Allocate(f(dec_bin,ha_bin)%x(l)%f(1:p,1:n_bin_Cos))
-                        f(dec_bin,ha_bin)%x(l)%f = 0._dp
+                    Allocate(f(dec_bin,ha_bin,e)%iE(1:f(dec_bin,ha_bin,e)%x_size+1))
+                    f(dec_bin,ha_bin,e)%iE(:) = -1
+                    Allocate(f(dec_bin,ha_bin,e)%x(1:f(dec_bin,ha_bin,e)%x_size+1))
+                    Do l = 1,f(dec_bin,ha_bin,e)%x_size+1
+                        Allocate(f(dec_bin,ha_bin,e)%x(l)%c(1:n_bin_Cos))
+                        f(dec_bin,ha_bin,e)%x(l)%c = 0
+                        Allocate(f(dec_bin,ha_bin,e)%x(l)%f(1:p,1:n_bin_Cos))
+                        f(dec_bin,ha_bin,e)%x(l)%f = 0._dp
                     End Do
                     m = 0
-                    Do l = 1,f(dec_bin,ha_bin)%x_size+1
+                    Do l = 1,f(dec_bin,ha_bin,e)%x_size+1
                         If (l .EQ. b) Then
-                            f(dec_bin,ha_bin)%iE(l) = En_bin
-                            f(dec_bin,ha_bin)%x(l)%c = 0
-                            f(dec_bin,ha_bin)%x(l)%f = 0._dp
+                            f(dec_bin,ha_bin,e)%iE(l) = En_bin
+                            f(dec_bin,ha_bin,e)%x(l)%c = 0
+                            f(dec_bin,ha_bin,e)%x(l)%f = 0._dp
                             m = 1
                         Else
-                            f(dec_bin,ha_bin)%iE(l) = swap_iE(l-m)
-                            f(dec_bin,ha_bin)%x(l)%c = swap_x(l-m)%c
-                            f(dec_bin,ha_bin)%x(l)%f = swap_x(l-m)%f
+                            f(dec_bin,ha_bin,e)%iE(l) = swap_iE(l-m)
+                            f(dec_bin,ha_bin,e)%x(l)%c = swap_x(l-m)%c
+                            f(dec_bin,ha_bin,e)%x(l)%f = swap_x(l-m)%f
                         End If
                     End Do
                     !increment x_size and cleanup
-                    f(dec_bin,ha_bin)%x_size = f(dec_bin,ha_bin)%x_size + 1
+                    f(dec_bin,ha_bin,e)%x_size = f(dec_bin,ha_bin,e)%x_size + 1
                     Deallocate(swap_iE)
                     Deallocate(swap_x)
                 End If
             End If
             !Increment the tally counter for this surface box
-            DEC = Real(2*dec_bin-1,dp) * halfPi / Real(n_lat_bins,dp)
-            HA = Real(2*ha_bin-1,dp) * Pi / Real(n_lon_bins,dp)
-            D_tally = D_tally + Dfact * R_moon**2 * deg2r*5._dp * (Cos(DEC-deg2r*2.5) - Cos(DEC+deg2r*2.5))
-            f(dec_bin,ha_bin)%c = f(dec_bin,ha_bin)%c + 1
+            F_tally = F_tally + Dfact
+            f(dec_bin,ha_bin,e)%c = f(dec_bin,ha_bin,e)%c + 1
             !tally counter, intensity (divergence factor), and tof (weighted by divergence factor)
-            f(dec_bin,ha_bin)%x(b)%c(zeta_bin) = f(dec_bin,ha_bin)%x(b)%c(zeta_bin) + 1
-            f(dec_bin,ha_bin)%x(b)%f(:,zeta_bin) = f(dec_bin,ha_bin)%x(b)%f(:,zeta_bin) + & 
-                                                 & (/ Dfact , Dfact**2 , tof , tof**2 , Dfact*tof , &
-                                                 &    Dfact*r1(1) , Dfact*r1(2) , Dfact*r1(3) /)
+            f(dec_bin,ha_bin,e)%x(b)%c(zeta_bin) = f(dec_bin,ha_bin,e)%x(b)%c(zeta_bin) + 1
+            f(dec_bin,ha_bin,e)%x(b)%f(:,zeta_bin) = f(dec_bin,ha_bin,e)%x(b)%f(:,zeta_bin) + & 
+                                                    & (/ Dfact , Dfact**2 , tof , tof**2 , Dfact*tof , &
+                                                    &    Dfact*r1(1) , Dfact*r1(2) , Dfact*r1(3) /)
+            Exit
         Else
             h_miss = h_miss + 1
         End If
-        If (screen_progress) Then
-            If (h .GT. 0) Then
-#           if CAF
-             If (MOD(h,10000) .EQ. 0) Then
-                Write( new_stat_line,'(A,I2,A,F6.2,A,F6.2,A,ES15.8E3)') & 
-                     & 'En ' , e , '/'//n_En_char//' ' , 100._dp*Real(h,dp)/Real(n_trials,dp) , '% (' , &
-                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp) , '% hits) Mean Lunar F: ' , & 
-                     & D_tally / Real(h,dp)
-                If (this_image() .EQ. 1) Then
-                    stat_lines(e) = new_stat_line
-                    Do j = 1,n_En
-                        Write(*,'(A)') stat_lines(j)
-                    End Do
-                    Write(*,'(A)',ADVANCE='NO') ACHAR(27)//'['//n_En_char//'F'
-                Else
-                    stat_lines(e)[1] = new_stat_line
-                End If
-             End If
-#           else
-             If (MOD(h,10000) .EQ. 0) Then
-                Write( * , '(A,I2,A,F6.2,A,F6.2,A,ES15.8E3,A)' , ADVANCE = 'NO' ) & 
-                     & 'En ' , e , '/'//n_En_char//' ' , 100._dp*Real(h,dp)/Real(n_trials,dp) , '% (' , &
-                     & 100._dp*Real(h,dp)/Real(h+h_miss,dp) , '% hits) Mean Lunar F: ' , & 
-                     & D_tally / Real(h,dp) , cr
-             End If
-#           endif
-            End If
-        End If
-        If (h .GE. n_trials) Exit
     End Do
-    Write(map_unit,'(2I12)') h,h_miss
+    If (screen_progress) Then
+        If ( h.GT.0 .AND. MOD(h,10000).EQ.0 ) Then
+            Write( * , '(A,F6.2,A,F6.2,A,ES15.8E3,A)' , ADVANCE = 'NO' ) & 
+                 & 'Running... ' , 100._dp*Real(h,dp)/Real(n_trials,dp) , '% (' , &
+                 & 100._dp*Real(h,dp)/Real(h+h_miss,dp) , '% scoring hits) Mean Lunar Surface Tally: ' , & 
+                 & F_tally / Real(h,dp) , cr
+        End If
+    End If
+    If (h .GE. n_trials) Exit
+End Do
+Write(t2_char,'(I9.9)') NINT(t2)
+Do e = 1,n_En
+    !initialize output file for this energy
+    Write(e_char,'(I2.2)') e
+    Open(NEWUNIT = map_unit , FILE = 'LPemissionMap_'//t2_char//'_e'//e_char//'.tst' , STATUS = 'REPLACE' , ACTION = 'WRITE')
+    Write( map_unit , '(3ES25.16E3,2I12)' ) En_List(e-1)/1000._dp , En_List(e)/1000._dp , t2 , h , h_miss
     Do i = 1,n_lat_bins
         Do j = 1,n_lon_bins
-            If (f(i,j)%hit) Then
-                !compute position vector at the lat-lon center of this surface box
-                ! DEC = Real(2*i-1,dp) * halfPi / Real(n_lat_bins,dp)
-                ! HA = Real(2*j-1,dp) * Pi / Real(n_lon_bins,dp)
-                ! r1 = R_moon * ( Cos(DEC) * Z_hat + Sqrt(1._dp - Cos(DEC)**2) * (Cos(HA) * Y_hat + Sin(HA) * X_hat) )
-                !walk through the energy-angle lists for this surface box, writing each result to file
-                Do k = 1,f(i,j)%x_size
+            If (f(i,j,e)%hit) Then
+                !walk through the energy-angle lists for this detection energy and surface box, writing each result to file
+                Do k = 1,f(i,j,e)%x_size
                     Do l = 1,n_bin_Cos
-                        If (f(i,j)%x(k)%c(l) .EQ. 0) Cycle
+                        If (f(i,j,e)%x(k)%c(l) .EQ. 0) Cycle
                         !emission location
-                        r1 = f(i,j)%x(k)%f(6:8,l) / f(i,j)%x(k)%f(1,l)
+                        r1 = f(i,j,e)%x(k)%f(6:8,l) / f(i,j,e)%x(k)%f(1,l)
                         r1 = Unit_Vector(r1) * R_moon
                         !intensity
-                        Dfact = f(i,j)%x(k)%f(1,l) / Real(f(i,j)%x(k)%c(l),dp)
-                        Dfact_err = Std_err( f(i,j)%x(k)%c(l) , f(i,j)%x(k)%f(1,l) , f(i,j)%x(k)%f(2,l) )
+                        Dfact = f(i,j,e)%x(k)%f(1,l) / F_tally
+                        Dfact_err = Std_err( f(i,j,e)%x(k)%c(l) , f(i,j,e)%x(k)%f(1,l) , f(i,j,e)%x(k)%f(2,l) ) / &
+                                  & ( f(i,j,e)%x(k)%f(1,l) / f(i,j,e)%x(k)%c(l) )
                         !tof
-                        tof = f(i,j)%x(k)%f(5,l) / f(i,j)%x(k)%f(1,l)
-                        tof_err = Std_err( f(i,j)%x(k)%c(l) , f(i,j)%x(k)%f(3,l) , f(i,j)%x(k)%f(4,l) )
+                        tof = f(i,j,e)%x(k)%f(5,l) / f(i,j,e)%x(k)%f(1,l)
+                        tof_err = Std_err( f(i,j,e)%x(k)%c(l) , f(i,j,e)%x(k)%f(3,l) , f(i,j,e)%x(k)%f(4,l) )
                         !Properties of a trajectory matching this tof and satellite position
                         Call Lambert_Gooding(r1,r_sat,tof,v1,v2)
                         !Write to file
                         Write( map_unit,'(4I5,I12,10ES25.16E3)') &
-                             & i,j,f(i,j)%iE(k),l, & 
-                             & f(i,j)%x(k)%c(l) , & 
+                             & i,j,f(i,j,e)%iE(k),l, & 
+                             & f(i,j,e)%x(k)%c(l) , & 
                              & Dfact , Dfact_err , & 
                              & tof , tof_err , & 
                              & Neutron_Energy(v1) / 1000._dp , & !MeV
@@ -451,34 +353,6 @@ Write(t2_char,'(I9.9)') NINT(t2)
         End Do
     End Do
     Close(map_unit)
-    If (screen_Progress) Then
-#       if CAF
-         En_finished(e)[1] = .TRUE.
-#       else
-         Write(*,*)
-#       endif
-    End If
 End Do
-# if CAF
- If (screen_progress) Then
-    If (this_image() .EQ. 1) Then
-        Do
-            If ( All(En_finished) ) Exit
-            Call Wait(100)
-            Do i = 1,n_En
-            Write(*,'(A)') stat_lines(i)
-            End Do
-            Write(*,'(A)',ADVANCE='NO') ACHAR(27)//'['//n_En_char//'F'
-        End Do
-    End If
-    SYNC ALL
-    If (this_image() .EQ. 1) Then
-        Do i = 1,n_En
-            Write(*,'(A)') stat_lines(i)
-        End Do
-        Write(*,*)
-    End If
- End If
-# endif
-
+If (screen_Progress) Write(*,*)
 End Program

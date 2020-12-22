@@ -49,12 +49,12 @@ Elemental Function Std_Err_real_N(N,mu,mu_sq) Result(s_mu)
     Real(dp), Intent(In) :: mu_sq  !sum of squares of N estimates
     Real(dp) :: x
     
-    If (N .LE. 1._dp) Then !default to a 100% rel std err, but make negative to flag
-        s_mu = -mu
+    If (N .LE. 1._dp) Then !default to a 100% rel std err
+        s_mu = mu / N
     Else  !otherwise, 2 or more trials were performed, compute standard error
         x = mu_sq - (mu**2 / N)
         If (x .LT. 0._dp) Then !default to a 100% rel std err, but make negative to flag
-            s_mu = -mu
+            s_mu = -mu / N
             Return
         End If
         s_mu = Sqrt( x / (N * (N - 1._dp)) )
