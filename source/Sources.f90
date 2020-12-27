@@ -495,10 +495,10 @@ Function Sample_LunarAlbedo(RNG) Result(E)
     Implicit None
     Real(dp) :: E  ![keV]
     Type(RNG_Type), Intent(InOut) :: RNG  !random number generator
-    Real(dp), Parameter :: a = -9._dp !log10 bottom end of energy scale [log10(MeV)]
-    Real(dp), Parameter :: b = -2._dp !log10 top end of energy scale [log10(MeV)]
-    Real(dp), Parameter :: c = -5._dp !log10 bottom end of density scale [log10()]
-    Real(dp), Parameter :: d =  0._dp !log10 bottom end of density scale [log10()]
+    Real(dp), Parameter :: a = 1.E-9_dp !bottom end of energy scale [MeV]
+    Real(dp), Parameter :: b = 1.E-2_dp !top end of energy scale [MeV]
+    Real(dp), Parameter :: c = 1.E-5_dp !bottom end of density scale
+    Real(dp), Parameter :: d =  1._dp !top end of density scale
     Real(dp), Parameter :: p0 =  4.4598E6_dp
     Real(dp), Parameter :: p1 =  3.6840E-9_dp
     Real(dp), Parameter :: p2 =  4.4183E5_dp
@@ -506,18 +506,23 @@ Function Sample_LunarAlbedo(RNG) Result(E)
     Real(dp), Parameter :: p4 =  1.4567E-7_dp
     Real(dp), Parameter :: p5 =  5.0338_dp
     Real(dp), Parameter :: dNorm =  1.64222121644247757E-6_dp
+    Real(dp), Parameter :: p0n =  dNorm * p0
+    Real(dp), Parameter :: p2n =  dNorm * p2
     Real(dp) :: s
     Real(dp) :: g
+    Real(dp) :: dba,ddc
 
+    dba = b - a
+    ddc = d - c
     Do
-        !select an energy uniformly distributed (in log10 space) between 10^a and 10^b
-        E = 10._dp**(a+(b-a)*RNG%Get_Random())
+        !select an energy uniformly distributed between a and b
+        E = a + dba * RNG%Get_Random() !MeV
         !evaluate the distribution function at the sampled energy
-        s = p0 * E * Exp(-E/p1) / p1 + p2 * ((E / p4)**p5) * ((p4 / E)**p3) / (1._dp + (E / p4)**p5)
-        !select a testing value uniformly distributed (in log10 space) between 10^c and 10^d
-        g = 10._dp**(c+(d-c)*RNG%Get_Random())
+        s = p0n * E * Exp(-E/p1) / p1 + p2n * ((E / p4)**p5) * ((p4 / E)**p3) / (1._dp + (E / p4)**p5)
+        !select a testing value uniformly distributed c and d
+        g = c + ddc * RNG%Get_Random()
         !test for acceptance of the value
-        If (g .GT. dNorm * s) Cycle
+        If (g .GT. s) Cycle !If the test value is greater than the distribution function, reject and repeat the procedure
         Exit
     End Do
     E = E * 1000._dp  !convert to keV
