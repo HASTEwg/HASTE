@@ -24,12 +24,12 @@ Module Sources
     
     Type :: Tab_1d_Type  !stores a 1-d tabulated distribution
         Integer :: n
-        Real(dp), Allocatable :: b(:)  !has dimension 0:n, list of bin boundaries
-        Real(dp), Allocatable :: p(:)  !has dimension 1:n, list of bin intensities (normalized to sum to 1)
+        Real(dp), Allocatable :: b(:,:)  !has dimensions 1:2 and 1:n, list of bin boundaries
+        Real(dp), Allocatable :: p(:)  !has dimension 1:n, list of cumulative bin intensities (normalized to sum to 1)
     End Type
     
     Type, Extends(Tab_1d_Type) :: Tab_2d_Type  !stores a 2-d tabulated distribution
-        Type(Tab_1d_Type), Allocatable :: d2(:)  !has dimesion 1:n, list of lists for second dimension
+        Type(Tab_1d_Type), Allocatable :: d2(:)  !has dimension 1:n, list of lists for second dimension
     End Type
     
     Type :: Source_Type
@@ -74,6 +74,8 @@ Module Sources
     Integer, Parameter :: source_geom_Albedo = 99
 
     !Integer designator for source energy distribution choice, can have value equal to one of the following parameters
+    Integer, Parameter :: source_E_dist_LB = 67
+    Integer, Parameter :: source_E_dist_FM = 69
     Integer, Parameter :: source_E_dist_Line = 71
     Integer, Parameter :: source_E_dist_Unif = 73
     Integer, Parameter :: source_E_dist_Watt235 = 75
@@ -97,7 +99,7 @@ Module Sources
 
 Contains
 
-Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) Result(s)
+Function Setup_Source(setup_file_name,resources_dir,run_file_name,source_file_name,R_top_atm) Result(s)
     Use Kinds, Only: dp
     Use Global, Only: Z_hat,X_hat,Y_hat
     Use Global, Only: Rc => R_center
@@ -110,7 +112,10 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
     Use FileIO_Utilities, Only: Output_Message
     Implicit None
     Type(Source_Type) :: s
-    Character(*), Intent(In) :: setup_file_name,run_file_name,source_file_name
+    Character(*), Intent(In) :: setup_file_name
+    Character(*), Intent(In) :: resources_dir
+    Character(*), Intent(In) :: run_file_name
+    Character(*), Intent(In) :: source_file_name
     Real(dp), Intent(In) :: R_top_atm
     Real(dp) :: r_source
     Real(dp) :: x_source,y_source,z_source  ![km]  x,y,z coordinates of source
@@ -288,6 +293,12 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
             Case ('LunarAlb')
                 s%E_dist_index = source_E_dist_LunarAlbedo
             !UNDONE Source distributions for Type 3, 5, 8, and 13
+            Case ('LittleBoy')
+                s%E_dist_index = source_E_dist_LB
+                s%Etab = Read_Etab(resources_dir,'LB')
+            Case ('FatMan')
+                s%E_dist_index = source_E_dist_FM
+                s%Etab = Read_Etab(resources_dir,'FM')
             Case Default
                 Call Output_Message('ERROR:  Sources: Setup_Source: Undefined source energy distribution',kill=.TRUE.)
         End Select
@@ -330,6 +341,80 @@ Function Setup_Source(setup_file_name,run_file_name,source_file_name,R_top_atm) 
         s%source_data = .FALSE.
     End If
 End Function Setup_Source
+
+Function Read_Etab(resources_dir,Etab_name) Result(Etab)
+    Use Kinds, Only: dp
+    Use FileIO_Utilities, Only: slash
+    Implicit None
+    Type(Tab_1d_Type) :: Etab
+    Character(*), Intent(In) :: resources_dir
+    Character(*), Intent(In) :: Etab_name
+    Integer :: Etab_unit,stat
+    Integer :: n
+    Integer :: empties
+    Integer :: i
+    Real(dp), Allocatable :: b_swap(:,:)
+    Real(dp), Allocatable :: p_swap(:)
+
+    Open( NEWUNIT = Etab_unit , FILE = resources_dir//'src'//slash//Etab_name//'.txt' , STATUS = 'OLD' , ACTION = 'READ' , & 
+        & IOSTAT = stat )
+    !count the number of bins
+    n = 0
+    Do
+        Read(Etab_unit,*,IOSTAT=stat)
+        If (stat .LT. 0) Exit
+        n = n + 1
+    End Do
+    Rewind(Etab_unit)
+    Etab%n = n
+    !Allocate arrays
+    Allocate(Etab%b(1:2,1:n))
+    Etab%b = 0._dp
+    Allocate(Etab%p(1:n))
+    Etab%p = 0._dp
+    !Read in values
+    Do i = 1,n
+        Read(Etab_unit,'(3ES9.2E3)') Etab%b(1,i) , Etab%b(2,i) , Etab%p(i)
+    End Do
+    Etab%b = Etab%b * 1000._dp !convert to keV
+    Close(Etab_unit)
+    !Clean empty probabilities out of the list
+    empties = 0
+    Do i = 1,n-1
+        If (i .GT. n-empties) Exit
+        If (Etab%p(i) .LE. 0._dp) Then !found an empty
+            !shift following values up by one in the list
+            empties = empties + 1
+            Etab%b(:,i:n-empties-1) = Etab%b(:,i+1:n-empties)
+            Etab%p(i:n-empties-1) = Etab%p(i+1:n-empties)
+        End If
+    End Do
+    n = n - empties
+    If (Etab%p(n) .LE. 0._dp) Then
+        n = n - 1  !last bin was also an empty
+        empties = empties + 1
+    End If
+    If (empties .GT. 0) Then
+        Etab%n = n
+        Allocate(b_swap(1:2,1:n))
+        b_swap = Etab%b(:,1:n)
+        Deallocate(Etab%b)
+        Allocate(p_swap(1:n))
+        p_swap = Etab%p(1:n)
+        Deallocate(Etab%p)
+        Allocate(Etab%b(1:2,1:n))
+        Etab%b = b_swap
+        Allocate(Etab%p(1:n))
+        Etab%p = p_swap
+        Deallocate(b_swap)
+        Deallocate(p_swap)
+    End If
+    !Convert Etab%p to a running sum and normalize to 1
+    Do i = n,1,-1 !move backwards through the list
+        Etab%p(i) = Sum(Etab%p(1:i))
+    End Do
+    Etab%p = Etab%p / Etab%p(n)
+End Function Read_Etab
 
 Subroutine Sample_Source(s,RNG,n)
     Use Kinds, Only: dp
@@ -399,6 +484,9 @@ Subroutine Sample_Source(s,RNG,n)
                 n%E0ef = s%E_high
             Case (source_E_dist_Unif)
                 n%E0ef = Sample_Uniform(RNG,s%E_low,s%E_high)
+            Case ( source_E_dist_LB , & 
+                 & source_E_dist_FM   )
+                n%E0ef = Sample_Etab(RNG,s%Etab)
             Case (source_E_dist_Watt235)
                 n%E0ef = Sample_Watt235(RNG,s%E_high)
             Case (source_E_dist_LunarAlbedo)
@@ -488,6 +576,20 @@ Function Watt235func(E) Result(w)
     
     w = Exp(-0.001036_dp * E) * Sinh(0.047853944456021595545_dp * Sqrt(E))
 End Function Watt235func
+
+Function Sample_Etab(RNG,Etab) Result(E)
+    Use Kinds, Only: dp
+    Use Random_Numbers, Only: RNG_Type
+    Use Utilities, Only: Bisection_Search
+    Implicit None
+    Real(dp) :: E  ![keV]
+    Type(RNG_Type), Intent(InOut) :: RNG  !random number generator
+    Type(Tab_1d_Type), Intent(In) :: Etab
+    Integer :: i
+
+    i = Bisection_Search( RNG%Get_Random() , Etab%p , Etab%n ) - 1
+    E = Sample_Uniform( RNG , Etab%b(1,i) , Etab%b(2,i) )
+End Function Sample_Etab
 
 Function Sample_LunarAlbedo(RNG) Result(E)
     Use Kinds, Only: dp
@@ -620,6 +722,11 @@ Subroutine Write_Source(s,file_name)
             Write(unit,'(A,ES24.16E3,A,ES24.16E3,A)') '    Uniform, ',s%E_low,' keV to ',s%E_high,' keV'
         Case (source_E_dist_Watt235)
             Write(unit,'(A,ES24.16E3,A)') '    Watt-235, ',s%E_high,' keV max'
+        Case (source_E_dist_LB)
+            Write(unit,'(A)') '    Little Boy'
+        Case (source_E_dist_FM)
+            Write(unit,'(A)') '    Fat Man'
+        !UNDONE Write tabular energy probability/cumulative density function to file
         Case (source_E_dist_Type3)
             Write(unit,'(A)') '    Type 3, fission'
         Case (source_E_dist_Type5)
