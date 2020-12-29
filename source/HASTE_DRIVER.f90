@@ -142,7 +142,11 @@ ScatterModel = Setup_Scatter_Model( paths_files%setup_file,          &
                                   & paths_files%cs_setup_file,       & 
                                   & paths_files%run_file_name,       & 
                                   & atmosphere%model_index           )
-source = Setup_Source(paths_files%setup_file,paths_files%run_file_name,paths_files%s_file_name,atmosphere%R_top)
+source = Setup_Source( paths_files%setup_file,          & 
+                     & paths_files%resources_directory, & 
+                     & paths_files%run_file_name,       & 
+                     & paths_files%s_file_name,         & 
+                     & atmosphere%R_top                 )
 detector = Setup_Detector( paths_files%setup_file,          & 
                          & paths_files%resources_directory, & 
                          & paths_files%run_file_name,       & 
