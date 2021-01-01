@@ -279,26 +279,31 @@ Subroutine First_Event_Neutron(n,ScatMod,s,d,atm)
             xEff_top_atm = 0._dp
             no_LOS = .FALSE.
             If (zeta1 .LT. 0._dp) Then  !direction is downward
-                If (ScatMod%Gravity) Then
-                    h = n%big_r * s1 * Sqrt(1._dp - zeta1**2)
-                    xi = 0.5_dp * s1**2 - mu / n%big_r  !SME(n%big_r,s1)
-                    p = h*h / mu
-                    e = Sqrt(1._dp + 2._dp * xi * p / mu)
-                    r_ca = p / (1._dp + e)
-                    If (r_ca .LT. atm%R_top) Then !passes through atmosphere
-                        !add downward and upward segments
-                        Call EPL_upward(atm,r_ca-Rc,0._dp,h,xi,p,e,r_ca,xEff_top_atm)
-                        xEff_top_atm = 2._dp * xEff_top_atm
+                If (atm%model_index .GT. 0) Then !There is an atmosphere to consider
+                    If (ScatMod%Gravity) Then
+                        h = n%big_r * s1 * Sqrt(1._dp - zeta1**2)
+                        xi = 0.5_dp * s1**2 - mu / n%big_r  !SME(n%big_r,s1)
+                        p = h*h / mu
+                        e = Sqrt(1._dp + 2._dp * xi * p / mu)
+                        r_ca = p / (1._dp + e)
+                        If (r_ca .LT. atm%R_top) Then !passes through atmosphere
+                            !add downward and upward segments
+                            Call EPL_upward(atm,r_ca-Rc,0._dp,h,xi,p,e,r_ca,xEff_top_atm)
+                            xEff_top_atm = 2._dp * xEff_top_atm
+                        End If
+                    Else
+                        r_ca = R_close_approach(n%big_r,zeta1)
+                        If (r_ca .LT. atm%R_bot) Then  !downward to earth, no LOS for contribution
+                            Return
+                        Else If (r_ca .LT. atm%R_top) Then !path cuts through atmosphere, but has attenuated LOS
+                            !add downward and upward segments
+                            Call EPL_upward(atm,r_ca,0._dp,r_ca-Rc,xEff_top_atm)
+                            xEff_top_atm = 2._dp * xEff_top_atm
+                        End If
                     End If
-                Else
+                Else If (.NOT.ScatMod%Gravity) Then
                     r_ca = R_close_approach(n%big_r,zeta1)
-                    If (r_ca .LT. atm%R_bot) Then  !downward to earth, no LOS for contribution
-                        Return
-                    Else If (r_ca .LT. atm%R_top) Then !path cuts through atmosphere, but has attenuated LOS
-                        !add downward and upward segments
-                        Call EPL_upward(atm,r_ca,0._dp,r_ca-Rc,xEff_top_atm)
-                        xEff_top_atm = 2._dp * xEff_top_atm
-                    End If
+                    If (r_ca .LT. atm%R_bot) Return  !downward to earth, no LOS for contribution
                 End If
             End If
         Else  !emission point is in the atmosphere
