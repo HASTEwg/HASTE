@@ -94,7 +94,7 @@ Type(Contrib_array) :: Dir_Tallies  !list of contributions tallied to arrival di
 Type(Paths_Files_Type) :: paths_files  !contains path and file name character strings
 Type(Atmosphere_Type) :: atmosphere  !contains data defining atmospheric representation
 Type(RNG_Type) :: RNG  !contains data defining the random number generator
-Integer(il) :: c_start,c_last,c_now  !clock counters for timing data
+Integer(id) :: c_start,c_last,c_now  !clock counters for timing data
 Real(dp) :: dt,ETTC  !times (in seconds) for computing estimated time to completion and recording run time
 Integer :: HH,MM,SS  !integer times for computing estimated time to completion
 Integer(id) :: n_p,p  !loop counter for histories

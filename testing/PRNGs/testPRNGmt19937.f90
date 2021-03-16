@@ -17,7 +17,7 @@ Type(MT19937_Type) :: RNG_19937
 Type(MT19937x64_Type) :: RNG_19937x64
 Real(dp) :: r(1:n),r64(1:n)
 Integer :: i,unit1,unit2
-Integer(il) :: c,c64
+Integer(id) :: c,c64
 Real(dp) :: t,t64
 
 !seed the generators
