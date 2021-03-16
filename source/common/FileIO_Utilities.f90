@@ -1475,27 +1475,27 @@ End Function Second_of_Month
 
 Function Delta_Time(start_clock,clock_then,clock_now) Result(sec)
     !Returns number of seconds since an arbitrary start time (set by a previous call to this routine)
-    !(to millisecond resolution, and according to the system clock)
+    !(to highest resolution available on platform, and according to the system clock)
     Use Kinds, Only: dp
-    Use Kinds, Only: il
+    Use Kinds, Only: id
     Implicit None
     Real(dp) :: sec
-    Integer(il), Intent(Out), Optional :: start_clock
-    Integer(il), Intent(In), Optional :: clock_then
-    Integer(il), Intent(Out), Optional :: clock_now
-    Integer(il) :: clock,clock_delta
-    Real(dp), Parameter :: ms2sec  = 1.E-3_dp
+    Integer(id), Intent(Out), Optional :: start_clock
+    Integer(id), Intent(In), Optional :: clock_then
+    Integer(id), Intent(Out), Optional :: clock_now
+    Integer(id) :: clock,clock_delta,max
+    Real(dp) :: rate
     
     sec = 0._dp  !default value
-    Call SYSTEM_CLOCK(clock)
+    Call SYSTEM_CLOCK(COUNT = clock , COUNT_RATE = rate , COUNT_MAX = max)
     If (Present(start_clock)) start_clock = clock
     If (Present(clock_then)) Then
         If (clock .LT. clock_then) Then
-            clock_delta = clock + (HUGE(clock_then) - clock_then)
+            clock_delta = clock + (max - clock_then)
         Else
             clock_delta = clock - clock_then
         End If
-        sec = Real(clock_delta,dp)*ms2sec
+        sec = Real(clock_delta,dp) / rate
     End If
     If (Present(clock_now)) clock_now = clock
 End Function Delta_Time
