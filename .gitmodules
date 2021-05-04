@@ -1,0 +1,3 @@
+[submodule "source/common"]
+	path = source/common
+	url = https://github.com/wtdailey/commonTools
