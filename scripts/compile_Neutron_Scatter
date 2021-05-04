@@ -1,37 +1,37 @@
 #!/bin/sh
-
+SCR_PATH="../source/common/scripts/"
 # CLEAN OLD BUILD FILES
-./clean
+${SCR_PATH}clean
 
 # SET COMPILER FLAGS
-. ./set_flags
-. ./echo_flags
+. ${SCR_PATH}set_flags
+. ${SCR_PATH}echo_flags
 
 # COMMON MODULES
 SRC_PATH="../source/common/"
-FNAME="Kinds"; . ./compile_it
-FNAME="Global"; . ./compile_it
-FNAME="Utilities"; . ./compile_it
-FNAME="FileIO_Utilities"; . ./compile_it
-FNAME="Interpolation"; . ./compile_it
-FNAME="Legendre_Utilities"; . ./compile_it
-FNAME="Sorting"; . ./compile_it
-FNAME="PRNGs"; . ./compile_it
-FNAME="Random_Numbers"; . ./compile_it
+FNAME="Kinds"; . ${SCR_PATH}compile_it
+FNAME="Global"; . ${SCR_PATH}compile_it
+FNAME="Utilities"; . ${SCR_PATH}compile_it
+FNAME="FileIO_Utilities"; . ${SCR_PATH}compile_it
+FNAME="Interpolation"; . ${SCR_PATH}compile_it
+FNAME="Legendre_Utilities"; . ${SCR_PATH}compile_it
+FNAME="Sorting"; . ${SCR_PATH}compile_it
+FNAME="PRNGs"; . ${SCR_PATH}compile_it
+FNAME="Random_Numbers"; . ${SCR_PATH}compile_it
 
 # ATMOSPHERE MODULES
-SRC_PATH="../source/atmo/"
-FNAME="USSA76"; . ./compile_it
+SRC_PATH="../source/common/atmo/"
+FNAME="USSA76"; . ${SCR_PATH}compile_it
 
 # PARTICLE UTILITIES MODULES
 SRC_PATH="../source/parts/"
-FNAME="cs_Utilities"; . ./compile_it
-FNAME="Neutron_Utilities"; . ./compile_it
-FNAME="n_Cross_Sections"; . ./compile_it
-FNAME="Random_Directions"; . ./compile_it
+FNAME="cs_Utilities"; . ${SCR_PATH}compile_it
+FNAME="Neutron_Utilities"; . ${SCR_PATH}compile_it
+FNAME="n_Cross_Sections"; . ${SCR_PATH}compile_it
+FNAME="Random_Directions"; . ${SCR_PATH}compile_it
 
 # MAIN CODE MODULES
 SRC_PATH="../source/"
-FNAME="Atmospheres"; . ./compile_it
-FNAME="Target_Motion"; . ./compile_it
-FNAME="Neutron_Scatter"; . ./compile_it
+FNAME="Atmospheres"; . ${SCR_PATH}compile_it
+FNAME="Target_Motion"; . ${SCR_PATH}compile_it
+FNAME="Neutron_Scatter"; . ${SCR_PATH}compile_it
