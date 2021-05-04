@@ -31,6 +31,9 @@ Module Statistics
         Module Procedure Std_Err_real_N
         Module Procedure Std_Err_int4_N
         Module Procedure Std_Err_int8_N
+        ! Module Procedure Std_Err_wt_real_N
+        ! Module Procedure Std_Err_wt_int4_N
+        ! Module Procedure Std_Err_wt_int8_N
     End Interface
     
     Real(dp), Parameter :: std_devs_for_95CI = 1.9599639845400542355245944305205515279555500778695483984769526464_dp
@@ -46,13 +49,37 @@ Elemental Function Std_Err_real_N(N,mu,mu_sq) Result(s_mu)
     Real(dp), Intent(In) :: mu_sq  !sum of squares of N estimates
     Real(dp) :: x
     
-    x = mu_sq - (mu**2 / N)
-    If (x .GE. 0._dp) Then
+    If (N .LE. 1._dp) Then !default to a 100% rel std err
+        s_mu = mu / N
+    Else  !otherwise, 2 or more trials were performed, compute standard error
+        x = mu_sq - (mu**2 / N)
+        If (x .LT. 0._dp) Then !default to a 100% rel std err, but make negative to flag
+            s_mu = -mu / N
+            Return
+        End If
         s_mu = Sqrt( x / (N * (N - 1._dp)) )
-    Else
-        s_mu = -mu / N  !default to a 100% rel std err, but make negative to flag
     End If
 End Function Std_Err_real_N
+
+! Elemental Function Std_Err_wt_real_N(N,mu,w_mu,w_mu_sq,w,w_sq) Result(s_mu)
+!     Use Kinds, Only: dp
+!     Implicit None
+!     Real(dp) :: s_mu
+!     Real(dp), Intent(In) :: N  !n is passed as a real representation of the integer quantity to accomodate numbers > Huge(n)
+!     Real(dp), Intent(In) :: mu  !sum of N estimates
+!     Real(dp), Intent(In) :: w_mu  !sum of weight*estimate products
+!     Real(dp), Intent(In) :: w_mu_sq  !sum of squared estimates multiplied by weight
+!     Real(dp), Intent(In) :: w  !sum of weights applied to N estimates
+!     Real(dp), Intent(In) :: w_sq  !sum of squared weights applied to N estimates
+!     Real(dp) :: x
+    
+!     If (N .LE. 1._dp) Then  !default to a 100% rel std err, but make negative to flag
+!         s_mu = -mu
+!     Else  !otherwise, 2 or more trials were performed, compute standard error
+!         x = w_mu_sq + N * w_mu * (w_mu / w - 2._dp * mu) / w
+!         s_mu = Sqrt( x / (N * (w - w_sq / w)) )
+!     End If
+! End Function Std_Err_wt_real_N
 
 Elemental Function Std_Err_int4_N(N,mu,mu_sq) Result(s_mu)
     Use Kinds, Only: dp
@@ -75,6 +102,34 @@ Elemental Function Std_Err_int8_N(N,mu,mu_sq) Result(s_mu)
     
     s_mu = Std_Err_real_N(Real(N,dp),mu,mu_sq)
 End Function Std_Err_int8_N
+
+! Elemental Function Std_Err_wt_int4_N(N,mu,w_mu,w_mu_sq,w,w_sq) Result(s_mu)
+!     Use Kinds, Only: dp
+!     Implicit None
+!     Real(dp) :: s_mu
+!     Integer(4), Intent(In) :: N  !number of trials
+!     Real(dp), Intent(In) :: mu  !sum of N estimates
+!     Real(dp), Intent(In) :: w_mu  !sum of weight*estimate products
+!     Real(dp), Intent(In) :: w_mu_sq  !sum of squares of N estimates multiplied by weight
+!     Real(dp), Intent(In) :: w  !sum of weights applied to N estimates
+!     Real(dp), Intent(In) :: w_sq  !sum of squared weights applied to N estimates
+
+!     s_mu = Std_Err_wt_real_N(Real(N,dp),mu,w_mu,w_mu_sq,w,w_sq)
+! End Function Std_Err_wt_int4_N
+
+! Elemental Function Std_Err_wt_int8_N(N,mu,w_mu,w_mu_sq,w,w_sq) Result(s_mu)
+!     Use Kinds, Only: dp
+!     Implicit None
+!     Real(dp) :: s_mu
+!     Integer(8), Intent(In) :: N  !number of trials
+!     Real(dp), Intent(In) :: mu  !sum of N estimates
+!     Real(dp), Intent(In) :: w_mu  !sum of weight*estimate products
+!     Real(dp), Intent(In) :: w_mu_sq  !sum of squares of N estimates multiplied by weight
+!     Real(dp), Intent(In) :: w  !sum of weights applied to N estimates
+!     Real(dp), Intent(In) :: w_sq  !sum of squared weights applied to N estimates
+
+!     s_mu = Std_Err_wt_real_N(Real(N,dp),mu,w_mu,w_mu_sq,w,w_sq)
+! End Function Std_Err_wt_int8_N
 
 Subroutine Do_stats(values,mu,sigma,CI_high,CI_low,normality_basic,normality_AD,RNG)
     Use Kinds, Only: dp

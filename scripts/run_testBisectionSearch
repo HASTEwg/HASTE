@@ -15,12 +15,11 @@ FNAME="Sorting"; . ./compile_it
 
 #TEST PROGRAM
 SRC_PATH="../testing/"
-BLD_PATH="../build/"
 FNAME="testBisectionSearch"
 echo "Compiling and linking testBisectionSearch..."
-gfortran $GFORT_FLAGS -o ${SRC_PATH}${FNAME}.out ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
+$COMP_NAME $GFORT_FLAGS -o ${SRC_PATH}${FNAME}${EXT} ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
 
 #RUN THE TEST PROGRAM
 echo "Running..."
 cd ${SRC_PATH}
-./${FNAME}.out
+${RUN_CMD}${FNAME}${EXT}

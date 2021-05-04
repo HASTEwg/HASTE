@@ -38,9 +38,8 @@ Function Div_Fact_Straight(r1,v1,r2,u,tof,vS2) Result(D)
     r1_to_r2 = r2 - (r1 + u*tof)
     dist_r1_to_r2 = Vector_Length(r1_to_r2)
     D = 1._dp / ( dist_r1_to_r2**2 )
-    cos_theta = Abs( Dot_Product(Unit_Vector(vS2 - v1),r1_to_r2 / dist_r1_to_r2) )
+    cos_theta = Max( Abs( Dot_Product(Unit_Vector(vS2 - v1),r1_to_r2 / dist_r1_to_r2) ) , 0.1_dp )
     D = D / cos_theta
-    !TODO Practical limit for perpendicular incience is not implemented
 End Function Div_Fact_Straight
 
 Function Div_Fact_by_shooting(r1,Omega_hat1cm,s1cm,u,tof,vS2,v2) Result(D)
@@ -91,7 +90,7 @@ Function Div_Fact_by_shooting(r1,Omega_hat1cm,s1cm,u,tof,vS2,v2) Result(D)
     Omega_hat1cm_shots(:,2) = Unit_Vector( Omega_hat1cm + eps*T_hat )
     Omega_hat1cm_shots(:,4) = Unit_Vector( Omega_hat1cm - eps*T_hat )
     !propegate trajectories along the four test directions
-    Do i = 1,4
+    Do CONCURRENT (i = 1:4)
         Call Kepler_Gooding( r1,Omega_hat1cm_shots(:,i)*s1cm + u,tof,r2_shots(:,i),v2_shots(:,i) )
     End Do
     !Compute area as appoximation of solid angle at emission
@@ -99,12 +98,11 @@ Function Div_Fact_by_shooting(r1,Omega_hat1cm,s1cm,u,tof,vS2,v2) Result(D)
     !Compute area as approximation of solid angle at rendezvous, accounting for incidence angle relative to detector motion
     Surf_Normal = Normal_Vector_4(r2_shots)
     mag_Surf_Normal = Vector_Length(Surf_Normal)
-    Aar = 0.5_dp * mag_Surf_Normal!Quadrilateral_Area(r2_shots)
-    !Divergence factor is the ratio of these areas
+    Aar = 0.5_dp * mag_Surf_Normal !same as Quadrilateral_Area(r2_shots), but preserves intermediate quatity for later use
+    !Divergence factor is the ratio of these areas adjusted for angle of incidence
     D = Acm / Aar
-    cos_theta = Abs( Dot_Product(Unit_Vector(vS2 - v2),Surf_Normal / mag_Surf_Normal) )
+    cos_theta = Max( Abs( Dot_Product(Unit_Vector(vS2 - v2),Surf_Normal / mag_Surf_Normal) ) , 0.1_dp )
     D = D / cos_theta
-    !TODO Practical limit for perpendicular incience is not implemented
 End Function Div_Fact_by_shooting
 
 End Module Diverge_approx

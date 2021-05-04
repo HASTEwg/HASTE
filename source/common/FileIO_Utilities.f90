@@ -28,6 +28,9 @@ Module FileIO_Utilities
     Private :: DP_to_file          !Public via VAR_TO_FILE
     Private :: DP_1Darray_to_file  !Public via VAR_TO_FILE
     Private :: DP_2Darray_to_file  !Public via VAR_TO_FILE
+    Private :: I2_to_file          !Public via VAR_TO_FILE
+    Private :: I2_1Darray_to_file  !Public via VAR_TO_FILE
+    Private :: I2_2Darray_to_file  !Public via VAR_TO_FILE
     Private :: I4_to_file          !Public via VAR_TO_FILE
     Private :: I4_1Darray_to_file  !Public via VAR_TO_FILE
     Private :: I4_2Darray_to_file  !Public via VAR_TO_FILE
@@ -44,6 +47,9 @@ Module FileIO_Utilities
     Private :: DP_from_file          !Public via VAR_FROM_FILE
     Private :: DP_1Darray_from_file  !Public via VAR_FROM_FILE
     Private :: DP_2Darray_from_file  !Public via VAR_FROM_FILE
+    Private :: I2_from_file          !Public via VAR_FROM_FILE
+    Private :: I2_1Darray_from_file  !Public via VAR_FROM_FILE
+    Private :: I2_2Darray_from_file  !Public via VAR_FROM_FILE
     Private :: I4_from_file          !Public via VAR_FROM_FILE
     Private :: I4_1Darray_from_file  !Public via VAR_FROM_FILE
     Private :: I4_2Darray_from_file  !Public via VAR_FROM_FILE
@@ -70,6 +76,21 @@ Module FileIO_Utilities
     Private :: Log_Message_CSPC  !Public via LOG_MESSAGE
     Private :: Log_Message_CDP   !Public via LOG_MESSAGE
     Private :: Log_Message_CDPC  !Public via LOG_MESSAGE
+    Private :: Open_for_Read_List  !support routine for READ_LIST
+    Private :: Read_List_SP          !Public via READ_LIST
+    Private :: Read_List_DP          !Public via READ_LIST
+    Private :: Read_List_I2          !Public via READ_LIST
+    Private :: Read_List_I4          !Public via READ_LIST
+    Private :: Read_List_I8          !Public via READ_LIST
+#   if EXTP
+        Private :: QP_to_file          !Public via VAR_TO_FILE
+        Private :: QP_1Darray_to_file  !Public via VAR_TO_FILE
+        Private :: QP_2Darray_to_file  !Public via VAR_TO_FILE
+        Private :: QP_from_file          !Public via VAR_FROM_FILE
+        Private :: QP_1Darray_from_file  !Public via VAR_FROM_FILE
+        Private :: QP_2Darray_from_file  !Public via VAR_FROM_FILE
+        Private :: Read_List_QP          !Public via READ_LIST
+#   endif
     
     Interface Var_to_file
         Module Procedure SP_to_file
@@ -78,6 +99,14 @@ Module FileIO_Utilities
         Module Procedure DP_to_file
         Module Procedure DP_1Darray_to_file
         Module Procedure DP_2Darray_to_file
+#       if EXTP
+            Module Procedure QP_to_file
+            Module Procedure QP_1Darray_to_file
+            Module Procedure QP_2Darray_to_file
+#       endif
+        Module Procedure I2_to_file
+        Module Procedure I2_1Darray_to_file
+        Module Procedure I2_2Darray_to_file
         Module Procedure I4_to_file
         Module Procedure I4_1Darray_to_file
         Module Procedure I4_2Darray_to_file
@@ -95,6 +124,14 @@ Module FileIO_Utilities
         Module Procedure DP_from_file
         Module Procedure DP_1Darray_from_file
         Module Procedure DP_2Darray_from_file
+#       if EXTP
+            Module Procedure QP_from_file
+            Module Procedure QP_1Darray_from_file
+            Module Procedure QP_2Darray_from_file
+#       endif
+        Module Procedure I2_from_file
+        Module Procedure I2_1Darray_from_file
+        Module Procedure I2_2Darray_from_file
         Module Procedure I4_from_file
         Module Procedure I4_1Darray_from_file
         Module Procedure I4_2Darray_from_file
@@ -129,6 +166,17 @@ Module FileIO_Utilities
         Module Procedure Log_Message_CDPC
     End Interface Log_Message
 
+    Interface Read_List
+        Module Procedure Read_List_SP
+        Module Procedure Read_List_DP
+#       if EXTP
+            Module Procedure Read_List_QP
+#       endif
+        Module Procedure Read_List_I2
+        Module Procedure Read_List_I4
+        Module Procedure Read_List_I8
+    End Interface
+
 !  Character & I/O constants for LINUX vs Windows file systems
 #   if LIN_OS
         Character(1), Parameter :: slash = '/'  !<--LINUX implementation
@@ -139,6 +187,7 @@ Module FileIO_Utilities
 !  Arbitrary maximum string lengths, for portability
     Integer, Parameter :: max_path_len = 255
     Integer, Parameter :: max_line_len = 80
+    Integer, Parameter :: ext_line_len = 132
 !  Non-printing character constants for portability
     Character(1), Parameter :: creturn = achar(13)
     Character(1), Parameter :: newline = achar(10)
@@ -260,6 +309,98 @@ Subroutine DP_2Darray_to_file(r,file_name)
     If (stat .NE. 0) Call File_err_for_Var_to_from_File('DP_2Darray_to_file','write',file_name,stat)
     Close(unit)
 End Subroutine DP_2Darray_to_file
+
+# if EXTP
+    Subroutine QP_to_file(r,file_name)
+        Use Kinds, Only: qp
+        Implicit None
+        Real(qp), Intent(In) :: r
+        Character(*), Intent(In) :: file_name
+        Integer :: unit
+        Integer :: stat
+        
+        Call Open_for_Var_to_File(file_name,unit,stat)
+        If (stat .NE. 0) Call File_err_for_Var_to_from_File('QP_to_file','open',file_name,stat)
+        Write(unit , IOSTAT = stat) r
+        If (stat .NE. 0) Call File_err_for_Var_to_from_File('QP_to_file','write',file_name,stat)
+        Close(unit)
+    End Subroutine QP_to_file
+
+    Subroutine QP_1Darray_to_file(r,file_name)
+        Use Kinds, Only: qp
+        Implicit None
+        Real(qp), Intent(In) :: r(:)
+        Character(*), Intent(In) :: file_name
+        Integer :: unit
+        Integer :: stat
+        
+        Call Open_for_Var_to_File(file_name,unit,stat)
+        If (stat .NE. 0) Call File_err_for_Var_to_from_File('QP_1Darray_to_file','open',file_name,stat)
+        Write(unit , IOSTAT = stat) r
+        If (stat .NE. 0) Call File_err_for_Var_to_from_File('QP_1Darray_to_file','write',file_name,stat)
+        Close(unit)
+    End Subroutine QP_1Darray_to_file
+
+    Subroutine QP_2Darray_to_file(r,file_name)
+        Use Kinds, Only: qp
+        Implicit None
+        Real(qp), Intent(In) :: r(:,:)
+        Character(*), Intent(In) :: file_name
+        Integer :: unit
+        Integer :: stat
+        
+        Call Open_for_Var_to_File(file_name,unit,stat)
+        If (stat .NE. 0) Call File_err_for_Var_to_from_File('QP_2Darray_to_file','open',file_name,stat)
+        Write(unit , IOSTAT = stat) r
+        If (stat .NE. 0) Call File_err_for_Var_to_from_File('QP_2Darray_to_file','write',file_name,stat)
+        Close(unit)
+    End Subroutine QP_2Darray_to_file
+# endif
+
+Subroutine I2_to_file(i,file_name)
+    Use Kinds, Only: is
+    Implicit None
+    Integer(is), Intent(In) :: i
+    Character(*), Intent(In) :: file_name
+    Integer :: unit
+    Integer :: stat
+    
+    Call Open_for_Var_to_File(file_name,unit,stat)
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('I2_to_file','open',file_name,stat)
+    Write(unit , IOSTAT = stat) i
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('I2_to_file','write',file_name,stat)
+    Close(unit)
+End Subroutine I2_to_file
+
+Subroutine I2_1Darray_to_file(i,file_name)
+    Use Kinds, Only: is
+    Implicit None
+    Integer(is), Intent(In) :: i(:)
+    Character(*), Intent(In) :: file_name
+    Integer :: unit
+    Integer :: stat
+    
+    Call Open_for_Var_to_File(file_name,unit,stat)
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('I2_1Darray_to_file','open',file_name,stat)
+    Write(unit , IOSTAT = stat) i
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('I2_1Darray_to_file','write',file_name,stat)
+    Close(unit)
+End Subroutine I2_1Darray_to_file
+
+Subroutine I2_2Darray_to_file(i,file_name)
+    Use Kinds, Only: is
+    Implicit None
+    Integer(is), Intent(In) :: i(:,:)
+    Character(*), Intent(In) :: file_name
+    Integer :: unit
+    Integer :: stat
+    
+    Call Open_for_Var_to_File(file_name,unit,stat)
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('I2_2Darray_to_file','open',file_name,stat)
+    Write(unit , IOSTAT = stat) i
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('I2_2Darray_to_file','write',file_name,stat)
+    Close(unit)
+End Subroutine I2_2Darray_to_file
 
 Subroutine I4_to_file(i,file_name)
     Use Kinds, Only: il
@@ -525,6 +666,128 @@ Subroutine DP_2Darray_from_file(r,file_name,delete_file)
         Close(unit)
     End If
 End Subroutine DP_2Darray_from_file
+
+# if EXTP
+    Subroutine QP_from_file(r,file_name,delete_file)
+        Use Kinds, Only: qp
+        Implicit None
+        Real(qp), Intent(Out) :: r
+        Character(*), Intent(In) :: file_name
+        Logical, Intent(In), Optional :: delete_file
+        Integer :: unit
+        Integer :: stat
+        
+        Call Open_for_Var_from_File(file_name,unit,stat)
+        If (stat .NE. 0) Call File_err_for_Var_to_from_File('QP_from_file','open',file_name,stat)
+        Read(unit , IOSTAT = stat) r
+        If (stat .NE. 0) Call File_err_for_Var_to_from_File('QP_from_file','read',file_name,stat)
+        If (Present(delete_file)) Then
+            Call Close_for_Var_from_File(unit,delete_file)
+        Else
+            Close(unit)
+        End If
+    End Subroutine QP_from_file
+
+    Subroutine QP_1Darray_from_file(r,file_name,delete_file)
+        Use Kinds, Only: qp
+        Implicit None
+        Real(qp), Intent(Out) :: r(:)
+        Character(*), Intent(In) :: file_name
+        Logical, Intent(In), Optional :: delete_file
+        Integer :: unit
+        Integer :: stat
+        
+        Call Open_for_Var_from_File(file_name,unit,stat)
+        If (stat .NE. 0) Call File_err_for_Var_to_from_File('QP_1Darray_from_file','open',file_name,stat)
+        Read(unit , IOSTAT = stat) r
+        If (stat .NE. 0) Call File_err_for_Var_to_from_File('QP_1Darray_from_file','read',file_name,stat)
+        If (Present(delete_file)) Then
+            Call Close_for_Var_from_File(unit,delete_file)
+        Else
+            Close(unit)
+        End If
+    End Subroutine QP_1Darray_from_file
+
+    Subroutine QP_2Darray_from_file(r,file_name,delete_file)
+        Use Kinds, Only: qp
+        Implicit None
+        Real(qp), Intent(Out) :: r(:,:)
+        Character(*), Intent(In) :: file_name
+        Logical, Intent(In), Optional :: delete_file
+        Integer :: unit
+        Integer :: stat
+        
+        Call Open_for_Var_from_File(file_name,unit,stat)
+        If (stat .NE. 0) Call File_err_for_Var_to_from_File('QP_2Darray_from_file','open',file_name,stat)
+        Read(unit , IOSTAT = stat) r
+        If (stat .NE. 0) Call File_err_for_Var_to_from_File('QP_2Darray_from_file','read',file_name,stat)
+        If (Present(delete_file)) Then
+            Call Close_for_Var_from_File(unit,delete_file)
+        Else
+            Close(unit)
+        End If
+    End Subroutine QP_2Darray_from_file
+# endif
+
+Subroutine I2_from_file(i,file_name,delete_file)
+    Use Kinds, Only: is
+    Implicit None
+    Integer(is), Intent(Out) :: i
+    Character(*), Intent(In) :: file_name
+    Logical, Intent(In), Optional :: delete_file
+    Integer :: unit
+    Integer :: stat
+    
+    Call Open_for_Var_from_File(file_name,unit,stat)
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('I2_from_file','open',file_name,stat)
+    Read(unit) i
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('I2_from_file','read',file_name,stat)
+    If (Present(delete_file)) Then
+        Call Close_for_Var_from_File(unit,delete_file)
+    Else
+        Close(unit)
+    End If
+End Subroutine I2_from_file
+
+Subroutine I2_1Darray_from_file(i,file_name,delete_file)
+    Use Kinds, Only: is
+    Implicit None
+    Integer(is), Intent(Out) :: i(:)
+    Character(*), Intent(In) :: file_name
+    Logical, Intent(In), Optional :: delete_file
+    Integer :: unit
+    Integer :: stat
+    
+    Call Open_for_Var_from_File(file_name,unit,stat)
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('I2_1Darray_from_file','open',file_name,stat)
+    Read(unit , IOSTAT = stat) i
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('I2_1Darray_from_file','read',file_name,stat)
+    If (Present(delete_file)) Then
+        Call Close_for_Var_from_File(unit,delete_file)
+    Else
+        Close(unit)
+    End If
+End Subroutine I2_1Darray_from_file
+
+Subroutine I2_2Darray_from_file(i,file_name,delete_file)
+    Use Kinds, Only: is
+    Implicit None
+    Integer(is), Intent(Out) :: i(:,:)
+    Character(*), Intent(In) :: file_name
+    Logical, Intent(In), Optional :: delete_file
+    Integer :: unit
+    Integer :: stat
+    
+    Call Open_for_Var_from_File(file_name,unit,stat)
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('I2_2Darray_from_file','open',file_name,stat)
+    Read(unit , IOSTAT = stat) i
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('I2_2Darray_from_file','read',file_name,stat)
+    If (Present(delete_file)) Then
+        Call Close_for_Var_from_File(unit,delete_file)
+    Else
+        Close(unit)
+    End If
+End Subroutine I2_2Darray_from_file
 
 Subroutine I4_from_file(i,file_name,delete_file)
     Use Kinds, Only: il
@@ -1138,9 +1401,9 @@ End Subroutine Output_Message_CDPC
 
 !!!!!!!!!!  THREAD, IMAGE, and WORKER INDEXING ROUTINES  !!!!!!!!!!
 Function Worker_Index(OMP_threaded,CAF_imaged) Result(i)
-#   if CAF
-        Use OMP_LIB, Only: OMP_GET_NUM_THREADS,OMP_GET_THREAD_NUM
-#   endif
+!#   if CAF
+!        Use OMP_LIB, Only: OMP_GET_NUM_THREADS,OMP_GET_THREAD_NUM
+!#   endif
     Implicit None
     Integer :: i
     Logical, Intent(Out), Optional :: OMP_threaded
@@ -1153,12 +1416,12 @@ Function Worker_Index(OMP_threaded,CAF_imaged) Result(i)
             If (num_images() .GT. 1) Then  !use the coarray image number to index the worker
                 i = this_image()  !coarray images are numbered starting at 1
                 If (Present(CAF_imaged)) CAF_imaged = .TRUE.
-            Else If (OMP_GET_NUM_THREADS() .GT. 1) Then  !use the OpenMP thread number to index the worker
-                i = OMP_GET_THREAD_NUM() + 1  !OpenMP threads are numbered starting at zero
-                If (Present(OMP_threaded)) OMP_threaded = .TRUE.
+!            Else If (OMP_GET_NUM_THREADS() .GT. 1) Then  !use the OpenMP thread number to index the worker
+!                i = OMP_GET_THREAD_NUM() + 1  !OpenMP threads are numbered starting at zero
+!                If (Present(OMP_threaded)) OMP_threaded = .TRUE.
             Else
-                Call Output_Message('ERROR:  FileIO_Utilities: Worker_Index:  & 
-                                    &Unable to resolve thread or image number.',kill=.TRUE.)
+                Call Output_Message( 'ERROR:  FileIO_Utilities: Worker_Index:  & 
+                                     &Unable to resolve thread or image number.',kill=.TRUE. )
             End If
         Else
             i = 1  !default value for single threaded/imaged applications
@@ -1169,21 +1432,16 @@ Function Worker_Index(OMP_threaded,CAF_imaged) Result(i)
 End Function Worker_Index
 
 Function n_Workers() Result(n)
-#   if CAF
-        Use OMP_LIB, Only: OMP_GET_NUM_THREADS
-#   endif
     Implicit None
     Integer :: n
 
 #   if CAF
-        If (OMP_GET_NUM_THREADS().GT.1 .OR. num_images().GT.1) Then !Parallel threads or images are running
+        If (num_images().GT.1) Then !Parallel threads or images are running
             If (num_images() .GT. 1) Then
                 n = num_images()
-            Else If (OMP_GET_NUM_THREADS() .GT. 1) Then  !use the OpenMP thread number to index the thread
-                n = OMP_GET_NUM_THREADS()
             Else
-                Call Output_Message('ERROR:  FileIO_Utilities: n_Workers:  & 
-                                    &Unable to resolve number of threads or images.',kill=.TRUE.)
+                Call Output_Message( 'ERROR:  FileIO_Utilities: n_Workers:  & 
+                                     &Unable to resolve number of threads or images.',kill=.TRUE. )
             End If
         Else
             n = 1  !default value for single threaded/imaged applications
@@ -1217,27 +1475,27 @@ End Function Second_of_Month
 
 Function Delta_Time(start_clock,clock_then,clock_now) Result(sec)
     !Returns number of seconds since an arbitrary start time (set by a previous call to this routine)
-    !(to millisecond resolution, and according to the system clock)
+    !(to highest resolution available on platform, and according to the system clock)
     Use Kinds, Only: dp
-    Use Kinds, Only: il
+    Use Kinds, Only: id
     Implicit None
     Real(dp) :: sec
-    Integer(il), Intent(Out), Optional :: start_clock
-    Integer(il), Intent(In), Optional :: clock_then
-    Integer(il), Intent(Out), Optional :: clock_now
-    Integer(il) :: clock,clock_delta
-    Real(dp), Parameter :: ms2sec  = 1.E-3_dp
+    Integer(id), Intent(Out), Optional :: start_clock
+    Integer(id), Intent(In), Optional :: clock_then
+    Integer(id), Intent(Out), Optional :: clock_now
+    Integer(id) :: clock,clock_delta,max
+    Real(dp) :: rate
     
     sec = 0._dp  !default value
-    Call SYSTEM_CLOCK(clock)
+    Call SYSTEM_CLOCK(COUNT = clock , COUNT_RATE = rate , COUNT_MAX = max)
     If (Present(start_clock)) start_clock = clock
     If (Present(clock_then)) Then
         If (clock .LT. clock_then) Then
-            clock_delta = clock + (HUGE(clock_then) - clock_then)
+            clock_delta = clock + (max - clock_then)
         Else
             clock_delta = clock - clock_then
         End If
-        sec = Real(clock_delta,dp)*ms2sec
+        sec = Real(clock_delta,dp) / rate
     End If
     If (Present(clock_now)) clock_now = clock
 End Function Delta_Time
@@ -1305,5 +1563,238 @@ Subroutine Wait(ms)
         End If
     End Do
 End Subroutine Wait
+
+Subroutine Open_for_Read_List(file_name,unit,stat)
+    Implicit None
+    Character(*), Intent(In) :: file_name
+    Integer, Intent(Out) :: unit
+    Integer, Intent(Out) :: stat
+    
+    Open(NEWUNIT = unit , FILE = file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+End Subroutine Open_for_Read_List
+
+Subroutine Read_List_SP(file_name,n,r,delete_file)
+    Use Kinds, Only: sp
+    Implicit None
+    Character(*), Intent(In) :: file_name
+    Integer, Intent(Out) :: n
+    Real(sp), Allocatable, Intent(Out) :: r(:)
+    Logical, Intent(In), Optional :: delete_file
+    Integer :: unit,stat
+    Character(max_line_len) :: trash
+    Integer :: i
+
+    Call Open_for_Read_List(file_name,unit,stat)
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('Read_List_SP','open',file_name,stat)
+    n = 0
+    Do
+        Read(unit , '(A)' , IOSTAT = stat) trash
+        If (stat .LT. 0) Then
+            Exit
+        Else If (stat .GT. 0) Then
+            Call File_err_for_Var_to_from_File('Read_List_SP','read',file_name,stat)
+        End If
+        n = n + 1
+    End Do
+    Rewind(unit)
+    Allocate(r(1:n))
+    r = 0._sp
+    Do i = 1,n
+        Read(unit , '(A)' ) trash
+        Read(trash,*) r(i)
+    End Do
+    If (Present(delete_file)) Then
+        Call Close_for_Var_from_File(unit,delete_file)
+    Else
+        Close(unit)
+    End If
+End Subroutine Read_List_SP
+
+Subroutine Read_List_DP(file_name,n,r,delete_file)
+    Use Kinds, Only: dp
+    Implicit None
+    Character(*), Intent(In) :: file_name
+    Integer, Intent(Out) :: n
+    Real(dp), Allocatable, Intent(Out) :: r(:)
+    Logical, Intent(In), Optional :: delete_file
+    Integer :: unit,stat
+    Character(max_line_len) :: trash
+    Integer :: i
+
+    Call Open_for_Read_List(file_name,unit,stat)
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('Read_List_DP','open',file_name,stat)
+    n = 0
+    Do
+        Read(unit , '(A)' , IOSTAT = stat) trash
+        If (stat .LT. 0) Then
+            Exit
+        Else If (stat .GT. 0) Then
+            Call File_err_for_Var_to_from_File('Read_List_DP','read',file_name,stat)
+        End If
+        n = n + 1
+    End Do
+    Rewind(unit)
+    Allocate(r(1:n))
+    r = 0._dp
+    Do i = 1,n
+        Read(unit , '(A)' ) trash
+        Read(trash,*) r(i)
+    End Do
+    If (Present(delete_file)) Then
+        Call Close_for_Var_from_File(unit,delete_file)
+    Else
+        Close(unit)
+    End If
+End Subroutine Read_List_DP
+
+# if EXTP
+    Subroutine Read_List_QP(file_name,n,r,delete_file)
+        Use Kinds, Only: qp
+        Implicit None
+        Character(*), Intent(In) :: file_name
+        Integer, Intent(Out) :: n
+        Real(qp), Allocatable, Intent(Out) :: r(:)
+        Logical, Intent(In), Optional :: delete_file
+        Integer :: unit,stat
+        Character(max_line_len) :: trash
+        Integer :: i
+
+        Call Open_for_Read_List(file_name,unit,stat)
+        If (stat .NE. 0) Call File_err_for_Var_to_from_File('Read_List_QP','open',file_name,stat)
+        n = 0
+        Do
+            Read(unit , '(A)' , IOSTAT = stat) trash
+            If (stat .LT. 0) Then
+                Exit
+            Else If (stat .GT. 0) Then
+                Call File_err_for_Var_to_from_File('Read_List_QP','read',file_name,stat)
+            End If
+            n = n + 1
+        End Do
+        Rewind(unit)
+        Allocate(r(1:n))
+        r = 0._qp
+        Do i = 1,n
+            Read(unit , '(A)' ) trash
+            Read(trash,*) r(i)
+        End Do
+        If (Present(delete_file)) Then
+            Call Close_for_Var_from_File(unit,delete_file)
+        Else
+            Close(unit)
+        End If
+    End Subroutine Read_List_QP
+# endif
+
+Subroutine Read_List_I2(file_name,n,r,delete_file)
+    Use Kinds, Only: is
+    Implicit None
+    Character(*), Intent(In) :: file_name
+    Integer, Intent(Out) :: n
+    Integer(is), Allocatable, Intent(Out) :: r(:)
+    Logical, Intent(In), Optional :: delete_file
+    Integer :: unit,stat
+    Character(max_line_len) :: trash
+    Integer :: i
+
+    Call Open_for_Read_List(file_name,unit,stat)
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('Read_List_I2','open',file_name,stat)
+    n = 0
+    Do
+        Read(unit , '(A)' , IOSTAT = stat) trash
+        If (stat .LT. 0) Then
+            Exit
+        Else If (stat .GT. 0) Then
+            Call File_err_for_Var_to_from_File('Read_List_I2','read',file_name,stat)
+        End If
+        n = n + 1
+    End Do
+    Rewind(unit)
+    Allocate(r(1:n))
+    r = 0_is
+    Do i = 1,n
+        Read(unit , '(A)' ) trash
+        Read(trash,*) r(i)
+    End Do
+    If (Present(delete_file)) Then
+        Call Close_for_Var_from_File(unit,delete_file)
+    Else
+        Close(unit)
+    End If
+End Subroutine Read_List_I2
+
+Subroutine Read_List_I4(file_name,n,r,delete_file)
+    Use Kinds, Only: il
+    Implicit None
+    Character(*), Intent(In) :: file_name
+    Integer, Intent(Out) :: n
+    Integer(il), Allocatable, Intent(Out) :: r(:)
+    Logical, Intent(In), Optional :: delete_file
+    Integer :: unit,stat
+    Character(max_line_len) :: trash
+    Integer :: i
+
+    Call Open_for_Read_List(file_name,unit,stat)
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('Read_List_I4','open',file_name,stat)
+    n = 0
+    Do
+        Read(unit , '(A)' , IOSTAT = stat) trash
+        If (stat .LT. 0) Then
+            Exit
+        Else If (stat .GT. 0) Then
+            Call File_err_for_Var_to_from_File('Read_List_I4','read',file_name,stat)
+        End If
+        n = n + 1
+    End Do
+    Rewind(unit)
+    Allocate(r(1:n))
+    r = 0_il
+    Do i = 1,n
+        Read(unit , '(A)' ) trash
+        Read(trash,*) r(i)
+    End Do
+    If (Present(delete_file)) Then
+        Call Close_for_Var_from_File(unit,delete_file)
+    Else
+        Close(unit)
+    End If
+End Subroutine Read_List_I4
+
+Subroutine Read_List_I8(file_name,n,r,delete_file)
+    Use Kinds, Only: id
+    Implicit None
+    Character(*), Intent(In) :: file_name
+    Integer, Intent(Out) :: n
+    Integer(id), Allocatable, Intent(Out) :: r(:)
+    Logical, Intent(In), Optional :: delete_file
+    Integer :: unit,stat
+    Character(max_line_len) :: trash
+    Integer :: i
+
+    Call Open_for_Read_List(file_name,unit,stat)
+    If (stat .NE. 0) Call File_err_for_Var_to_from_File('Read_List_I8','open',file_name,stat)
+    n = 0
+    Do
+        Read(unit , '(A)' , IOSTAT = stat) trash
+        If (stat .LT. 0) Then
+            Exit
+        Else If (stat .GT. 0) Then
+            Call File_err_for_Var_to_from_File('Read_List_I8','read',file_name,stat)
+        End If
+        n = n + 1
+    End Do
+    Rewind(unit)
+    Allocate(r(1:n))
+    r = 0_id
+    Do i = 1,n
+        Read(unit , '(A)' ) trash
+        Read(trash,*) r(i)
+    End Do
+    If (Present(delete_file)) Then
+        Call Close_for_Var_from_File(unit,delete_file)
+    Else
+        Close(unit)
+    End If
+End Subroutine Read_List_I8
 
 End Module FileIO_Utilities

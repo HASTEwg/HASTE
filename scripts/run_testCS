@@ -24,10 +24,9 @@ FNAME="n_Cross_Sections"; . ./compile_it
 
 #TEST PROGRAM
 SRC_PATH="../testing/n_CS/"
-BLD_PATH="../build/"
 FNAME="testCS"
 echo "Compiling and linking testCS..."
-gfortran $GFORT_FLAGS -o ${SRC_PATH}${FNAME}.out ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
+$COMP_NAME $GFORT_FLAGS -o ${SRC_PATH}${FNAME}${EXT} ${SRC_PATH}${FNAME}.f90 $OBJ_FILES
 echo "Copying resource files..."
 rm -fr ${SRC_PATH}Resources
 cp -r ../source/resources ${SRC_PATH}Resources
@@ -35,4 +34,4 @@ cp -r ../source/resources ${SRC_PATH}Resources
 #RUN THE TEST PROGRAM
 echo "Running..."
 cd ${SRC_PATH}
-./${FNAME}.out
+${RUN_CMD}${FNAME}${EXT}

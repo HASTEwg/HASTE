@@ -16,18 +16,18 @@
 Module Astro_Utilities
     
     Use Kinds, Only: dp
-    Use Global, Only: R_Earth
-    Use Global, Only: std_grav_parameter
+    Use Global, Only: Rc => R_center
+    Use Global, Only: mu => grav_param
     Implicit None
     Private
     Public :: Period
     Public :: FindTOF
-    Public :: Hits_Earth
+    Public :: Hits_Center
     Public :: SAM
     Public :: SME
-    Public :: Radius_of_Apogee
-    Public :: Radius_of_Perigee
-    Public :: Velocity_of_Perigee
+    Public :: Radius_of_Apoapsis
+    Public :: Radius_of_Periapsis
+    Public :: Velocity_of_Periapsis
     Public :: Time_Since_Periapsis
     Public :: Time_to_R
     Public :: Parabolic_TOF
@@ -45,12 +45,12 @@ Module Astro_Utilities
     End Interface SME
     
     !CANNONICAL UNITS CONVERSIONS
-    Real(dp), Parameter :: ER_per_km = 1._dp / R_Earth ![ER/km]
-    Real(dp), Parameter :: km_per_ER = R_Earth ![km/ER]
-    Real(dp), Parameter :: sec_per_TU = Sqrt(R_Earth**3 / std_grav_parameter) ![s/TU]
-    Real(dp), Parameter :: TU_per_sec = 1._dp / Sqrt(R_Earth**3 / std_grav_parameter) ![TU/s]
-    Real(dp), Parameter :: EpT_per_kps = ER_per_km * sec_per_TU ![ (ER*s) / (km*TU) ]
-    Real(dp), Parameter :: kps_per_EpT = km_per_ER * TU_per_sec ![ (km*TU) / (ER*s) ]
+    Real(dp), Parameter :: Rc_per_km = 1._dp / Rc ![Rc/km]
+    Real(dp), Parameter :: km_per_Rc = Rc ![km/Rc]
+    Real(dp), Parameter :: sec_per_TU = Sqrt(Rc**3 / mu) ![s/TU]
+    Real(dp), Parameter :: TU_per_sec = 1._dp / Sqrt(Rc**3 / mu) ![TU/s]
+    Real(dp), Parameter :: EpT_per_kps = Rc_per_km * sec_per_TU ![ (Rc*s) / (km*TU) ]
+    Real(dp), Parameter :: kps_per_EpT = km_per_Rc * TU_per_sec ![ (km*TU) / (Rc*s) ]
     
 Contains
 
@@ -67,7 +67,7 @@ End Function SAM
 
 Function SME_from_mags(r,v) Result(SME)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Implicit None
     Real(dp) :: SME
     Real(dp), Intent(In) :: r,v
@@ -87,7 +87,7 @@ End Function SME_from_vecs
 
 Function Semilatus_Rectum(r,v) Result(p)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Utilities, Only: Cross_Product
     Use Utilities, Only: Vector_Length
     Implicit None
@@ -97,9 +97,9 @@ Function Semilatus_Rectum(r,v) Result(p)
     p = Vector_Length(Cross_Product(r,v))**2 / mu
 End Function Semilatus_Rectum
 
-Function Radius_of_Apogee(r,v) Result(ra)
+Function Radius_of_Apoapsis(r,v) Result(ra)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Converged
     Implicit None
@@ -123,11 +123,11 @@ Function Radius_of_Apogee(r,v) Result(ra)
     Else  !no-return trajectory, apogee is at infinty
         ra = Huge(ra)
     End If
-End Function Radius_of_Apogee
+End Function Radius_of_Apoapsis
 
-Function Radius_of_Perigee(r,v) Result(rp)
+Function Radius_of_Periapsis(r,v) Result(rp)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Converged
     Implicit None
@@ -147,11 +147,11 @@ Function Radius_of_Perigee(r,v) Result(rp)
             rp = 1._dp / Vector_Length(r) - 0.5_dp * Vector_Length(v)**2 / mu
         End If
     End If
-End Function Radius_of_Perigee
+End Function Radius_of_Periapsis
 
-Function Velocity_of_Perigee(r,v) Result(vp)
+Function Velocity_of_Periapsis(r,v) Result(vp)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Converged
     Implicit None
@@ -172,59 +172,102 @@ Function Velocity_of_Perigee(r,v) Result(vp)
             vp = 0._dp
         End If
     End If
-End Function Velocity_of_Perigee
+End Function Velocity_of_Periapsis
 
-Recursive Function Time_to_R(r0,v0,radius,t_min,t_max,t_guess,allow_recursion) Result(t)
+Function Time_to_R(r0,v0,radius,t_min,t_max) Result(t)
     Use Kinds, Only: dp
-    Use Utilities, Only: Vector_Length
-    Use Utilities, Only: Unit_Vector
-    Use Utilities, Only: Converged
     Implicit None
     Real(dp) :: t
     Real(dp), Intent(In) :: r0(1:3)
     Real(dp), Intent(In) :: v0(1:3)
     Real(dp), Intent(In) :: radius
     Real(dp), Intent(In) :: t_min,t_max
-    Real(dp), Intent(In), Optional :: t_guess
-    Logical, Intent(In), Optional :: allow_recursion
-    Real(dp) :: t1,t2,t_old
-    Real(dp) :: r(1:3),v(1:3)
-    Integer :: i,j
-    Real(dp) :: r_mag
+    Real(dp) :: t1,t2
     
-    If (Dot_Product(r0,v0) .LT. 1.E-12_dp) Then !initial conditions too close to periapsis, perturb and recurse
-        Call Kepler_Gooding(r0,v0,t_min,r,v)
-        t = t_min + Time_to_R(r,v,radius,0._dp,t_max-t_min)
-        Return
-    End If
     t1 = t_min
     t2 = t_max
-    If (Present(t_guess)) Then
-        t = t_guess
-    Else
-        t = 0.5_dp * (t1 + t2)
+    t = 0.5_dp * (t1 + t2)
+    !attempt Newton's method first
+    If (Time_to_R_Newton(r0,v0,radius,t1,t2,t)) Return  !normal exit
+    !Newton's method failed to converge on a root within known boundaries, use bisection for a starter
+    If (Time_to_R_Bisect(r0,v0,radius,t1,t2,t,starter=.TRUE.)) Then  !bisection has refined the starter
+        !attempt Newton again with the better starter
+        If (Time_to_R_Newton(r0,v0,radius,t1,t2,t)) Return
+    Else  !bisection failed to refine the starter
+        Print*,'ERROR:  Astro_Utilities: Time_to_R:  Bisection failed to refine starter'
+        ERROR STOP
     End If
+    !If Newton failed again, fall back on an exhaustive bisection search
+    If (Time_to_R_Bisect(r0,v0,radius,t1,t2,t,starter=.FALSE.)) Then
+        Return
+    Else
+        Print*,'ERROR:  Astro_Utilities: Time_to_R:  Failed to converge on a root.'
+        ERROR STOP
+    End If
+End Function Time_to_R
+
+Function Time_to_R_Newton(r0,v0,radius,t1,t2,t) Result(bingo)
+    Use Kinds, Only: dp
+    Use Utilities, Only: Vector_Length
+    Use Utilities, Only: Converged
+    Implicit None
+    Logical :: bingo
+    Real(dp), Intent(In) :: r0(1:3)
+    Real(dp), Intent(In) :: v0(1:3)
+    Real(dp), Intent(In) :: radius
+    Real(dp), Intent(in) :: t1,t2
+    Real(dp), Intent(InOut) :: t
+    Integer :: i
+    Real(dp) :: t_old
+    Real(dp) :: r(1:3),v(1:3)
+    Real(dp) :: r_mag
+
+    bingo = .FALSE.
     Do i = 1,100
         t_old = t
         Call Kepler_Gooding(r0,v0,t,r,v)
         r_mag = Vector_Length(r)
         t = t_old - (r_mag - radius) / Dot_Product(r/r_mag,v)
-        If (Converged(t,t_old,rTol=1.E-12_dp,aTol=1.E-9_dp)) Return  !normal exit
-        If (t.LT.t1 .OR. t.GT.t2) Exit  !Newton's method has diverged from known bounds, use bisection for a better start
-    End Do
-    If (Present(allow_recursion)) Then  !check if recursion is allowed
-        If (.NOT. allow_recursion) Then  !recursion disallowed
-            Print *,'ERROR:  Astro_Utilities: Time_to_R:  Failed to converge on a root for t. Recursion disallowed.'
-            ERROR STOP
+        If (t.LT.t1 .OR. t.GT.t2) Return  !Newton's method has diverged from known bounds, unconverged exit
+        If (Converged(t,t_old,rTol=1.E-12_dp,aTol=1.E-9_dp)) Then
+            bingo = .TRUE.
+            Return  !normal exit
         End If
-    Else If (Present(t_guess)) Then
-        !This is a recursive call, newton with a bisection headstart has failed
-        Print *,'ERROR:  Astro_Utilities: Time_to_R:  Failed to converge on a root for t after recursion.'
-        ERROR STOP
+    End Do
+End Function Time_to_R_Newton
+
+Function Time_to_R_Bisect(r0,v0,radius,t1,t2,t,starter) Result(bingo)
+    Use Kinds, Only: dp
+    Use Utilities, Only: Vector_Length
+    Use Utilities, Only: Converged
+    Implicit None
+    Logical :: bingo
+    Real(dp), Intent(In) :: r0(1:3)
+    Real(dp), Intent(In) :: v0(1:3)
+    Real(dp), Intent(In) :: radius
+    Real(dp), Intent(InOut) :: t1,t2
+    Real(dp), Intent(InOut) :: t
+    Logical, Intent(In) :: starter
+    Real(dp) :: reltol,abstol
+    Integer :: i
+    Real(dp) :: t_old
+    Real(dp) :: r(1:3),v(1:3)
+
+    bingo = .FALSE.
+    If (starter) Then
+        reltol = 1.E-3_dp
+        abstol = 1._dp
+    Else
+        reltol = 1.E-9_dp
+        abstol = 1.E-12_dp
     End If
-    Do j = 1,1000
+    t_old = t2
+    Do i = 1,2054  !2054 stages is the number of bisections to get from HUGE to TINY in in double precision
         t = 0.5_dp * (t1 + t2)
-        If (Converged(t,t_old,rTol=1.E-3_dp,aTol=1.E-3_dp)) Exit
+        If (Converged(t,t_old,rTol=reltol,aTol=abstol)) Then
+            bingo = .TRUE.
+            Return !normal exit
+        End If
         Call Kepler_Gooding(r0,v0,t,r,v) 
         If (Dot_Product(r,v) .GT. 0._dp) Then !ascending trajectory
             If (Vector_Length(r) .GT. radius) Then !time too late
@@ -241,23 +284,22 @@ Recursive Function Time_to_R(r0,v0,radius,t_min,t_max,t_guess,allow_recursion) R
         End If
         t_old = t
     End Do
-    t = Time_to_R(r0,v0,radius,t1,t2,t_guess = t)
-End Function Time_to_R
+End Function Time_to_R_Bisect
 
-Function Hits_Earth(r1,r2,v1,v2)
+Function Hits_Center(r1,r2,v1,v2)
     Use Kinds, Only: dp
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Implicit None
-    Logical :: Hits_Earth
+    Logical :: Hits_Center
     Real(dp), Intent(In) :: r1(1:3),r2(1:3)
     Real(dp), Intent(In) :: v1(1:3),v2(1:3)
     
-    Hits_Earth = .FALSE.
+    Hits_Center = .FALSE.
     If (Dot_Product(r1,v1).LT.0._dp .AND. Dot_Product(r2,v2).GT.0._dp) Then
         !periapsis occurs between r1 and r2, check for collision
-        If (Radius_of_Perigee(r1,v1) .LT. R_Earth) Hits_Earth = .TRUE.
+        If (Radius_of_Periapsis(r1,v1) .LT. Rc) Hits_Center = .TRUE.
     End If
-End Function Hits_Earth
+End Function Hits_Center
 
 !-------------------------------------------------------------------------------
 !   Orbit Period
@@ -271,7 +313,7 @@ End Function Hits_Earth
 !-------------------------------------------------------------------------------
 Function Period(r,v) Result(p)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Global, Only: TwoPi
     Implicit None
     Real(dp) :: p
@@ -301,7 +343,7 @@ End Function Period
 Function FindTOF(r1_vec,v1_vec,r2_vec) Result(tof)
     Use Kinds, Only: dp
     Use Utilities, Only: Vector_Length
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Implicit None
     Real(dp) :: tof    
     Real(dp), Intent(In) :: r1_vec(1:3)
@@ -361,7 +403,7 @@ End Function FindTOF
 !-------------------------------------------------------------------------------
 Function Time_Since_Periapsis(r_vec,v_vec) Result(t)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Global, Only: TwoPi
     Use Utilities, Only: Vector_Length
     Implicit None
@@ -372,35 +414,39 @@ Function Time_Since_Periapsis(r_vec,v_vec) Result(t)
     Real(dp) :: xi
     Real(dp) :: alpha
     Real(dp) :: e_vec(1:3),e
-    Real(dp) :: CosNu
-    Real(dp) :: CosE
-    Real(dp) :: CoshF,F
-    Real(dp) :: Nu,p,D
+    Real(dp) :: CosNu,nu
+    Real(dp) :: CosE,SinE
+    Real(dp) :: SinhH
+    Real(dp) :: B,p
+    Real(dp) :: rdotv
     Real(dp), Parameter :: tolerance = 1.E-12_dp
     Real(dp), Parameter :: one_third = 1._dp / 3._dp
     
     r = Vector_Length(r_vec)
     v = Vector_Length(v_vec)
     xi = SME(r,v)
-    alpha = -2._dp * xi / mu
-    e_vec = (v**2 / mu - 1._dp / r) * r_vec - Dot_Product(r_vec,v_vec) * v_vec / mu
+    rdotv = Dot_Product(r_vec,v_vec)
+    e_vec = (v**2 / mu - 1._dp / r) * r_vec - rdotv * v_vec / mu
     e = Vector_Length(e_vec)
     CosNu = Dot_Product(e_vec,r_vec) / (e * r)
+    If (Abs(CosNu) .GT. 1._dp) CosNu = Sign(1._dp,CosNu) !test and correct for precision jitter around CosNu=1
+    nu = ACos(CosNu)
+    If (rdotv .LT. 0._dp) nu = TwoPi - nu
+    alpha = -2._dp * xi / mu
     If (alpha .GT. tolerance) Then !elliptical
         CosE = (e + CosNu) / (1._dp + e * CosNu)
-        t = (ACos(CosE) - e * Sqrt(1-CosE**2)) / Sqrt(mu * alpha**3)
+        SinE = Sin(nu) * Sqrt(1._dp - e**2) / (1._dp + e * CosNu)
+        t = (ATan2(SinE,CosE) - e * SinE) / Sqrt(mu * alpha**3)
     Else If (alpha .LT. -tolerance) Then !hyperbolic
-        CoshF = (e + CosNu) / (1._dp + e * CosNu)
-        F = Log(CoshF + Sqrt(CoshF**2 - 1._dp))
-        If (Dot_Product(r_vec,v_vec) .LT. 0._dp) F = -F
-        t = (e * Sinh(F) - F) / Sqrt(mu * (-alpha)**3)
+        SinhH = Sin(nu) * Sqrt(e**2 - 1._dp) / (1._dp + e * CosNu)
+        t = (e * SinhH - ASinh(SinhH)) / Sqrt(-mu * alpha**3)
     Else !parabolic
-        Nu = ACos(CosNu)
-        If (Dot_Product(r_vec,v_vec) .LT. 0._dp) Nu = TwoPi - Nu
+        B = Sin(nu) / (CosNu + 1._dp)
         p = Semilatus_Rectum(r_vec,v_vec)
-        D = Sqrt(p) * Tan(0.5 * Nu)
-        t = 0.5_dp * (p * D + one_third * D**3) / Sqrt(mu)
+        t = 0.5_dp * Sqrt(p**3 / mu) * B * (one_third*(B**2) + 1._dp)
     End If
+    !TODO Check if following line is needed... use of signed nu above may already correctly sign t
+    t = Sign(t,rdotv)
 End Function Time_Since_Periapsis
 
 !-------------------------------------------------------------------------------
@@ -415,7 +461,7 @@ End Function Time_Since_Periapsis
 !-------------------------------------------------------------------------------
 Function Parabolic_TOF(r1_vec,r2_vec) Result(tof)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Utilities, Only: Vector_Length
     Implicit None
     Real(dp) :: tof
@@ -443,7 +489,7 @@ End Function Parabolic_TOF
 !-------------------------------------------------------------------------------
 Subroutine RV_from_COEs(p,e,i,RAAN,AoP,nu,r,v)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Implicit None
     Real(dp), Intent(In) :: p,e,i,RAAN,AoP,nu  !Classical Orbital Elements
     Real(dp), Intent(Out) :: r(1:3),v(1:3)
@@ -501,16 +547,16 @@ Subroutine Kepler(r0_vec,v0_vec,t,r_vec,v_vec)
     Real(dp), Intent(Out) :: r_vec(1:3)
     Real(dp), Intent(Out) :: v_vec(1:3)
     Real(dp) :: f,g,f_dot,g_dot
-    Real(dp) :: r0_vec_ER(1:3),v0_vec_ER(1:3)
+    Real(dp) :: r0_vec_Rc(1:3),v0_vec_Rc(1:3)
 
     !convert to cannonical units
-    r0_vec_ER = r0_vec * ER_per_km
-    v0_vec_ER = v0_vec * EpT_per_kps
+    r0_vec_Rc = r0_vec * Rc_per_km
+    v0_vec_Rc = v0_vec * EpT_per_kps
     !Find f, g, f_dot, and g_dot
-    Call Kepler_f_g(r0_vec_ER,v0_vec_ER,t*TU_per_sec,f,g,f_dot,g_dot)
+    Call Kepler_f_g(r0_vec_Rc,v0_vec_Rc,t*TU_per_sec,f,g,f_dot,g_dot)
     !Compute new r and v, converting back to km and km/s
-    r_vec = km_per_ER * (f*r0_vec_ER + g*v0_vec_ER)
-    v_vec = kps_per_EpT * (f_dot*r0_vec_ER + g_dot*v0_vec_ER)
+    r_vec = km_per_Rc * (f*r0_vec_Rc + g*v0_vec_Rc)
+    v_vec = kps_per_EpT * (f_dot*r0_vec_Rc + g_dot*v0_vec_Rc)
 End Subroutine Kepler
 
 Function Kepler_R(r0_vec,v0_vec,t) Result(r_vec)
@@ -521,15 +567,15 @@ Function Kepler_R(r0_vec,v0_vec,t) Result(r_vec)
     Real(dp), Intent(In) :: v0_vec(1:3)
     Real(dp), Intent(In) :: t
     Real(dp) :: f,g
-    Real(dp) :: r0_vec_ER(1:3),v0_vec_ER(1:3)
+    Real(dp) :: r0_vec_Rc(1:3),v0_vec_Rc(1:3)
 
     !convert to cannonical units
-    r0_vec_ER = r0_vec * ER_per_km
-    v0_vec_ER = v0_vec * EpT_per_kps
+    r0_vec_Rc = r0_vec * Rc_per_km
+    v0_vec_Rc = v0_vec * EpT_per_kps
     !Find f and g
-    Call Kepler_f_g(r0_vec_ER,v0_vec_ER,t*TU_per_sec,f,g)
+    Call Kepler_f_g(r0_vec_Rc,v0_vec_Rc,t*TU_per_sec,f,g)
     !Compute new r converting back to km
-    r_vec = km_per_ER * (f*r0_vec_ER + g*v0_vec_ER)
+    r_vec = km_per_Rc * (f*r0_vec_Rc + g*v0_vec_Rc)
 End Function Kepler_R
 
 Subroutine Kepler_f_g(r0_vec,v0_vec,t,f,g,f_dot,g_dot)
@@ -599,7 +645,7 @@ End Subroutine Kepler_f_g
 Subroutine Lambert_minV(r1_vec,r2_vec,v1_vec,tof)
     Use Kinds, Only: dp
     Use Global, Only: Pi
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Unit_Vector
     Implicit None
@@ -641,7 +687,7 @@ End Subroutine Lambert_minV
 !   Translated to modern Fortran by Whitman Dailey.  Jun 02, 2018.
 !   Air Force Institute of Technology, Department of Engineering Physics
 !-------------------------------------------------------------------------------
-Subroutine Lambert(r0_vec,r_vec,tof,v0_vec,v_vec,long_way)
+Pure Subroutine Lambert(r0_vec,r_vec,tof,v0_vec,v_vec,long_way)
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: r0_vec(1:3)
@@ -651,7 +697,7 @@ Subroutine Lambert(r0_vec,r_vec,tof,v0_vec,v_vec,long_way)
     Real(dp), Intent(Out) :: v_vec(1:3)
     Logical, Intent(In), Optional :: long_way
     Real(dp) :: f,g,g_dot
-    Real(dp) :: r0_vec_ER(1:3),r_vec_ER(1:3)
+    Real(dp) :: r0_vec_Rc(1:3),r_vec_Rc(1:3)
     Logical :: tm
 
     If (Present(long_way)) Then
@@ -660,16 +706,16 @@ Subroutine Lambert(r0_vec,r_vec,tof,v0_vec,v_vec,long_way)
         tm = .FALSE.
     End If
     !convert to cannonical units
-    r0_vec_ER = r0_vec * ER_per_km
-    r_vec_ER = r_vec * ER_per_km
+    r0_vec_Rc = r0_vec * Rc_per_km
+    r_vec_Rc = r_vec * Rc_per_km
     !Find f, g, and g_dot
-    Call Lambert_f_g(r0_vec_ER,r_vec_ER,tof*TU_per_sec,tm,f,g,g_dot)
+    Call Lambert_f_g(r0_vec_Rc,r_vec_Rc,tof*TU_per_sec,tm,f,g,g_dot)
     !Compute new v0 and v, converting back to km/s
-    v0_vec = kps_per_EpT * (r_vec_ER - f*r0_vec_ER) / g
-    v_vec = kps_per_EpT * (g_dot*r_vec_ER - r0_vec_ER) / g
+    v0_vec = kps_per_EpT * (r_vec_Rc - f*r0_vec_Rc) / g
+    v_vec = kps_per_EpT * (g_dot*r_vec_Rc - r0_vec_Rc) / g
 End Subroutine Lambert
 
-Subroutine Lambert_f_g(r0_vec,r_vec,t,long_way,f,g,g_dot)
+Pure Subroutine Lambert_f_g(r0_vec,r_vec,t,long_way,f,g,g_dot)
     !INPUTS & OUTPUTS ARE IN CANONICAL UNITS
     Use Kinds, Only: dp
     Use Global, Only: TwoPi
@@ -693,12 +739,9 @@ Subroutine Lambert_f_g(r0_vec,r_vec,t,long_way,f,g,g_dot)
     A = Sqrt(r * r0 + Dot_Product(r0_vec,r_vec))
     If (A .LT. tolerance) Then
         !when A=0, this is a near-180deg transfer, universal variable formulation does not have unique solution,
-        !use Battin's method instead
-        Print *,'ERROR:  Astro_Utilities: Lambert_f_g:  Lambert-Battin not yet supported.'
-        ERROR STOP
-        !UNDONE  Lambert-Battin method for near-180deg transfers
-        !Call Lambert_f_g_Battin(r0_vec,r_vec,t,long_way,f,g,g_dot)
-        !Return
+        !use Battin's method instead assuming an elliptical transfer
+        Call Lambert_f_g_Battin(r0_vec,r_vec,t,long_way,.TRUE.,f,g,g_dot)
+        Return
     End If
     If (long_way) A = -A
     z = 0._dp
@@ -725,7 +768,7 @@ Subroutine Lambert_f_g(r0_vec,r_vec,t,long_way,f,g,g_dot)
     g_dot = 1._dp - y / r
 End Subroutine Lambert_f_g
 
-Subroutine Find_C_S(z,C,S)
+Pure Subroutine Find_C_S(z,C,S)
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: z
@@ -744,38 +787,209 @@ Subroutine Find_C_S(z,C,S)
             S = (Sinh(sqrt_Z) - sqrt_Z) / (-z * sqrt_Z)
         End If
     Else !evaluate by series
-        Call C_S_series()
+        Call Find_C_S_by_series(z,C,S)
     End If
-    
-    Contains
-        Subroutine C_S_series()
-            Use Kinds, Only: dp
-            Implicit None
-            Real(dp) :: zi,Ci,Si,a
-            Integer :: i,b
-            Real(dp), Parameter :: one_sixth = 1._dp / 6._dp
-            Real(dp), Parameter :: tol = 1.E-15_dp
-
-            C = 0.5_dp
-            S = one_sixth
-            zi = -z
-            a = one_sixth
-            b = 3
-            !add up to ten terms, checking for convergence along the way
-            Do i = 1,10
-                b = b + 1
-                a = a / Real(b,dp)
-                Ci = zi * a
-                C = C + Ci
-                b = b + 1
-                a = a / Real(b,dp)
-                Si = zi * a
-                S = S + Si
-                If (Abs(Ci) .LT. Abs(C)*tol .AND. Abs(Si) .LT. Abs(S)*tol) Exit
-                zi = zi * (-z)
-            End Do
-        End Subroutine C_S_series
 End Subroutine Find_C_S
+
+Pure Subroutine Find_C_S_by_series(z,C,S)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp), Intent(In) :: z
+    Real(dp), Intent(Out) :: C,S
+    Real(dp) :: zi,Ci,Si,a
+    Integer :: i,b
+    Real(dp), Parameter :: one_sixth = 1._dp / 6._dp
+    Real(dp), Parameter :: tol = 1.E-15_dp
+
+    C = 0.5_dp
+    S = one_sixth
+    zi = -z
+    a = one_sixth
+    b = 3
+    !add up to ten terms, checking for convergence along the way
+    Do i = 1,10
+        b = b + 1
+        a = a / Real(b,dp)
+        Ci = zi * a
+        C = C + Ci
+        b = b + 1
+        a = a / Real(b,dp)
+        Si = zi * a
+        S = S + Si
+        If (Abs(Ci) .LT. Abs(C)*tol .AND. Abs(Si) .LT. Abs(S)*tol) Exit
+        zi = zi * (-z)
+    End Do
+End Subroutine Find_C_S_by_series
+
+!-------------------------------------------------------------------------------
+!   Solution to Lambert's Problem, Battin's Method
+!
+!   Formulae from:
+!   Vallado, D. A. (2001). Fundamentals of Astrodynamics and Applications (2nd
+!       ed.). El Segundo, CA: Microcosm Press.
+!
+!   Translated to modern Fortran by Whitman Dailey.  Jun 02, 2020.
+!   Air Force Institute of Technology, Department of Engineering Physics
+!-------------------------------------------------------------------------------
+Pure Subroutine Lambert_Battin(r0_vec,r_vec,tof,v0_vec,v_vec,long_way,ellipse)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp), Intent(In) :: r0_vec(1:3)
+    Real(dp), Intent(In) :: r_vec(1:3)
+    Real(dp), Intent(In) :: tof
+    Real(dp), Intent(Out) :: v0_vec(1:3)
+    Real(dp), Intent(Out) :: v_vec(1:3)
+    Logical, Intent(In), Optional :: long_way
+    Logical, Intent(In), Optional :: ellipse
+    Real(dp) :: f,g,g_dot
+    Real(dp) :: r0_vec_Rc(1:3),r_vec_Rc(1:3)
+    Logical :: tm,te
+
+    If (Present(long_way)) Then
+        tm = long_way
+    Else  !default is short way
+        tm = .FALSE.
+    End If
+    If (Present(ellipse)) Then
+        te = ellipse
+    Else  !default is elliptical transfer
+        te = .TRUE.
+    End If
+    !convert to cannonical units
+    r0_vec_Rc = r0_vec * Rc_per_km
+    r_vec_Rc = r_vec * Rc_per_km
+    !Find f, g, and g_dot
+    Call Lambert_f_g_Battin(r0_vec_Rc,r_vec_Rc,tof*TU_per_sec,tm,te,f,g,g_dot)
+    !Compute new v0 and v, converting back to km/s
+    v0_vec = kps_per_EpT * (r_vec_Rc - f*r0_vec_Rc) / g
+    v_vec = kps_per_EpT * (g_dot*r_vec_Rc - r0_vec_Rc) / g
+End Subroutine Lambert_Battin
+
+Pure Subroutine Lambert_f_g_Battin(r0_vec,r1_vec,tof,long_way,ellip_trans,f,g,g_dot)
+    !INPUTS & OUTPUTS ARE IN CANONICAL UNITS
+    Use Kinds, Only: dp
+    Use Global, Only: Pi
+    Use Global, Only: TwoPi
+    Use Utilities, Only: Vector_Length
+    Use Utilities, Only: Converged
+    Implicit None
+    Real(dp), Intent(In) :: r0_vec(1:3)
+    Real(dp), Intent(In) :: r1_vec(1:3)
+    Real(dp), Intent(In) :: tof
+    Logical, Intent(In) :: long_way
+    Logical, Intent(In) :: ellip_trans
+    Real(dp), Intent(Out) :: f
+    Real(dp), Intent(Out) :: g
+    Real(dp), Intent(Out) :: g_dot
+    Real(dp) :: r0,r1,r0r1,r1dr0
+    Real(dp) :: cos_nu,sin_nu,nu
+    Real(dp) :: c,s,eps
+    Real(dp) :: tanSq2w,cosSqQtrNu,sinSqQtrNu
+    Real(dp) :: rop,m,l
+    Real(dp) :: x,x_old
+    Real(dp) :: eta,c_eta
+    Real(dp) :: d,d_old,t,t_old,sig
+    Integer :: i
+    Real(dp) :: xi,h,h1,h2
+    Real(dp) :: b,u,k,y,c_u
+    Real(dp) :: a,Ae,Be,a_min,t_min,dE
+    Real(dp) :: Ah,Bh,dH
+    Real(dp), Parameter :: tolerance = 1.E-12_dp
+    Real(dp), Parameter :: one_third = 1._dp / 3._dp
+    Real(dp), Parameter :: four_27ths = 4._dp / 27._dp
+
+    r0 = Vector_Length(r0_vec)
+    r1 = Vector_Length(r1_vec)
+    r0r1 = r0 * r1
+    r1dr0 = r1 / r0
+    cos_nu = Dot_Product(r0_vec,r1_vec) / r0r1
+    sin_nu = Sqrt(1._dp - cos_nu**2)
+    If (long_way) sin_nu = -sin_nu
+    nu = ATAN2(sin_nu,cos_nu)
+    c = Sqrt(r0**2 + r1**2 - 2._dp * r0r1 * cos_nu)
+    s = 0.5_dp * (r0 + r1 + c)
+    eps = (r1 - r0) / r0
+    tanSq2w = 0.25_dp * eps**2 / (Sqrt(r1dr0) + r1dr0*(2._dp + Sqrt(r1dr0)))
+    cosSqQtrNu = Cos(0.25_dp*nu)**2
+    sinSqQtrNu = Sin(0.25_dp*nu)**2
+    rop = Sqrt(r0r1) * (cosSqQtrNu + tanSq2w)
+    If (long_way) Then
+        l = (cosSqQtrNu + tanSq2w - Cos(0.5_dp*nu)) / (cosSqQtrNu + tanSq2w)
+    Else
+        l = (sinSqQtrNu + tanSq2w) / (sinSqQtrNu + tanSq2w + Cos(0.5_dp*nu))
+    End If
+    m = mu * tof**2 / (8._dp * rop**3)
+    If (ellip_trans) Then
+        x = l
+    Else
+        x = 0._dp
+    End If
+    Do
+        x_old = x
+        eta = x / ( Sqrt(1._dp+x) + 1._dp )**2
+        d_old = 1._dp
+        t_old = 0.2_dp
+        sig = t_old
+        i = 3
+        Do
+            c_eta = Real( i**2 , dp ) / Real( ((2*i)**2)-1 , dp )
+            d = 1._dp / (1._dp + c_eta * eta * d_old)
+            t = t_old * (d - 1._dp)
+            sig = sig + t
+            If (Abs(t) .LT. tolerance) Exit
+            d_old = d
+            t_old = t
+            i = i + 1
+        End Do
+        xi = 1._dp / ( (1._dp / (8._dp * (1._dp + Sqrt(1._dp+x))) ) * ( 3._dp + sig / ( 1._dp + eta*sig ) ) )
+        h = 1._dp / ( (1._dp + 2._dp*x + l) * (3._dp + x*(1._dp + 4._dp*xi)) )
+        h1 = ((l + x))**2 * (1._dp + xi * (1._dp + 3._dp*x)) * h
+        h2 = m * (1._dp - xi * (x - l)) * h
+        b = 27._dp * h2 / (4._dp*((1._dp + h1)**3))
+        u = -b / (2._dp * (Sqrt(1._dp + b) + 1._dp))
+        d_old = 1._dp / (1._dp + four_27ths * u * one_third)
+        t_old = one_third * (d_old - 1._dp)
+        k = one_third + t_old
+        i = 1
+        Do
+            If (Mod(i,2) .EQ. 0) Then !even i
+                c_u = Real( 2*(3*i+1)*(6*i-1) , dp) / Real( 9*(4*i-1)*(4*i+1) , dp)
+            Else !odd i
+                c_u = Real( 2*(3*i+2)*(6*i+1) , dp) / Real( 9*(4*i+1)*(4*i+3) , dp)
+            End If
+            d = 1._dp / (1._dp + c_u * u * d_old)
+            t = t_old * (d - 1._dp)
+            k = k + t
+            If (Abs(t) .LT. tolerance) Exit
+            d_old = d
+            t_old = t
+            i = i + 1
+        End Do
+        y = one_third * (1._dp + h1) * (2._dp + Sqrt(1._dp + b) / (1._dp - 2._dp * u * (k**2) ))
+        x = Sqrt((0.5_dp * (1._dp - l))**2 + (m / (y**2))) - 0.5_dp * (1._dp + l)
+        If (Converged(x,x_old)) Exit
+    End Do
+    a = tof**2 / (16._dp * rop**2 * x * y**2)
+    If (a .GT. 0._dp) Then
+        Be = ACos(1._dp - (s - c) / a)
+        If (long_way) Be = -Be
+        a_min = 0.5_dp * s
+        t_min = Sqrt(a_min**3) * (Pi - Be + Sin(Be))
+        Ae = ACos(1._dp - s / a)
+        If (tof .GT. t_min) Ae = TwoPi - Ae
+        dE = Ae - Be
+        f = 1._dp - a * (1._dp - Cos(dE)) / r0
+        g = tof - Sqrt(a**3) * (dE - Sin(dE))
+        g_dot = 1._dp - a * (1._dp - Cos(dE)) / r1
+    Else
+        Bh = ACosh(1._dp - (s - c) / a )
+        Ah = ACosh(1._dp - s / a)
+        dH = Ah - Bh
+        f = 1._dp - a * (1._dp - Cosh(dH)) / r0
+        g = tof - Sqrt(-a**3) * (Sinh(dH) - dH)
+        g_dot = 1._dp - a * (1._dp - Cosh(dH)) / r1
+    End If
+End Subroutine Lambert_f_g_Battin
 
 !-------------------------------------------------------------------------------
 !   Gooding's Method for Lambert's Problem
@@ -788,18 +1002,18 @@ End Subroutine Find_C_S
 !   Revised for modern Fortran by Whitman Dailey.  Jun 02, 2018.
 !   Air Force Institute of Technology, Department of Engineering Physics
 !-------------------------------------------------------------------------------
-Subroutine Lambert_Gooding(r1_vec,r2_vec,tof,v1,v2,long_way)
+Pure Subroutine Lambert_Gooding(r1_vec,r2_vec,tof,v1,v2,long_way)
     Use Kinds, Only: dp
     Use Global, Only: TwoPi
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Cross_Product
     Use Utilities, Only: Unit_Vector
     implicit none
-    Real(dp), Intent(In) :: r1_vec(1:3)         !! first cartesian position [km]
-    Real(dp), Intent(In) :: r2_vec(1:3)         !! second cartesian position [km]
-    Real(dp), Intent(In) :: tof        !! time of flight [sec]
-    Real(dp), Intent(Out) :: v1(1:3)         !! cartesian velocity at r1
-    Real(dp), Intent(Out) :: v2 (1:3)        !! cartesian velocity at r2
+    Real(dp), Intent(In) :: r1_vec(1:3)  !! first cartesian position [km]
+    Real(dp), Intent(In) :: r2_vec(1:3)  !! second cartesian position [km]
+    Real(dp), Intent(In) :: tof          !! time of flight [sec]
+    Real(dp), Intent(Out) :: v1(1:3)     !! cartesian velocity at r1
+    Real(dp), Intent(Out) :: v2(1:3)     !! cartesian velocity at r2
     Logical, Intent(In), Optional :: long_way   !! when true, do "long way" (>pi) transfers
     Logical :: tm
     Real(dp) :: pa,ta,r1,r2
@@ -817,33 +1031,35 @@ Subroutine Lambert_Gooding(r1_vec,r2_vec,tof,v1,v2,long_way)
     r2_hat = r2_vec / r2
     r1xr2 = Cross_Product(r1_vec,r2_vec)
     If (All(r1xr2 .EQ. 0._dp)) Then  !the vectors are parallel, so the transfer plane is undefined
-        !write(*,*) 'Warning: pi transfer in solve_lambert_gooding'
-        r1xr2 = (/ 0._dp , 0._dp , 1._dp /)    !degenerate conic...choose the x-y plane
-    end if
+        !when A=0, this is a near-180deg transfer, universal variable formulation does not have unique solution,
+        !use Battin's method instead assuming an elliptical transfer
+        Call Lambert_Battin(r1_vec,r2_vec,tof,v1,v2,long_way,.TRUE.)
+        Return
+        !r1xr2 = (/ 0._dp , 0._dp , 1._dp /)    !degenerate conic...choose the x-y plane
+    End If
     r1xr2_hat = Unit_Vector(r1xr2)
     !a trick to make sure argument is between [-1 and 1]:
     pa = Acos(Max(-1._dp,Min(1._dp,Dot_Product(r1_hat,r2_hat))))
     !transfer angle and normal vector:
-    if (tm) then ! greater than pi
-        ta    =  TwoPi - pa
-        rho   = -r1xr2_hat
-    else ! less than pi
-        ta    = pa
-        rho   = r1xr2_hat
-    end if
+    If (tm) Then ! greater than pi
+        ta  =  TwoPi - pa
+        rho = -r1xr2_hat
+    Else ! less than pi
+        ta  = pa
+        rho = r1xr2_hat
+    End If
     eta1 = Cross_Product(rho,r1_hat)
     eta2 = Cross_Product(rho,r2_hat)
     !Call Gooding
     call vlamb(r1,r2,ta,tof,vr1,vt1,vr2,vt2)
-    !convert transverse and radial velicities to inertial vectors
+    !convert transverse and radial velocities to inertial vectors
     v1 = vr1 * r1_hat + vt1 * eta1
     v2 = vr2 * r2_hat + vt2 * eta2
 End Subroutine Lambert_Gooding
 
-Subroutine vlamb(r1,r2,th,tdelt,vr1,vt1,vr2,vt2)
+Pure Subroutine vlamb(r1,r2,th,tdelt,vr1,vt1,vr2,vt2)
     Use Kinds, Only: dp
-    Use Global, Only: TwoPi
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Implicit None
     Real(dp), Intent(In) :: r1
     Real(dp), Intent(In) :: r2
@@ -876,7 +1092,7 @@ Subroutine vlamb(r1,r2,th,tdelt,vr1,vt1,vr2,vt2)
     End If
     t = 4._dp * gms * tdelt / s**2
     Call xLamb(q,qsqfm1,t,x)
-    Call qzminx_qzplx_zplqx(q,qsqfm1,x,qzminx,qzplx,zplqx)
+    Call tLamb_from_vLamb(q,qsqfm1,x,qzminx,qzplx,zplqx)
     vt2 = gms * zplqx * Sqrt(sig)
     vr1 = gms * (qzminx - qzplx * rho) / r1
     vt1 = vt2 / r1
@@ -884,14 +1100,98 @@ Subroutine vlamb(r1,r2,th,tdelt,vr1,vt1,vr2,vt2)
     vt2 = vt2 / r2
 End Subroutine vLamb
 
-Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
+Pure Subroutine xLamb(q,qsqfm1,tin,x)
+    Use Kinds, Only: dp
+    Use Global, Only: Pi
+    Implicit None
+    Real(dp), Intent(In)  :: q
+    Real(dp), Intent(In)  :: qsqfm1
+    Real(dp), Intent(In)  :: tin
+    Real(dp), Intent(Out) :: x
+    Integer  :: i
+    Real(dp) :: thr2,t0,dt,d2t
+    Real(dp) :: tdiff,w,t
+
+    thr2 = Atan2(qsqfm1 , 2._dp * q) / Pi
+    !single-rev starter from t (at x = 0) & bilinear (usually)
+    Call tLamb_from_xLamb1(q,qsqfm1,t0)
+    tdiff = tin - t0
+    If (tdiff .LE. 0._dp) Then
+        x = t0 * tdiff / (-4._dp * tin)
+        !(-4 is the value of dt, for x = 0)
+    Else
+        x = -tdiff / (tdiff + 4._dp)
+        w = x + 1.7_dp * Sqrt(2._dp * (1._dp - thr2))
+        If (w .LT. 0._dp) x = x - Sqrt(Sqrt(Sqrt(Sqrt(-w)))) * (x + Sqrt(tdiff / (tdiff + 1.5_dp * t0)))
+        w = 4._dp / (4._dp + tdiff)
+        x = x * (1._dp + x * (0.5_dp * w - 0.03_dp * x * Sqrt(w)))
+    End If
+    !(now have a starter, so proceed by halley)
+    Do i = 1,3
+        Call tLamb_from_xLamb2(q,qsqfm1,x,t,dt,d2t)
+        t = tin - t
+        If (dt .NE. 0._dp) x = x + t * dt / (dt * dt + 0.5_dp * t * d2t)
+    End Do
+End Subroutine xLamb
+
+Pure Subroutine tLamb_from_vLamb(q,qsqfm1,x,dt,d2t,d3t)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp), Intent(In) :: q
+    Real(dp), Intent(In) :: qsqfm1
+    Real(dp), Intent(In) :: x
+    Real(dp), Intent(Out) :: dt
+    Real(dp), Intent(Out) :: d2t
+    Real(dp), Intent(Out) :: d3t
+    Real(dp) :: qsq,xsq,u,z,qx,a,b,aa,bb
+
+    qsq = q * q
+    xsq = x * x
+    u = (1._dp - x) * (1._dp + x)
+    z = Sqrt(qsqfm1 + qsq * xsq)
+    qx = q * x
+    If (qx .LE. 0._dp) Then
+        a = z - qx
+        b = q * z - x
+        If (qx .LT. 0._dp) then
+            aa = qsqfm1 / a
+            bb = qsqfm1 * (qsq * u - xsq) / b
+        End If
+    End If
+    If (qx .GE. 0._dp) Then
+        aa = z + qx
+        bb = q * z + x
+        If (qx .GT. 0._dp) Then
+            a = qsqfm1 / aa
+            b = qsqfm1 * (qsq * u - xsq) / bb
+        End If
+    End If
+    dt = b
+    d2t = bb
+    d3t = aa
+End Subroutine tLamb_from_vLamb
+
+Pure Subroutine tLamb_from_xLamb1(q,qsqfm1,t)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp), Intent(In) :: q
+    Real(dp), Intent(In) :: qsqfm1
+    Real(dp), Intent(Out) :: t
+    Real(dp) :: z
+
+    z = Sqrt(qsqfm1 + q*q)
+    t = Atan2(z, q)
+    t = 2._dp * (t + q*z)
+End Subroutine tLamb_from_xLamb1
+
+Pure Subroutine tLamb_from_xLamb2(q,qsqfm1,x,t,dt,d2t)
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: q
     Real(dp), Intent(In) :: qsqfm1
     Real(dp), Intent(In) :: x
     Real(dp), Intent(Out) :: t
-    Real(dp), Intent(Out), Optional :: dt,d2t
+    Real(dp), Intent(Out) :: dt,d2t
     Integer :: i
     Real(dp) :: qsq,xsq,u,y,z
     Real(dp) :: qx,a,b,aa,bb,g,f,fg1,term,fg1sq,twoi1
@@ -903,10 +1203,8 @@ Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
     qsq = q * q
     xsq = x * x
     u = (1._dp - x) * (1._dp + x)
-    If (Present(dt)) Then
-        dt = 0._dp
-        d2t = 0._dp
-    End If
+    dt = 0._dp
+    d2t = 0._dp
     If (x.LT.0._dp .OR. Abs(u).GT.sw) Then  !direct computation (not series)
         y = Sqrt(Abs(u))
         z = Sqrt(qsqfm1 + qsq * xsq)
@@ -914,16 +1212,9 @@ Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
         If (qx .LE. 0._dp) Then
             a = z - qx
             b = q * z - x
-        End If
-        If (qx .LT. 0._dp) then
-            aa = qsqfm1 / a
-            bb = qsqfm1 * (qsq * u - xsq) / b
-        End If
-        If (qx .GE. 0._dp) Then
+        Else !(qx .GT. 0._dp)
             aa = z + qx
             bb = q * z + x
-        End If
-        If (qx .GT. 0._dp) Then
             a = qsqfm1 / aa
             b = qsqfm1 * (qsq * u - xsq) / bb
         End If
@@ -954,19 +1245,15 @@ Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
             End If
         End If
         t = 2._dp * (t / y + b) / u
-        If (Present(dt)) Then
-            If (z .NE. 0._dp) Then
-                dt = (3._dp * x * t - 4._dp * (a + qx * qsqfm1) / z) / u
-                qz3 = (q / z)**3
-                d2t = (3._dp * t + 5._dp * x * dt + 4._dp * qz3 * qsqfm1) / u
-            End If
+        If (z .NE. 0._dp) Then
+            dt = (3._dp * x * t - 4._dp * (a + qx * qsqfm1) / z) / u
+            qz3 = (q / z)**3
+            d2t = (3._dp * t + 5._dp * x * dt + 4._dp * qz3 * qsqfm1) / u
         End If
     Else  !compute by series
         u0i = 1._dp
-        If (Present(dt)) Then
-            u1i = 1._dp
-            u2i = 1._dp
-        End If
+        u1i = 1._dp
+        u2i = 1._dp
         term = 4._dp
         tq = q * qsqfm1
         i = 0
@@ -981,10 +1268,8 @@ Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
             i = i + 1
             p = Real(i,dp)
             u0i = u0i * u
-            If (Present(dt)) Then
-                If (i .GT. 1) u1i = u1i * u
-                If (i .GT. 2) u2i = u2i * u
-            End If
+            If (i .GT. 1) u1i = u1i * u
+            If (i .GT. 2) u2i = u2i * u
             term = term * (p - 0.5_dp) / p
             tq = tq * qsq
             tqsum = tqsum + tq
@@ -994,90 +1279,15 @@ Subroutine tLamb(q,qsqfm1,x,t,dt,d2t)!,d3t)
             t = t + deltat
             ttmold = tterm
             tqterm = tqterm * p
-            If (Present(dt)) Then
-                dt = dt + tqterm * u1i
-                d2t = d2t + tqterm * u2i * (p - 1._dp)
-            End If
+            dt = dt + tqterm * u1i
+            d2t = d2t + tqterm * u2i * (p - 1._dp)
             If (i.GE.2 .AND. Abs(deltat).LT.1.E-16*t) Exit
         End Do
-        If (Present(dt)) Then
-            d2t = 2._dp * (2._dp * xsq * d2t - dt)
-            dt = -2._dp * x * dt
-        End If
+        d2t = 2._dp * (2._dp * xsq * d2t - dt)
+        dt = -2._dp * x * dt
         t = t / xsq
     End If
-End Subroutine tLamb
-
-Subroutine xLamb(q,qsqfm1,tin,x)
-    Use Kinds, Only: dp
-    Use Global, Only: Pi
-    Implicit None
-    Real(dp), Intent(In)  :: q
-    Real(dp), Intent(In)  :: qsqfm1
-    Real(dp), Intent(In)  :: tin
-    Real(dp), Intent(Out) :: x
-    Integer  :: i
-    Real(dp) :: thr2,t0,dt,d2t!,d3t
-    Real(dp) :: tdiff,w,t
-
-    thr2 = Atan2(qsqfm1 , 2._dp * q) / Pi
-    !single-rev starter from t (at x = 0) & bilinear (usually)
-    Call tLamb(q,qsqfm1,0._dp,t0)
-    tdiff = tin - t0
-    If (tdiff .LE. 0._dp) Then
-        x = t0 * tdiff / (-4._dp * tin)
-        !(-4 is the value of dt, for x = 0)
-    Else
-        x = -tdiff / (tdiff + 4._dp)
-        w = x + 1.7_dp * Sqrt(2._dp * (1._dp - thr2))
-        If (w .LT. 0._dp) x = x - Sqrt(Sqrt(Sqrt(Sqrt(-w)))) * (x + Sqrt(tdiff / (tdiff + 1.5_dp * t0)))
-        w = 4._dp / (4._dp + tdiff)
-        x = x * (1._dp + x * (0.5_dp * w - 0.03_dp * x * Sqrt(w)))
-    End If
-    !(now have a starter, so proceed by halley)
-    Do i = 1,3
-        Call tLamb(q,qsqfm1,x,t,dt,d2t)
-        t = tin - t
-        If (dt .NE. 0._dp) x = x + t * dt / (dt * dt + 0.5_dp * t * d2t)
-    End Do
-End Subroutine xLamb
-
-Subroutine qzminx_qzplx_zplqx(q,qsqfm1,x,qzminx,qzplx,zplqx)
-    Use Kinds, Only: dp
-    Implicit None
-    Real(dp), Intent(In) :: q
-    Real(dp), Intent(In) :: qsqfm1
-    Real(dp), Intent(In) :: x
-    Real(dp), Intent(Out) :: qzminx
-    Real(dp), Intent(Out) :: qzplx
-    Real(dp), Intent(Out) :: zplqx
-    Real(dp) :: qsq,xsq,u,z,qx,a,b,aa,bb
-
-    qsq = q * q
-    xsq = x * x
-    u = (1._dp - x) * (1._dp + x)
-    z = Sqrt(qsqfm1 + qsq * xsq)
-    qx = q * x
-    If (qx .LE. 0._dp) Then
-        a = z - qx
-        b = q * z - x
-    End If
-    If (qx.LT.0._dp) then
-        aa = qsqfm1 / a
-        bb = qsqfm1 * (qsq * u - xsq) / b
-    End If
-    If (qx .GE. 0._dp) Then
-        aa = z + qx
-        bb = q * z + x
-    End If
-    If (qx .GT. 0._dp) Then
-        a = qsqfm1 / aa
-        b = qsqfm1 * (qsq * u - xsq) / bb
-    End If
-    qzminx = b
-    qzplx = bb
-    zplqx = aa
-End Subroutine qzminx_qzplx_zplqx
+End Subroutine tLamb_from_xLamb2
 
 !-------------------------------------------------------------------------------
 !   Gooding's Method for Kepler's Problem
@@ -1091,7 +1301,7 @@ End Subroutine qzminx_qzplx_zplqx
 !   Revised for modern Fortran by Whitman Dailey.  Jun 02, 2018.
 !   Air Force Institute of Technology, Department of Engineering Physics
 !-------------------------------------------------------------------------------
-Subroutine Kepler_Gooding(r0,v0,dt,r1,v1)
+Pure Subroutine Kepler_Gooding(r0,v0,dt,r1,v1)
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: r0(1:3)
@@ -1109,7 +1319,7 @@ Subroutine Kepler_Gooding(r0,v0,dt,r1,v1)
     Call els3pv(els,r1,v1)
 End Subroutine Kepler_Gooding
 
-Subroutine pv3els(r0,v0,els)
+Pure Subroutine pv3els(r0,v0,els)
     Use Kinds, Only: dp
     Use Global, Only: HalfPi
     Implicit None
@@ -1175,9 +1385,9 @@ Subroutine pv3els(r0,v0,els)
     els(6) = tau
 End Subroutine pv3els
 
-Subroutine pv2els (r, u, vr, vt, al, q, om, tau)
+Pure Subroutine pv2els (r, u, vr, vt, al, q, om, tau)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Implicit None
     Real(dp), Intent(In) :: r     !! radial distance [km]
     Real(dp), Intent(In) :: u     !! angle from assumed reference direction [rad]
@@ -1245,7 +1455,7 @@ Subroutine pv2els (r, u, vr, vt, al, q, om, tau)
     om = u - v
 End Subroutine pv2els
 
-Function emkep(e1,ee) Result(x)
+Pure Function emkep(e1,ee) Result(x)
     Use Kinds, Only: dp
     Implicit None
 
@@ -1269,7 +1479,7 @@ Function emkep(e1,ee) Result(x)
     End Do
 End Function emkep
 
-Function shmkep(g1,s)  Result(x)
+Pure Function shmkep(g1,s)  Result(x)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: x
@@ -1294,7 +1504,7 @@ Function shmkep(g1,s)  Result(x)
      End Do
 End Function shmkep
 
-Subroutine els3pv(els,r1,v1)
+Pure Subroutine els3pv(els,r1,v1)
     Use Kinds, Only: dp
     Implicit None
     Real(dp), Intent(In) :: els(1:6)    !! [al, q, ei, bom, om, tau]
@@ -1342,9 +1552,9 @@ Subroutine els3pv(els,r1,v1)
     v1(3) = zdot
 End Subroutine els3pv
 
-Subroutine els2pv(al, q, om, tau, r, u, vr, vt)
+Pure Subroutine els2pv(al, q, om, tau, r, u, vr, vt)
     Use Kinds, Only: dp
-    Use Global, Only: mu => std_grav_parameter
+    Use Global, Only: mu => grav_param
     Use Global, Only: FourPi
     Implicit None
     Real(dp), Intent(In) :: al    !! alpha [km^2/s^2]
@@ -1395,7 +1605,7 @@ Subroutine els2pv(al, q, om, tau, r, u, vr, vt)
     vt = h/r
 End Subroutine els2pv
 
-Function ekepl(em, e1)
+Pure Function ekepl(em, e1)
     Use Kinds, Only: dp
     Use Global, Only: Pi
     Use Global, Only: TwoPi
@@ -1447,7 +1657,7 @@ Function ekepl(em, e1)
     ekepl = ee + (em - emr)
 End Function ekepl
 
-Function dcbsol (a, b, c) result(x)
+Pure Function dcbsol (a, b, c) result(x)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: x
@@ -1464,7 +1674,7 @@ Function dcbsol (a, b, c) result(x)
     End if
 End Function dcbsol
 
-Function dcubrt(x) Result(c)
+Pure Function dcubrt(x) Result(c)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: c
@@ -1482,7 +1692,7 @@ Function dcubrt(x) Result(c)
     End If
 End Function dcubrt
 
-Function shkepl(el, g1) Result(s)
+Pure Function shkepl(el, g1) Result(s)
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: s

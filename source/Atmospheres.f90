@@ -59,7 +59,7 @@ Module Atmospheres
         Integer, Allocatable :: iso_map(:)  !maps each isotope to an element index, has dim 1:n_isotopes
         Real(dp), Allocatable :: iso_frac(:)  !isotopic fractions, has dim 1:number_of_isotopes
         Logical, Allocatable :: diatomic(:)  !flag indicating whether this isotope forms a diatomic atmospheric constituent, has dim 1:number_of_isotopes
-        Real(dp) :: uniform_density_ratio
+        Real(dp) :: ref_density_ratio
         Real(dp) :: Isothermal_temp  ![K]
         Real(dp) :: z_top  ![km]
         Real(dp) :: z_bot  ![km]
@@ -84,6 +84,7 @@ Module Atmospheres
     !Integer designator for atmosphere model choice, can have value equal to one of the following parameters
     Integer, Parameter :: atm_mod_IsoTherm = 31
     Integer, Parameter :: atm_mod_USstd1976 = 33
+    Integer, Parameter :: atm_mod_None = -1
 
     !Integer designator for atmosphere composition choice, can have value equal to one of the following parameters
     Integer, Parameter :: atm_comp_ALL = 121
@@ -95,6 +96,7 @@ Module Atmospheres
     Integer, Parameter :: atm_comp_O17 = 133
     Integer, Parameter :: atm_comp_O18 = 135
     Integer, Parameter :: atm_comp_Ar40 = 137
+    Integer, Parameter :: atm_comp_None = -1
     
     !Uniform, Isothermal, and shared parameter
     !atmospheric density at seal level on a standard day according to US Standard Atmosphere 1976
@@ -109,7 +111,7 @@ Contains
 
 Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_name) Result(atm)
     Use Kinds, Only: dp
-    Use Global, Only: R_Earth
+    Use Global, Only: Rc => R_center
     Use FileIO_Utilities, Only: max_path_len
     Use FileIO_Utilities, Only: slash
     Use FileIO_Utilities, Only: Output_Message
@@ -124,7 +126,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     Character(:), Allocatable, Intent(InOut), Optional :: cs_file_name
     Integer :: setup_unit,stat
     Character(15) :: atmosphere_model,composition
-    Real(dp) :: uniform_density,isothermal_temp,Z_top_atm,Z_bot_atm
+    Real(dp) :: ref_density,isothermal_temp,Z_top_atm,Z_bot_atm
     Real(dp) :: wind_N,wind_E
     Integer :: n_elements
     Integer, Allocatable :: n_isotopes(:)
@@ -137,6 +139,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
     Integer :: n_absorption_modes,n_inelastic_lev
     Logical :: has_resonance
     Integer :: n_iso
+    Logical :: has_atmosphere
     
     Real(dp), Parameter :: Zb_1976_extended(0:16) = (/  Zb_1976(0), & !adds the sublayers present in USSA76
                                                      &  Zb_1976(1), &
@@ -157,7 +160,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
                                                      & Zb_1976(11)  /)
     Integer, Parameter :: bZb_1976_extended(1:16) = (/ 0,1,2,3,4,5,6,7,8,8,8,8,9,9,10,10 /) !base indexes for each sublayer
     
-    NameList /AtmosphereList/  atmosphere_model,uniform_density,isothermal_temp, & 
+    NameList /AtmosphereList/  atmosphere_model,ref_density,isothermal_temp, & 
                              & Z_top_atm,Z_bot_atm,wind_N,wind_E,composition
     NameList /csSetupList1/ n_elements
     NameList /csSetupList2/ el_fractions,n_isotopes
@@ -169,6 +172,7 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
                                         & ', IOSTAT=',stat,kill=.TRUE.)
     Read(setup_unit,NML = AtmosphereList)
     Close(setup_unit)
+    has_atmosphere = .TRUE.
     Select Case (atmosphere_model)
         Case ('USstd1976')
             atm%model_index = atm_mod_USstd1976
@@ -199,97 +203,122 @@ Function Setup_Atmosphere(setup_file_name,resources_dir,run_file_name,cs_file_na
             Allocate(atm%bZb(0:1))
             atm%bZb = 1
             atm%iZb_map = 1
+        Case ('None')
+            atm%model_index = atm_mod_None
+            atm%discontinuous = .FALSE.
+            atm%iZb = 1
+            Allocate(atm%Zb(0:1))
+            atm%Zb(0) = 0._dp
+            atm%Zb(1) = 0._dp
+            Allocate(atm%bZb(0:1))
+            atm%bZb = 1
+            atm%iZb_map = 1
+            Allocate(atm%Rb(0:Size(atm%Zb)-1))
+            atm%Rb = atm%Zb + Rc
+            atm%comp_index = atm_comp_None
+            atm%ref_density_ratio = 0._dp
+            atm%isothermal_temp = 0._dp
+            atm%z_top = 0._dp
+            atm%z_bot = 0._dp
+            atm%R_top = Rc + atm%z_top
+            atm%R_bot = Rc + atm%z_bot
+            atm%wind_AF = 0._dp
+            has_atmosphere = .FALSE.
         Case Default
             Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  Undefined atmosphere model',kill=.TRUE.)
     End Select
-    Allocate(atm%Rb(0:Size(atm%Zb)-1))
-    atm%Rb = atm%Zb + R_Earth
-    Allocate(Character(max_path_len) :: f_name)
-    Select Case (composition)
-        Case ('All')
-            f_name = 'n_CS_setup_All.txt'
-            atm%comp_index = atm_comp_ALL
-        Case ('N14_O16')
-            f_name = 'n_CS_setup_N14_O16.txt'
-            atm%comp_index = atm_comp_N14_O16
-        Case ('N14_O16_Ar40')
-            f_name = 'n_CS_setup_N14_O16_Ar40.txt'
-            atm%comp_index = atm_comp_N14_O16_Ar40
-        Case ('N14')
-            f_name = 'n_CS_setup_N14.txt'
-            atm%comp_index = atm_comp_N14
-        Case ('N15')
-            f_name = 'n_CS_setup_N15.txt'
-            atm%comp_index = atm_comp_N15
-        Case ('O16')
-            f_name = 'n_CS_setup_O16.txt'
-            atm%comp_index = atm_comp_O16
-        Case ('O17')
-            f_name = 'n_CS_setup_O17.txt'
-            atm%comp_index = atm_comp_O17
-        Case ('O18')
-            f_name = 'n_CS_setup_O18.txt'
-            atm%comp_index = atm_comp_O18
-        Case ('Ar40')
-            f_name = 'n_CS_setup_Ar40.txt'
-            atm%comp_index = atm_comp_Ar40
-        Case Default
-            Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  Undefined composition',kill=.TRUE.)
-    End Select
-    If (Present(cs_file_name)) cs_file_name = f_name
-    !read number of elements, isotopes, and fractions from cross sections setup file
-    Open( NEWUNIT = setup_unit , FILE = resources_dir//'cs'//slash//'n_cs'//slash//f_name , STATUS = 'OLD' , ACTION = 'READ' , & 
-        & IOSTAT = stat)
-    If (stat .NE. 0) Call Output_Message( 'ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//resources_dir// & 
-                                        & 'cs'//slash//'n_cs'//slash//f_name//', IOSTAT=',stat,kill=.TRUE.)
-    Read(setup_unit,NML = csSetupList1)
-    atm%n_el = n_elements
-    Allocate(el_fractions(1:n_elements))
-    Allocate(n_isotopes(1:n_elements))
-    Allocate(atm%iso_ind(1:n_elements+1))
-    Read(setup_unit,NML = csSetupList2)
-    n_iso = Sum(n_isotopes)
-    Allocate(isotope_names(1:n_iso))
-    Allocate(diatomic(1:n_iso))
-    Allocate(atm%iso_frac(1:n_iso))
-    Allocate(atm%diatomic(1:n_iso))
-    Allocate(atm%iso_map(1:n_iso))
-    atm%iso_ind = 1
-    Do i = 2,n_elements+1
-        atm%iso_ind(i) = Sum(n_isotopes(1:i-1)) + 1
-    End Do
-    k = 1
-    Do i = 1,n_elements
-        Do j = 1,n_isotopes(i)
-            atm%iso_map(k) = i
-            k = k + 1
+    If (has_atmosphere) Then
+        Allocate(atm%Rb(0:Size(atm%Zb)-1))
+        atm%Rb = atm%Zb + Rc
+        Allocate(Character(max_path_len) :: f_name)
+        Select Case (composition)
+            Case ('All')
+                f_name = 'n_CS_setup_All.txt'
+                atm%comp_index = atm_comp_ALL
+            Case ('N14_O16')
+                f_name = 'n_CS_setup_N14_O16.txt'
+                atm%comp_index = atm_comp_N14_O16
+            Case ('N14_O16_Ar40')
+                f_name = 'n_CS_setup_N14_O16_Ar40.txt'
+                atm%comp_index = atm_comp_N14_O16_Ar40
+            Case ('N14')
+                f_name = 'n_CS_setup_N14.txt'
+                atm%comp_index = atm_comp_N14
+            Case ('N15')
+                f_name = 'n_CS_setup_N15.txt'
+                atm%comp_index = atm_comp_N15
+            Case ('O16')
+                f_name = 'n_CS_setup_O16.txt'
+                atm%comp_index = atm_comp_O16
+            Case ('O17')
+                f_name = 'n_CS_setup_O17.txt'
+                atm%comp_index = atm_comp_O17
+            Case ('O18')
+                f_name = 'n_CS_setup_O18.txt'
+                atm%comp_index = atm_comp_O18
+            Case ('Ar40')
+                f_name = 'n_CS_setup_Ar40.txt'
+                atm%comp_index = atm_comp_Ar40
+            Case Default
+                Call Output_Message('ERROR:  Atmospheres: Setup_Atmosphere:  Undefined composition',kill=.TRUE.)
+        End Select
+        If (Present(cs_file_name)) cs_file_name = f_name
+        !read number of elements, isotopes, and fractions from cross sections setup file
+        Open( NEWUNIT = setup_unit , FILE = resources_dir//'cs'//slash//'n_cs'//slash//f_name , STATUS = 'OLD' , & 
+            & ACTION = 'READ' , IOSTAT = stat)
+        If (stat .NE. 0) Call Output_Message( 'ERROR:  Atmospheres: Setup_Atmosphere:  File open error, '//resources_dir// & 
+                                            & 'cs'//slash//'n_cs'//slash//f_name//', IOSTAT=',stat,kill=.TRUE.)
+        Read(setup_unit,NML = csSetupList1)
+        atm%n_el = n_elements
+        Allocate(el_fractions(1:n_elements))
+        Allocate(n_isotopes(1:n_elements))
+        Allocate(atm%iso_ind(1:n_elements+1))
+        Read(setup_unit,NML = csSetupList2)
+        n_iso = Sum(n_isotopes)
+        Allocate(isotope_names(1:n_iso))
+        Allocate(diatomic(1:n_iso))
+        Allocate(atm%iso_frac(1:n_iso))
+        Allocate(atm%diatomic(1:n_iso))
+        Allocate(atm%iso_map(1:n_iso))
+        atm%iso_ind = 1
+        Do i = 2,n_elements+1
+            atm%iso_ind(i) = Sum(n_isotopes(1:i-1)) + 1
         End Do
-    End Do
-    Read(setup_unit,NML = csSetupList3)
-    atm%diatomic = diatomic
-    Close(setup_unit)
-    Do i = 1,n_iso
-        f_name = resources_dir//'cs'//slash//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))//'_iso_setup.txt'
-        Open(NEWUNIT = setup_unit , FILE = f_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
-        Read(setup_unit,NML = isoSetupList1)
-        atm%iso_frac(i) = iso_fraction
+        k = 1
+        Do i = 1,n_elements
+            Do j = 1,n_isotopes(i)
+                atm%iso_map(k) = i
+                k = k + 1
+            End Do
+        End Do
+        Read(setup_unit,NML = csSetupList3)
+        atm%diatomic = diatomic
         Close(setup_unit)
-    End Do
-    j = 1
-    Do i = 1,n_elements
-        atm%iso_frac(j:Sum(n_isotopes(1:i))) = atm%iso_frac(j:Sum(n_isotopes(1:i))) / Sum( atm%iso_frac(j:Sum(n_isotopes(1:i))) )
-        j = Sum(n_isotopes(1:i)) + 1
-    End Do    
-    atm%uniform_density_ratio = uniform_density / rho_SL
-    atm%isothermal_temp = isothermal_temp
-    atm%z_top = Z_top_atm
-    atm%z_bot = Z_bot_atm
-    atm%R_top = R_Earth + atm%z_top
-    atm%R_bot = R_Earth + atm%z_bot
-    atm%wind_AF = (/ wind_E, & 
-                   & wind_N, &
-                   & 0._dp /)
-    Call Define_EPL_Layers(atm,resources_dir)
+        Do i = 1,n_iso
+            f_name = resources_dir//'cs'//slash//'n_cs'//slash//Trim(isotope_names(i))//slash//Trim(isotope_names(i))// & 
+                     & '_iso_setup.txt'
+            Open(NEWUNIT = setup_unit , FILE = f_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
+            Read(setup_unit,NML = isoSetupList1)
+            atm%iso_frac(i) = iso_fraction
+            Close(setup_unit)
+        End Do
+        j = 1
+        Do i = 1,n_elements
+            atm%iso_frac(j:Sum(n_isotopes(1:i))) = atm%iso_frac(j:Sum(n_isotopes(1:i))) / & 
+                                                 & Sum( atm%iso_frac(j:Sum(n_isotopes(1:i))) )
+            j = Sum(n_isotopes(1:i)) + 1
+        End Do    
+        atm%ref_density_ratio = ref_density / rho_SL
+        atm%isothermal_temp = isothermal_temp
+        atm%z_top = Z_top_atm
+        atm%z_bot = Z_bot_atm
+        atm%R_top = Rc + atm%z_top
+        atm%R_bot = Rc + atm%z_bot
+        atm%wind_AF = (/ wind_E, & 
+                    & wind_N, &
+                    & 0._dp /)
+        Call Define_EPL_Layers(atm,resources_dir)
+    End If
     If (Worker_Index() .EQ. 1) Then
         If (Present(run_file_name)) Then
             Open( NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , & 
@@ -322,11 +351,17 @@ Subroutine Write_Atmosphere(a,file_name)
     Write(unit,'(A)') half_dash_line
     Write(unit,'(A,ES24.16E3,A,ES24.16E3,A)') '  Extent: ',a%z_bot,' km to ',a%z_top,' km geometric altitude'
     Select Case (a%model_index)
+        Case (atm_mod_None)
+            Write(unit,'(A)')   '  Atmosphere Model:  NONE' 
+            Write(unit,*)
+            Write(unit,*)
+            Close(unit)
+            Return
         Case (atm_mod_IsoTherm)
             Write(unit,'(A,ES24.16E3,A,ES24.16E3,A,ES24.16E3,A)')   '  Atmosphere Model:  Isothermal, ', & 
-                                                                  & a%Isothermal_temp, & 
+                                                              & a%Isothermal_temp, & 
                                                                   & ' K,', & 
-                                                                  & a%uniform_density_ratio*rho_SL, & 
+                                                                  & a%ref_density_ratio*rho_SL, & 
                                                                   & ' g/m^3 @ sea-level,', & 
                                                                   & scale_Height_conv*a%Isothermal_temp, & 
                                                                   & ' km scale height'
@@ -402,6 +437,8 @@ Function Atm_Temperature(atm,z,lay) Result(T)
             End If
         Case (atm_mod_IsoTherm)
             T = atm%isothermal_temp
+        Case (atm_mod_None)
+            T = 0._dp
     End Select
 End Function Atm_Temperature
 
@@ -422,14 +459,15 @@ Function Atm_Density(atm,z,lay) Result(rho)
                 rho = rho_1976(z,layer_range=atm%iZb_map)
             End If
         Case (atm_mod_IsoTherm)
-            rho = atm%uniform_density_ratio * rho_SL * Exp(-z / (scale_Height_conv * atm%isothermal_temp))
+            rho = atm%ref_density_ratio * rho_SL * Exp(-z / (scale_Height_conv * atm%isothermal_temp))
+        Case (atm_mod_None)
+            rho = 0._dp
     End Select
 End Function Atm_Density
 
 Subroutine Define_EPL_Layers(atm,resources_dir)
     Use Kinds, Only: dp
     Use FileIO_Utilities, Only: Output_Message
-    Use Global, Only: R_earth
     Implicit None
     !number of quadrature points for 6, 9 or 12 digits of precision on STRAIGHT paths
     !                                          USSA76 base index: 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 9, 9, 10, 10 /)

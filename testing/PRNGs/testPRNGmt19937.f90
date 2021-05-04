@@ -17,7 +17,7 @@ Type(MT19937_Type) :: RNG_19937
 Type(MT19937x64_Type) :: RNG_19937x64
 Real(dp) :: r(1:n),r64(1:n)
 Integer :: i,unit1,unit2
-Integer(il) :: c,c64
+Integer(id) :: c,c64
 Real(dp) :: t,t64
 
 !seed the generators
@@ -62,7 +62,7 @@ Close(unit2)
 !Print timing data
 Write(*,*)
 Write(*,'(A)') 'Real generation rate:'
-Write(*,'(A,ES13.6E2,A)') 'MT19937:    ',1._dp / (t    / Real(n  ,dp)),' rand per sec'
-Write(*,'(A,ES13.6E2,A)') 'MT19937x64: ',1._dp / (t64  / Real(n64,dp)),' rand per sec'
+Write(*,'(A,ES13.6E2,A)') 'MT19937:    ',Real(n  ,dp) / t  ,' rand per sec'
+Write(*,'(A,ES13.6E2,A)') 'MT19937x64: ',Real(n64,dp) / t64,' rand per sec'
 
 End Program testPRNGmt19937

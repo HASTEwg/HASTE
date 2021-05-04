@@ -1,4 +1,5 @@
 #!/bin/sh
+$COMP_NAME --version
 echo "Preprocessor Flags:"
 echo "  $PREP_FLAGS"
 echo "Compiler Flags:"
@@ -6,3 +7,4 @@ echo "  $COMP_FLAGS"
 echo "Linker Flags:"
 echo "  $LINK_FLAGS"
 echo "Objects emitted to $OBJ_DIR"
+echo "Run application (if built) with form:  $RUN_CMD ..."

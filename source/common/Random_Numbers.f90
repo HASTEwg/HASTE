@@ -205,7 +205,7 @@ Subroutine Refresh_Random_Array(RNG)
         Use MKL_VSL, Only: vdrnguniform,VSL_RNG_METHOD_UNIFORM_STD
 #   endif
     Use Kinds, Only: dp
-    Use Kinds, Only: il
+    Use Kinds, Only: id
     Use FileIO_Utilities, Only: Output_Message
     Use FileIO_Utilities, Only: Delta_Time
     Implicit None
@@ -215,7 +215,7 @@ Subroutine Refresh_Random_Array(RNG)
 #   else
         Integer :: i
 #   endif
-    Integer(il) :: c
+    Integer(id) :: c
     
     Call SYSTEM_CLOCK(c)  !for tracking wait time
 #   if IMKL

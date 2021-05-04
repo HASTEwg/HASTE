@@ -14,7 +14,7 @@ Integer, Parameter :: n2203s = 6024
 Type(MT2203_Type) :: RNG_2203
 Real(dp) :: r(1:n)
 Integer :: i,j,unit1,unit2
-Integer(il) :: c(1:n2203s)
+Integer(id) :: c(1:n2203s)
 Real(dp) :: t(1:n2203s)
 
 Open(NEWUNIT=unit2,FILE='randoms2203.stream',ACTION='WRITE',STATUS='REPLACE',ACCESS='STREAM')

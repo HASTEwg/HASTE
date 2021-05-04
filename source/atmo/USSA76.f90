@@ -679,7 +679,7 @@ Function nO1_O2_powers(Z,b) Result(x)
 End Function nO1_O2_powers
 
 Function K95to115(Z) Result(K)
-    !computes eddy-diffusion coefficent according to US Standard Atmosphere 1976 equation 7a-c
+    !computes eddy-diffusion coefficient according to US Standard Atmosphere 1976 equation 7a-c
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: K
@@ -697,7 +697,7 @@ Function K95to115(Z) Result(K)
 End Function K95to115
 
 Function Dcoeff_O1_O2(Tz,Z,b) Result(D)
-    !computes molecular-diffusion coefficent according to US Standard Atmosphere 1976 equation 8 for O1 and O2
+    !computes molecular-diffusion coefficient according to US Standard Atmosphere 1976 equation 8 for O1 and O2
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: D(1:2)
@@ -1027,7 +1027,7 @@ Function nAr_He_powers(Z,b) Result(x)
 End Function nAr_He_powers
 
 Function Dcoeff_Ar_He(Tz,Z,b,Nb_out) Result(D)
-    !computes molecular-diffusion coefficent according to US Standard Atmosphere 1976 equation 8 for Ar and He
+    !computes molecular-diffusion coefficient according to US Standard Atmosphere 1976 equation 8 for Ar and He
     Use Kinds, Only: dp
     Implicit None
     Real(dp) :: D(1:2)

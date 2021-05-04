@@ -19,17 +19,19 @@ Module Find_Trajectory
     Private
     Public :: Next_Event_Trajectory
     Public :: Simple_Trajectory
+    Public :: Prev_Event_Trajectory
     
 Contains
 
-Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, tof, v1cm, v2sat, vS2) 
+Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, outbound_search, Found, r2, tof, v1cm, v2sat, vS2)
     Use Kinds, Only: dp
     Use Satellite_Motion, Only: Satellite_Position_Type
     Use Utilities, Only: Unit_Vector
     Use Utilities, Only: Vector_Length
     Use Utilities, Only: Converged
     Use Astro_Utilities, Only: Lambert => Lambert_Gooding
-    Use Astro_Utilities, Only: Hits_Earth
+    Use Astro_Utilities, Only: Hits_Center
+    Use Global, Only: n_life
     Implicit None
     Type(Satellite_Position_Type), Intent(In) :: sat
     Logical, Intent(In) :: Gravity
@@ -37,6 +39,7 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
     Real(dp), Intent(In) :: t1           ! [s]    time of scatter
     Real(dp), Intent(In) :: s1cm         ! [km/s] speed of neutron in cm system after scatter
     Real(dp), Intent(In) :: u_vec(1:3)   ! [km/s] velocity of center of mass of atom and neutron    
+    Logical, Intent(In) :: outbound_search ! Whether to search for solutions on outbout or inbound trajectories
     Logical, Intent(Out) :: Found        ! Whether solution is found (neutron can reach satellite)
     Real(dp), Intent(Out) :: r2(1:3)     ! [km]   neutron/target position at time of arrival
     Real(dp), Intent(Out) :: tof         ! [s] time of flight from r1 to r2 on transfer trajectory
@@ -52,25 +55,54 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
     Real(dp) :: s1cm_1,s1cm_2       ![km/s] speed in CM frame for tof_1 and tof_2
     Real(dp) :: u_speed             ![km/s] speed of CM frame
     Real(dp) :: m   !relaxation factor for Illinois fix to false position
+    Real(dp) :: x
     Integer :: i    !counter for Illinois fixes to false position
     Integer :: i_lim
 
+    Found = .FALSE.
     If (Gravity) Then
-        found = .FALSE.
         u_speed = Vector_Length(u_vec)
         r2 = sat%R(t1)
-        !estimate minimum TOF: starting distance to target divided by max possible closing speed
-        tof_1 = Vector_Length(r2 - r1) / (s1cm + u_speed + sat%vp)  !this is less than or equal to the true minimum
-        !check if this minimum TOF bounds true TOF
-        Call Lambert(r1,sat%R(t1+tof_1),tof_1,v1,v2)
-        s1cm_1 = Vector_Length(v1 - u_vec)  !this s1cm_i needs to be higher than s1cm
-        If (s1cm_1 .LT. s1cm) Return  !there is not a trajectory that joins the two points with the available neutron speed
-        !estimate maximum TOF: depends on transfer orbit type...
-        Call Find_max_TOF(tof_2)
-        !check if this maximum TOF bounds true TOF
-        Call Lambert(r1,sat%R(t1+tof_2),tof_2,v1,v2)
-        s1cm_2 = Vector_Length(v1 - u_vec)  !this s1cm_i needs to be lower than s1cm
-        If (s1cm_2 .GT. s1cm) Return  !there is not a trajectory that joins the two points with the available neutron speed
+        If (outbound_search) Then
+            !estimate minimum TOF: starting distance to target divided by max possible closing speed
+            tof_1 = Vector_Length(r2 - r1) / (s1cm + u_speed + sat%vp)  !this is less than or equal to the true minimum
+            !check if this minimum TOF bounds true TOF
+            Call Lambert(r1,sat%R(t1+tof_1),tof_1,v1,v2)
+            s1cm_1 = Vector_Length(v1 - u_vec)  !this s1cm_i needs to be higher than s1cm
+            If (s1cm_1 .LT. s1cm) Return  !there is not a trajectory that joins the two points with the available neutron speed
+            !estimate maximum TOF: depends on transfer orbit type...
+            Call Find_max_TOF(tof_2)
+            !check if this maximum TOF bounds true TOF
+            Call Lambert(r1,sat%R(t1+tof_2),tof_2,v1,v2)
+            s1cm_2 = Vector_Length(v1 - u_vec)  !this s1cm_i needs to be lower than s1cm
+            If (s1cm_2 .GT. s1cm) Return  !there is not a trajectory that joins the two points with the available neutron speed
+        Else !search for an inbound rendezvous, only valid when elliptical trajectories are possible
+            !estimate minimum TOF: same criteria as the maximum TOF for the outbound case
+            Call Find_max_TOF(tof_1)
+            Call Lambert(r1,sat%R(t1+tof_1),tof_1,v1,v2)
+            s1cm_1 = Vector_Length(v1 - u_vec)
+            !Since the placement and number of roots can vary, a practical approach is to check for a sign change in the difference
+            !between speed required and speed available for an intercept on a reasonable interval; if a sign change is indicated,
+            !then search for that root.
+            !A conservative upper limit to time of flight is arbitrarily 100 neutron lifetimes (the probability of a neutron NOT
+            !decaying during a flight this long is approximately 3.72E-44... sufficently close to zero to ignore trajectories with 
+            !TOFs longer than this)
+            !Test at logarithmically spaced intervals until a sign change is found...
+            x = Log10(tof_1) + ( Log10(100._dp*n_life) - Log10(tof_1) )
+            Do i = 1,100
+                tof_2 = 10._dp**( x * Real(i,dp)*0.01_dp )
+                Call Lambert(r1,sat%R(t1+tof_2),tof_2,v1,v2)
+                s1cm_2 = Vector_Length(v1 - u_vec)
+                If ( (s1cm-s1cm_1)*(s1cm-s1cm_2) .LT. 0._dp ) Then !sign change detected, a root exists on this interval
+                    Exit
+                ElseIf (i .EQ. 100) Then !a sign change was not found on any interval, no root to search for
+                    Return
+                End If
+                !advance tof_1 to check for the next interval on the next iteration
+                tof_1 = tof_2
+                s1cm_1 = s1cm_2
+            End Do
+        End If
         !min and max TOF are established and bracket a TOF for an achievable transfer trajectory
         !Use False-Position w/ Illinois modification to find TOF of transfer
         ds_1 = s1cm_1 - s1cm
@@ -97,9 +129,9 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
             If ( (Abs(ds).LT.1.E-6_dp .AND. Converged(tof_1,tof_2,rTol=1.E-12_dp,aTol=1.E-6_dp)) & 
                & .OR. ds.EQ.0._dp .OR. tof_1.EQ.tof_2 ) Then  !OR iteration landed on answer or closed interval
                 !check that trajectory does not intersect Earth
-                If (Hits_Earth(r1,v1,r2,v2)) Return
+                If (Hits_Center(r1,r2,v1,v2)) Return
                 !If we get this far, a valid trajectory has been found!
-                found = .TRUE.
+                Found = .TRUE.
                 v2Sat = v2 - vS2
                 Return
             End If
@@ -151,8 +183,6 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
         End Do
     Else  !straight (no gravity) trajectory
         If (sat%is_conic) Then
-            !TODO Evaluate code repetition in the following with above, reduce by breaking into subroutines or something
-            found = .FALSE.
             u_speed = Vector_Length(u_vec)
             r2 = sat%R(t1)
             !estimate minimum TOF: starting distance to target divided by max possible closing speed
@@ -195,7 +225,7 @@ Subroutine Next_Event_Trajectory(sat, Gravity, r1, t1, s1cm, u_vec, Found, r2, t
                 !w/in 1 cm/s of desired neutron speed (1 micro-eV neutron goes about 14 m/s..) AND w/in 1 microsecond of actual TOF
                 If ( (Abs(ds).LT.1.E-6_dp .AND. Converged(tof_1,tof_2,rTol=1.E-12_dp,aTol=1.E-6_dp)) & 
                    & .OR. ds.EQ.0._dp .OR. tof_1.EQ.tof_2 ) Then  !OR iteration landed on answer or closed interval
-                    found = .TRUE.
+                    Found = .TRUE.
                     vScm = vS2 - u_vec
                     v2Sat = v1cm - vScm
                     Return
@@ -383,5 +413,92 @@ Subroutine Simple_Trajectory(r1, r2, s1cm, vScm, v1cm, dt, Found)
         Found = .TRUE.
     End If
 End Subroutine Simple_Trajectory
+
+Subroutine Prev_Event_Trajectory(sat, Gravity, t2, v2sat, Found, r1, v1, tof)
+    !Given an arrival velocity (speed & direction) to a detector in the 
+    !detector frame of reference, this routine determines the properties of a 
+    !neutron originating in the source region to produce the detection event
+    !UNDONE This routine finds tof to the surface of the central body (adequate for initial intent of this procedure)
+    !UNDONE This routine does not find the loaction of emission in a scattering medium (it puts the emission on a sphere with r=Rc)
+    Use Kinds, Only: dp
+    Use Satellite_Motion, Only: Satellite_Position_Type
+    Use Astro_Utilities, Only: Radius_of_Apoapsis
+    Use Astro_Utilities, Only: Radius_of_Periapsis
+    Use Astro_Utilities, Only: Time_Since_Periapsis
+    Use Astro_Utilities, Only: Period
+    Use Astro_Utilities, Only: SME
+    Use Astro_Utilities, Only: Time_to_R
+    Use Astro_Utilities, Only: Kepler_Gooding
+    Use Global, Only: Rc => R_center
+    Use Global, Only: SOIc => SOI_center
+    Use Utilities, Only: Vector_Length
+    Use Utilities, Only: Unit_Vector
+    Implicit None
+    Type(Satellite_Position_Type), Intent(In) :: sat
+    Logical, Intent(In) :: Gravity
+    Real(dp), Intent(In) :: t2  ![s]  time of intercept
+    Real(dp), Intent(In) :: v2sat(1:3)  ! [km/s]  neutron velocity at arrival in rest frame of satellite
+    Logical, Intent(Out) :: Found        ! Whether solution is found (neutron can reach satellite)
+    Real(dp), Intent(Out):: r1(1:3)       ! [km]   Location of emission resulting in intercept
+    Real(dp), Intent(Out):: v1(1:3)       ! [km]   Emission velocity (in intertial frame) resulting in intercept from r1
+    Real(dp), Intent(Out) :: tof          ! [s]    time of flight from emission at r1 with velocity v1 (time BEFORE t2)
+    Real(dp) :: r2(1:3)          ! [km]   location of intercept
+    Real(dp) :: v2(1:3)          ! [km/s] velocity of neutron at satellite (inertial frame)
+    Real(dp) :: r2mag, zeta, r_ca
+    Real(dp) :: t_min,t_max,half_P
+
+    Found = .FALSE.
+    !Get detector position and velocity at time of intercept
+    Call sat%R_and_V(t2,r2,v2)
+    !Shift detected neutron into intertial frame
+    v2 = v2sat + v2
+    If (Gravity) Then
+        If (Dot_Product(r2,v2) .LE. 0._dp) Then !the neutron is on the INBOUND or RETURN portion of the trajectory
+            If (SME(r2,v2).GE.0._dp) Then
+                !The neutron required for this intercept comes from the INBOUND portion of an escape trajectory...
+                !The intercept is not possible since the neutron must originate from the surface BELOW
+                Return
+            Else  !this neutron is on the return portion of a closed trajectory
+                If (Radius_of_Apoapsis(r2,v2) .GT. SOIc) Then
+                    !this trajectory departs the gravitational SOI of the attracting body
+                    !the two-body approximation is no good, and the tof is stupid long
+                    Return
+                End If
+                !the search needs to be along the 'long' way around the orbit
+                half_P = 0.5_dp*Period(r2,v2)
+                t_min = half_P + Time_Since_Periapsis(r2,v2)
+                t_max = t_min + half_P
+            End If
+        Else  !the neutron in on the OUTBOUND or DEPARTING portion of the trajectory
+            t_min = 0._dp
+            t_max = Time_Since_Periapsis(r2,v2)
+        End If
+        If (Radius_of_Periapsis(r2,v2) .LE. Rc) Then  !there is a possible trajectory from the surface at Rc
+            found = .TRUE.
+            !Reflect the velocity vector to change orbit direction so we're searching "forward"
+            v2 = -v2
+            !intercept ocurrs between t2 (by definition above the surface) and time of periapsis (by construction below the surface)
+            tof = Time_to_R(r2,v2,Rc,t_min,t_max)
+            Call Kepler_Gooding(r2,v2,tof,r1,v1)
+            v1 = -v1  !emission velocity for intercept is in the opposite direction on this orbit
+        Else  !trajectory does not intersect the central body or the scattering medium
+            Return
+        End If
+    Else  !straight (no gravity) trajectory
+    !UNDONE Straight (no gravity) trajectory calculations not necessary for initial implementation
+
+        r2mag = Vector_Length(r2)
+        zeta = Dot_Product(r2/r2mag,Unit_Vector(v2))
+        If (zeta .LT. 0._dp) Then !only downward trajectories can hit the surface
+            r_ca = r2mag * Sqrt(1._dp - zeta**2)
+            If (r_ca .LT. Rc) Then !the trajectory intersects the surface
+                !Found = .TRUE.
+                   !UNDONE
+                   !UNDONE
+                   !UNDONE
+            End If
+        End If
+    End If
+End Subroutine Prev_Event_Trajectory
 
 End Module Find_Trajectory

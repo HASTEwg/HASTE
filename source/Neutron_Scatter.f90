@@ -72,7 +72,7 @@ Module Neutron_Scatter
     End Type
     
     Type Scatter_Model_Type
-        Integer :: n_scatters  !number of scatters to follow for history, scatter is forced to the detector at the final scatter
+        Integer :: n_scatters  !number of scatters to follow for history
         Logical :: direct_contribution
         Logical :: estimate_each_scatter
         Logical :: elastic_only
@@ -100,18 +100,18 @@ Module Neutron_Scatter
             Logical :: Diatomic_Atm
             Logical :: Rotating_Earth
             Logical :: Wind
+        Logical :: cs_loaded
+        Logical :: inbound_trajectories
     Contains
         Procedure, Pass :: Sample_Scatter
         Procedure, Pass :: Set_Scatter_prep
         Procedure, Pass :: Set_Scatter_iso
         Procedure, Pass :: Set_Scatter_lev
-        Procedure, Pass :: Save_ScatMod_counts
-        Procedure, Pass :: Load_ScatMod_counts
     End Type
     
 Contains
 
-Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,run_file_name) Result(ScatMod)
+Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,run_file_name,atm_model_i) Result(ScatMod)
     Use Kinds, Only: id
     Use n_Cross_Sections, Only: Setup_Cross_Sections
     Use Global, Only: n_kill_weight
@@ -123,11 +123,13 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
     Character(*), Intent(In) :: resources_directory
     Character(*), Intent(In) :: cs_setup_file
     Character(*), Intent(In) :: run_file_name
+    Integer, Intent(In) :: atm_model_i
     Integer :: n_scatters
     Logical :: direct_contribution,estimate_each_scatter,elastic_only
     Logical :: suppress_absorption,suppress_leakage,all_mat_mech
     Logical :: Gravity,neutron_decay,doppler_broaden
     Logical :: thermal_motion,diatomic_Atm,Rotating_Earth,wind
+    Logical :: inbound_trajectories
     Integer :: setup_unit,stat
     Character(10) :: scatter_model  !IsoCM, AnIsoCM
     Character(10) :: dist_to_next_event  !An-exact,An-fast
@@ -141,7 +143,7 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
                                   & roulette,roulette_weight,roulette_ratio, &
                                   & direct_contribution,estimate_each_scatter,E_min,E_max, &
                                   & Gravity,neutron_decay,doppler_broaden,thermal_motion, &
-                                  & Diatomic_Atm,Rotating_Earth,Wind
+                                  & Diatomic_Atm,Rotating_Earth,Wind,inbound_trajectories
     
     Open(NEWUNIT = setup_unit , FILE = setup_file_name , STATUS = 'OLD' , ACTION = 'READ' , IOSTAT = stat)
     If (stat .NE. 0) Call Output_Message( 'ERROR:  Neutron_Scatter: Setup_Scatter_Model:  File open error, '//setup_file_name// & 
@@ -156,6 +158,12 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
         Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  direct_contribution must be .TRUE. for &
                            &n_scatters = 0',kill=.TRUE.)
     End If
+    If (direct_contribution) Then
+        If (n_scatters.GT.0 .AND. .NOT.estimate_each_scatter) Then
+            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  direct_contribution cannot be TRUE w/ &
+                               &either n_scatters.GT.0 or estimate_each_scatter=FALSE ',kill=.TRUE.)
+        End If
+    End If
     Select Case (scatter_model)
         Case('IsoCM')
             ScatMod%aniso_dist = .FALSE.
@@ -165,12 +173,11 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
             Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Undefined scatter model',kill=.TRUE.)
     End Select
     ScatMod%n_scatters = n_scatters
-    If (direct_contribution) Then
-        If (n_scatters.EQ.0 .OR. estimate_each_scatter) Then
-            ScatMod%direct_contribution = direct_contribution
-        Else
-            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  direct_contribution cannot be TRUE w/ &
-                               &n_scatters.NE.0 or estimate_each_scatter=FALSE ',kill=.TRUE.)
+    ScatMod%direct_contribution = direct_contribution
+    If (atm_model_i .EQ. -1) Then !scattering should be disabled by no atmosphere model selected
+        If (n_scatters.NE.0 .OR. .NOT.direct_contribution) Then
+            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  With no atmosphere model n_scatters must be 0 &
+                               &and direct_contribution must be TRUE ',kill=.TRUE.)
         End If
     End If
     ScatMod%estimate_each_scatter = estimate_each_scatter
@@ -184,11 +191,11 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
         Case('An-fast')
             !UNDONE Fast analog option not yet implemented
             !ScatMod%fast_analog = .TRUE.
-            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Fast Analog Monte-Carlo game not &
+            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Fast Analog Monte-Carlo pathlength game not &
                                &yet implemented',kill=.TRUE.)
             ERROR STOP
         Case Default
-            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Undefined Monte-Carlo game',kill=.TRUE.)
+            Call Output_Message('ERROR:  Neutron_Scatter: Setup_Scatter_Model:  Undefined Monte-Carlo pathlength game',kill=.TRUE.)
     End Select
     ScatMod%roulette = roulette
     If (roulette) Then
@@ -201,9 +208,14 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
         ScatMod%roulette_mult = 1._dp
     End If
     ScatMod%Gravity = Gravity
+    If (ScatMod%Gravity) Then
+        ScatMod%inbound_trajectories = inbound_trajectories
+    Else
+        ScatMod%inbound_trajectories = .FALSE.
+    End If
     ScatMod%Neutron_Decay = Neutron_Decay
     ScatMod%Doppler_Broaden = Doppler_Broaden
-    If (Any( (/Thermal_Motion,Rotating_Earth,Wind/) )) Then
+    If (Any( (/ Thermal_Motion , Rotating_Earth , Wind /) )) Then
         ScatMod%Target_Motion = .TRUE.
     Else
         ScatMod%Target_Motion = .FALSE.
@@ -215,16 +227,21 @@ Function Setup_Scatter_Model(setup_file_name,resources_directory,cs_setup_file,r
     ScatMod%next_events = 0_id
     ScatMod%n_no_tally = 0_id
     ScatMod%n_uncounted = 0_id
-    ScatMod%CS = Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ScatMod%aniso_dist,E_min,E_max)
-    !initialize scatter parameters for sampled scatter, except the lev_cs array (it is not used for the sampled scatter)
-    Allocate(ScatMod%scat%a(0:ScatMod%CS%n_a_max))
-    ScatMod%scat%a = 0._dp
-    Allocate(ScatMod%scat%a_tab1(1:2,1:ScatMod%CS%n_a_tab_max))
-    ScatMod%scat%a_tab1 = 0._dp
-    Allocate(ScatMod%scat%a_tab2(1:2,1:ScatMod%CS%n_a_tab_max))
-    ScatMod%scat%a_tab2 = 0._dp
-    Allocate(ScatMod%scat%iso_cs(1:ScatMod%CS%n_iso))
-    ScatMod%scat%iso_cs = 0._dp
+    If (atm_model_i .NE. -1) Then !load cross sections
+        ScatMod%CS = Setup_Cross_Sections(resources_directory,cs_setup_file,elastic_only,ScatMod%aniso_dist,E_min,E_max)
+        ScatMod%cs_loaded = .TRUE.
+        !initialize scatter CS arrays for sampled scatters, except the lev_cs array (used for sampled scatters)
+        Allocate(ScatMod%scat%a(0:ScatMod%CS%n_a_max))
+        ScatMod%scat%a = 0._dp
+        Allocate(ScatMod%scat%a_tab1(1:2,1:ScatMod%CS%n_a_tab_max))
+        ScatMod%scat%a_tab1 = 0._dp
+        Allocate(ScatMod%scat%a_tab2(1:2,1:ScatMod%CS%n_a_tab_max))
+        ScatMod%scat%a_tab2 = 0._dp
+        Allocate(ScatMod%scat%iso_cs(1:ScatMod%CS%n_iso))
+        ScatMod%scat%iso_cs = 0._dp
+    Else !cross sections are not needed if atmosphere is disabled
+        ScatMod%cs_loaded = .FALSE.
+    End If
     If (Worker_Index() .EQ. 1) Then
         Open(NEWUNIT = setup_unit , FILE = run_file_name , STATUS = 'OLD' , ACTION = 'WRITE' , POSITION = 'APPEND' , IOSTAT = stat)
         If (stat .NE. 0) Call Output_Message( 'ERROR:  Neutron_Scatter: Setup_Scatter_Model:  File open error, '//run_file_name// & 
@@ -324,7 +341,7 @@ Subroutine Sample_Scatter(ScatMod,n,atm,RNG)
     Else
         ScatMod%scat%vA = ScatMod%scat%vAir
     End If
-    !convert energy to the center of mass of the collision frame, storing side effects for later use as well
+    !convert energy to the center of mass of the collision frame, storing side effects for later use
     v0 = Neutron_Speed(n%E) * n%Omega_hat
     ScatMod%scat%u = (v0 + ScatMod%scat%An * ScatMod%scat%vA) / (ScatMod%scat%An + 1._dp)
     v0cm = v0 - ScatMod%scat%u
@@ -493,7 +510,7 @@ Subroutine Set_Scatter_iso(ScatMod,n,atm,RNG,scat,iso,n_lev,E_cm,i_E_cm)
     Else
         scat%vA = scat%vAir
     End If
-    !convert energy to the center of mass of the collision frame, storing side effects for later use as well
+    !convert energy to the center of mass of the collision frame, storing side effects for later use
     v0 = Neutron_Speed(n%E) * n%Omega_hat
     scat%u = (v0 + scat%An * scat%vA) / (scat%An + 1._dp)
     v0cm = v0 - scat%u
@@ -513,29 +530,27 @@ Subroutine Set_Scatter_iso(ScatMod,n,atm,RNG,scat,iso,n_lev,E_cm,i_E_cm)
     !Get level cross sections
     Allocate(scat%lev_cs(0:ScatMod%CS%lev_cs(iso)%n_lev))
     scat%lev_cs = 0._dp
-    If (.NOT. ScatMod%elastic_only) Then
-        Do i = 0,ScatMod%CS%lev_cs(iso)%n_lev
-            If (i_E_cm .LE. ScatMod%CS%lev_cs(iso)%thresh(i)) Exit  !insufficent energy for this or any higher inelastic level
-            n_lev = i
-            scat%lev_cs(i) = sig_Composite( E_cm, & 
-                                          & ScatMod%CS%n_E_uni, & 
-                                          & ScatMod%CS%E_uni, & 
-                                          & ScatMod%CS%lnE_uni, & 
-                                          & i_E_cm, & 
-                                          & 1, & 
-                                          & 1, & 
-                                          & ScatMod%CS%lev_cs(iso)%thresh(i), & 
-                                          & ScatMod%CS%lev_cs(iso)%sig(i) )
-        End Do
-        If (ScatMod%CS%has_res_cs(iso)) Then  !resonance contribution needs to be added to level 0 (elastic)
-            Call sig_Resonance(ScatMod%CS%res_cs(iso),E_cm,resT,resS)
-            scat%lev_cs(0) = scat%lev_cs(0) + resS
-        End If
-        If (n_lev .GT. 0) Then
-            scat%lev_cs = scat%lev_cs / Sum(scat%lev_cs)
-        Else
-            scat%lev_cs = 1._dp
-        End If
+    Do i = 0,ScatMod%CS%lev_cs(iso)%n_lev
+        If (i_E_cm .LE. ScatMod%CS%lev_cs(iso)%thresh(i)) Exit  !insufficent energy for this or any higher inelastic level
+        n_lev = i
+        scat%lev_cs(i) = sig_Composite( E_cm, & 
+                                        & ScatMod%CS%n_E_uni, & 
+                                        & ScatMod%CS%E_uni, & 
+                                        & ScatMod%CS%lnE_uni, & 
+                                        & i_E_cm, & 
+                                        & 1, & 
+                                        & 1, & 
+                                        & ScatMod%CS%lev_cs(iso)%thresh(i), & 
+                                        & ScatMod%CS%lev_cs(iso)%sig(i) )
+    End Do
+    If (ScatMod%CS%has_res_cs(iso)) Then  !resonance contribution needs to be added to level 0 (elastic)
+        Call sig_Resonance(ScatMod%CS%res_cs(iso),E_cm,resT,resS)
+        scat%lev_cs(0) = scat%lev_cs(0) + resS
+    End If
+    If (n_lev .GT. 0) Then
+        scat%lev_cs = scat%lev_cs / Sum(scat%lev_cs)
+    Else
+        scat%lev_cs = 1._dp
     End If
 End Subroutine Set_Scatter_iso
 
@@ -654,67 +669,6 @@ Subroutine Scattered_Angles(Omega_hat0,Omega_hat1,mu,omega,B_hat,C_hat)
     omega = Atan2( Dot_Product(Omega_hat1,B_hat) , Dot_Product(Omega_hat1,C_hat) )
 End Subroutine Scattered_Angles
 
-!TODO Are these two routines (save counds and load counts) used anywhere in the project?  
-Subroutine Save_ScatMod_counts(ScatMod,dir,ext_in)
-    Use FileIO_Utilities, Only: Worker_Index
-    Use FileIO_Utilities, Only: max_path_len
-    Use FileIO_Utilities, Only: Var_to_file
-    Implicit None
-    Class(Scatter_Model_Type), Intent(In) :: ScatMod
-    Character(*), Intent(In) :: dir
-    Character(3), Intent(In), Optional :: ext_in
-    Character(4) :: i_char
-    Character(:), Allocatable :: fname
-    Character(4) :: ext
-    
-    If (Present(ext_in)) Then  !use the specified file extension
-        ext = '.'//ext_in
-    Else  !default file extension is .BIN for unformatted binary files
-        ext = '.bin'
-    End If
-    Write(i_char,'(I4.4)') Worker_Index()
-    Allocate(Character(max_path_len) :: fname)
-    !write couter arrays and values to files
-    fname = dir//'ScatMod_'//i_char//'_nk'//ext
-    Call Var_to_File(ScatMod%n_kills,fname)
-    fname = dir//'ScatMod_'//i_char//'_ne'//ext
-    Call Var_to_File(ScatMod%next_events,fname)
-    fname = dir//'ScatMod_'//i_char//'_nnt'//ext
-    Call Var_to_File(ScatMod%n_no_tally,fname)
-    fname = dir//'ScatMod_'//i_char//'_nu'//ext
-    Call Var_to_File(ScatMod%n_uncounted,fname)
-End Subroutine Save_ScatMod_counts
-
-Subroutine Load_ScatMod_counts(ScatMod,dir,ext_in)
-    Use FileIO_Utilities, Only: Worker_Index
-    Use FileIO_Utilities, Only: max_path_len
-    Use FileIO_Utilities, Only: Var_from_file
-    Implicit None
-    Class(Scatter_Model_Type), Intent(InOut) :: ScatMod
-    Character(*), Intent(In) :: dir
-    Character(3), Intent(In), Optional :: ext_in
-    Character(4) :: i_char
-    Character(:), Allocatable :: fname
-    Character(4) :: ext
-    
-    If (Present(ext_in)) Then  !use the specified file extension
-        ext = '.'//ext_in
-    Else  !default file extension is .BIN for unformatted binary files
-        ext = '.bin'
-    End If
-    Write(i_char,'(I4.4)') Worker_Index()
-    Allocate(Character(max_path_len) :: fname)
-    !write couter arrays and values to files
-    fname = dir//'ScatMod_'//i_char//'_nk'//ext
-    Call Var_from_File(ScatMod%n_kills,fname)
-    fname = dir//'ScatMod_'//i_char//'_ne'//ext
-    Call Var_from_File(ScatMod%next_events,fname)
-    fname = dir//'ScatMod_'//i_char//'_nnt'//ext
-    Call Var_from_File(ScatMod%n_no_tally,fname)
-    fname = dir//'ScatMod_'//i_char//'_nu'//ext
-    Call Var_from_File(ScatMod%n_uncounted,fname)
-End Subroutine Load_ScatMod_counts
-
 Subroutine Write_Scatter_Model(s,file_name)
     Use n_Cross_Sections, Only: Write_Cross_Sections
     Use FileIO_Utilities, Only: Output_Message
@@ -765,6 +719,7 @@ Subroutine Write_Scatter_Model(s,file_name)
     Write(unit,'(A,L1)') '    Leakage suppression:    ',s%suppress_leakage
     Write(unit,'(A,L1)') '    All Materials & Mech:   ',s%all_mat_mech
     Write(unit,'(A,L1)') '    Gravity:                ',s%Gravity
+    Write(unit,'(A,L1)') '    Inbound Trajectories:   ',s%inbound_trajectories
     Write(unit,'(A,L1)') '    Neutron Decay:          ',s%Neutron_Decay
     Write(unit,'(A,L1)') '    OTF Doppler Broaden:    ',s%Doppler_Broaden
     Write(unit,'(A,L1)') '    Target Motion:          ',s%Target_Motion
@@ -788,8 +743,18 @@ Subroutine Write_Scatter_Model(s,file_name)
     Write(unit,'(A,I15)') '  Histories implicitly leaked due to EXO source:  ',s%n_uncounted
     Write(unit,*)
     Write(unit,*)
-    Close(unit)
-    Call Write_Cross_Sections(s%CS,s%doppler_broaden,file_name)
+    If (s%cs_loaded) Then
+        Close(unit)
+        Call Write_Cross_Sections(s%CS,s%doppler_broaden,file_name)
+    Else
+        Write(unit,'(A)') half_dash_line
+        Write(unit,'(A)') 'CROSS SECTIONS INFORMATION'
+        Write(unit,'(A)') half_dash_line
+        Write(unit,'(A)') '  Cross sections not loaded for atmosphere=NONE.'
+        Write(unit,*)
+        Write(unit,*)
+        Close(unit)
+    End If    
 End Subroutine Write_Scatter_Model
 
 End Module Neutron_Scatter

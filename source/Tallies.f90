@@ -22,6 +22,7 @@ Module Tallies
     Public :: Contrib_quadruplet
     Public :: Contrib_array
     Public :: Setup_Tallies
+    Public :: Clear_Tallies
     
     Type :: Contrib_triplet
         Integer :: i1
@@ -43,17 +44,19 @@ Module Tallies
         Type(Contrib_quadruplet), Allocatable :: contribs(:)  !list of indexes and contributions to the grid
     Contains
         Procedure, Pass :: Tally_history
+        Procedure, Pass :: Tally_1_history
         Procedure, Pass :: Save_Contrib_Array
         Procedure, Pass :: Load_Contrib_Array
     End Type
     
 Contains
 
-Function Setup_Tallies(n_1_bins,n_2_bins) Result(t)
+Pure Function Setup_Tallies(n_1_bins,n_2_bins) Result(t)
     Use Kinds, Only: dp
     Implicit None
     Type(Contrib_array) :: t
-    Integer :: n_1_bins,n_2_bins
+    Integer, Intent(In) :: n_1_bins
+    Integer, Intent(In) :: n_2_bins
     
     t%tot_f_sq = 0._dp
     Allocate(t%f_sq_1(1:n_1_bins))
@@ -65,6 +68,19 @@ Function Setup_Tallies(n_1_bins,n_2_bins) Result(t)
     t%size = Min(n_1_bins,n_2_bins)
     Allocate(t%contribs(1:t%size))
 End Function Setup_Tallies
+
+Pure Subroutine Clear_Tallies(t)
+    Use Kinds, Only: dp
+    Implicit None
+    Type(Contrib_array), Intent(InOut) :: t
+
+    t%tot_f_sq = 0._dp
+    If (Allocated(t%f_sq_1)) Deallocate(t%f_sq_1)
+    If (Allocated(t%f_sq_2)) Deallocate(t%f_sq_2)
+    t%index = -1
+    t%size = -1
+    If (Allocated(t%contribs)) Deallocate(t%contribs)
+End Subroutine Clear_Tallies
 
 Subroutine Tally_History(t,n,contribs,n1,contribs1,n2,contribs2)
     Use Kinds, Only: dp
@@ -169,6 +185,93 @@ Subroutine Tally_History(t,n,contribs,n1,contribs1,n2,contribs2)
     !reset the number of contributions to zero
     n = 0
 End Subroutine Tally_History
+
+Subroutine Tally_1_History(t,contrib)
+    Use Kinds, Only: dp
+    Implicit None
+    Class(Contrib_array), Intent(InOut) :: t
+    Type(Contrib_triplet), Intent(InOut) :: contrib
+    Integer :: j
+    Real(dp) :: f_sq
+
+    !resize the list if necessary
+    If (t%size .LT. t%index + 1) Call Resize_Contrib_Array(t,1)
+    !check if the contribution belongs at the head of the list
+    If ( (t%index .EQ. 0) & !this is the first tally
+       & .OR. & 
+       & (contrib%i1 .LT. t%contribs(1)%i1) & !this contribution is lower in 1st index than the first in the list
+       & .OR. & 
+       & ((contrib%i1 .EQ. t%contribs(1)%i1).AND.(contrib%i2 .LT. t%contribs(1)%i2)) ) & 
+         !this contribution is the same 1st index, but lower in 2nd index than the first in the list
+    & Then !add the bin to the head of the list
+        !move the current entries down to make room at the top
+        t%contribs(2:t%index+1) = t%contribs(1:t%index)
+        t%index = t%index + 1
+        !create an entry for the contribution at the top of the list
+        t%contribs(1)%i1 = contrib%i1
+        t%contribs(1)%i2 = contrib%i2
+        t%contribs(1)%f = 0._dp
+        t%contribs(1)%f_sq = 0._dp
+    End If
+    !The contribution now belongs in or after the first bin in the list
+    j = 1  !index in t
+    f_sq = contrib%f**2
+    Do !While (i .LE. 1)  !i is index in contribs
+        If (j .GT. t%index) Then  !the contribution goes at the end of t
+            t%index = t%index + 1
+            !copy the contribution into the last entry of the list
+            t%contribs(t%index)%i1 = contrib%i1
+            t%contribs(t%index)%i2 = contrib%i2
+            t%contribs(t%index)%f = contrib%f
+            t%contribs(t%index)%f_sq = f_sq
+            Exit
+        End If
+        !search for the right 1st index bin
+        If (contrib%i1 .LE. t%contribs(j)%i1) Then  !this might be the right 1st index bin
+            If (contrib%i1 .EQ. t%contribs(j)%i1) Then  !this is the right 1st index bin
+                !search for the right 2nd index bin
+                If (contrib%i2 .LE. t%contribs(j)%i2) Then  !This might be the right 2nd index bin
+                    If (contrib%i2 .EQ. t%contribs(j)%i2) Then  !this is the right 2nd index bin
+                        !add the contribution
+                        t%contribs(j)%f = t%contribs(j)%f + contrib%f
+                        t%contribs(j)%f_sq = t%contribs(j)%f_sq + f_sq
+                    Else  !need to insert this contribution into the list
+                        !move the current entries down to make room
+                        t%contribs(j+1:t%index+1) = t%contribs(j:t%index)
+                        t%index = t%index + 1
+                        !copy the contribution into the j-th entry of the list
+                        t%contribs(j)%i1 = contrib%i1
+                        t%contribs(j)%i2 = contrib%i2
+                        t%contribs(j)%f = contrib%f
+                        t%contribs(j)%f_sq = f_sq
+                    End If
+                    Exit!i = i + 1
+                    j = j + 1
+                Else !this is not the right 2nd index bin, advance in the list and repeat the check
+                    j = j + 1
+                End If
+            Else  !need to insert this contribution into the list
+                !move the current entries down to make room
+                t%contribs(j+1:t%index+1) = t%contribs(j:t%index)
+                t%index = t%index + 1
+                !copy the contribution into the j-th entry of the list
+                t%contribs(j)%i1 = contrib%i1
+                t%contribs(j)%i2 = contrib%i2
+                t%contribs(j)%f = contrib%f
+                t%contribs(j)%f_sq = f_sq
+                Exit!i = i + 1
+                j = j + 1
+            End If
+        Else !this is not the right 1st index bin, advance
+            j = j + 1
+        End If
+    End Do
+    !update the summed squares for 1st and 2nd index bins, and reset the arrays for the next history after they are added
+    t%f_sq_1(contrib%i1) = t%f_sq_1(contrib%i1) + f_sq
+    t%f_sq_2(contrib%i2) = t%f_sq_2(contrib%i2) + f_sq
+    !update the summed squares for the total estimate
+    t%tot_f_sq = t%tot_f_sq + f_sq
+End Subroutine Tally_1_History
 
 Subroutine Resize_Contrib_Array(list,n)
     Use Kinds, Only: dp

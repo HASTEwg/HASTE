@@ -22,6 +22,10 @@ Module Random_Directions
     Public :: Isotropic_Omega_hat
     Public :: Neutron_Anisotropic_mu0cm
     Public :: mu_omega_2_OmegaHat
+    Public :: mu_from_power_cosine
+    Public :: mu_from_power_cosine125
+    Public :: PDF_power_cosine
+    Public :: PDF_power_cosine125
 
     Interface Neutron_Anisotropic_mu0cm
         Module Procedure Neutron_Anisotropic_mu0cm_Legendre
@@ -52,6 +56,65 @@ Function Isotropic_mu(RNG) Result(mu)
 
     mu = 2._dp * RNG%Get_Random() - 1._dp
 End Function Isotropic_mu
+
+Function mu_from_power_cosine(RNG,x) Result(mu)
+    !Returns mu, cosine of the polar scattering angle (theta) distributed on angles [0,pi/2) with density function Cos(theta)^x
+    Use Kinds, Only: dp
+    Use Global, Only: halfPi
+    Use Random_Numbers, Only: RNG_Type
+    Implicit None
+    Real(dp) :: mu
+    Type(RNG_Type), Intent(InOut) :: RNG
+    Real(dp), Intent(In) :: x
+    Real(dp) :: theta
+
+    Do
+        theta = halfPi * (1._dp - Sqrt(RNG%Get_Random()))
+        If ((halfPi - theta) * RNG%Get_Random() .GT. Cos(theta)**x) Cycle
+        Exit
+    End Do
+    mu = Cos(theta)
+End Function mu_from_power_cosine
+
+Function mu_from_power_cosine125(RNG) Result(mu)
+    !Returns mu, cosine of the polar scattering angle (theta) distributed on angles [0,pi/2) with density function Cos(theta)^1.25
+    Use Kinds, Only: dp
+    Use Global, Only: halfPi
+    Use Random_Numbers, Only: RNG_Type
+    Implicit None
+    Real(dp) :: mu
+    Type(RNG_Type), Intent(InOut) :: RNG
+    Real(dp) :: theta
+    Real(dp), Parameter :: g_max = 0.5_dp * (5._dp**0.375_dp)
+
+    Do
+        theta = halfPi * (1._dp - Sqrt(RNG%Get_Random()))
+        If (g_max * (halfPi - theta) * RNG%Get_Random() .GT. Cos(theta)**1.25_dp) Cycle
+        Exit
+    End Do
+    mu = Cos(theta)
+End Function mu_from_power_cosine125
+
+Function PDF_power_cosine(mu,x) Result(p)
+    Use Kinds, Only: dp
+    Use Global, Only: sqrtPi
+    Implicit None
+    Real(dp) :: p
+    Real(dp), Intent(In) :: mu
+    Real(dp), Intent(In) :: x
+
+    p = (mu**x) * 2._dp * GAMMA(1._dp + 0.5_dp*x) / ( sqrtPi * GAMMA(0.5_dp * (x + 1._dp)) )
+End Function PDF_power_cosine
+
+Function PDF_power_cosine125(mu) Result(p)
+    Use Kinds, Only: dp
+    Implicit None
+    Real(dp) :: p
+    Real(dp), Intent(In) :: mu
+    Real(dp), Parameter :: invPDFnorm = 1._dp / 0.9308740569746155_dp
+
+    p = (mu**1.25_dp) * invPDFnorm
+End Function PDF_power_cosine125
 
 Function mu_omega_2_OmegaHat(xi,w) Result(Omegahat)
     !Converts angles (polar cosine and azimuthal rotation) to a unit vector
@@ -172,7 +235,7 @@ Function Neutron_Anisotropic_mu0cm_tablePDF(n1,ua1,n2,ua2,Econv,RNG) Result(mu0c
         ! maxP = Max(MaxVal(ua1(:,2)),MaxVal(ua2(:,2)))
         maxP = Exp(Max(MaxVal(ua1(:,2)),MaxVal(ua2(:,2))))
     Else !extrapolating outside range E1 to E2
-        maxP = 1._dp  !this is not the most efficent, but this case would not be encountered frequently
+        maxP = 1._dp  !this is not the most efficient, but this case would not be encountered frequently
     End If
     Do
         mu0cm = 2._dp * RNG%Get_Random() - 1._dp

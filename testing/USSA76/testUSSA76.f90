@@ -1,7 +1,6 @@
 Program testUSSA76
 
 Use Kinds, Only: dp
-Use Kinds, Only: qp,sp,is,il,id
 Use US_Std_Atm_1976, Only: Find_base_layer
 Use US_Std_Atm_1976, Only: Zb
 Use US_Std_Atm_1976, Only: T
