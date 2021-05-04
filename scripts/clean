@@ -1,4 +1,0 @@
-#!/bin/sh
-mkdir -p ../build/obj
-find ../build/obj/ -name "*.o" -type f -delete
-find ../build/obj/ -name "*.mod" -type f -delete

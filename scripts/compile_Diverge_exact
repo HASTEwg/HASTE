@@ -1,12 +1,12 @@
 #!/bin/sh
-
+SCR_PATH="../source/common/scripts/"
 # CLEAN OLD BUILD FILES
-./clean
+${SCR_PATH}clean
 
 # SET COMPILER FLAGS
-. ./set_flags
-. ./echo_flags
+. ${SCR_PATH}set_flags
+. ${SCR_PATH}echo_flags
 
 # MAIN CODE MODULES
 SRC_PATH="../source/"
-FNAME="Diverge_exact"; . ./compile_it
+FNAME="Diverge_exact"; . ${SCR_PATH}compile_it

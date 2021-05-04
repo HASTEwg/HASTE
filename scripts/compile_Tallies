@@ -1,17 +1,17 @@
 #!/bin/sh
-
+SCR_PATH="../source/common/scripts/"
 # CLEAN OLD BUILD FILES
-./clean
+${SCR_PATH}clean
 
 # SET COMPILER FLAGS
-. ./set_flags
-. ./echo_flags
+. ${SCR_PATH}set_flags
+. ${SCR_PATH}echo_flags
 
 # COMMON MODULES
 SRC_PATH="../source/common/"
-FNAME="Kinds"; . ./compile_it
-FNAME="FileIO_Utilities"; . ./compile_it
+FNAME="Kinds"; . ${SCR_PATH}compile_it
+FNAME="FileIO_Utilities"; . ${SCR_PATH}compile_it
 
 # MAIN CODE MODULES
 SRC_PATH="../source/"
-FNAME="Tallies"; . ./compile_it
+FNAME="Tallies"; . ${SCR_PATH}compile_it

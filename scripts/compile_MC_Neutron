@@ -1,51 +1,51 @@
 #!/bin/sh
-
+SCR_PATH="../source/common/scripts/"
 # CLEAN OLD BUILD FILES
-./clean
+${SCR_PATH}clean
 
 # SET COMPILER FLAGS
-. ./set_flags
-. ./echo_flags
+. ${SCR_PATH}set_flags
+. ${SCR_PATH}echo_flags
 
 # COMMON MODULES
 SRC_PATH="../source/common/"
-FNAME="Kinds"; . ./compile_it
-FNAME="Global"; . ./compile_it
-FNAME="Utilities"; . ./compile_it
-FNAME="FileIO_Utilities"; . ./compile_it
-FNAME="Interpolation"; . ./compile_it
-FNAME="Legendre_Utilities"; . ./compile_it
-FNAME="Sorting"; . ./compile_it
-FNAME="PRNGs"; . ./compile_it
-FNAME="Random_Numbers"; . ./compile_it
+FNAME="Kinds"; . ${SCR_PATH}compile_it
+FNAME="Global"; . ${SCR_PATH}compile_it
+FNAME="Utilities"; . ${SCR_PATH}compile_it
+FNAME="FileIO_Utilities"; . ${SCR_PATH}compile_it
+FNAME="Interpolation"; . ${SCR_PATH}compile_it
+FNAME="Legendre_Utilities"; . ${SCR_PATH}compile_it
+FNAME="Sorting"; . ${SCR_PATH}compile_it
+FNAME="PRNGs"; . ${SCR_PATH}compile_it
+FNAME="Random_Numbers"; . ${SCR_PATH}compile_it
 
 # ASTRO MODULES
 SRC_PATH="../source/astro/"
-FNAME="Astro_Utilities"; . ./compile_it
+FNAME="Astro_Utilities"; . ${SCR_PATH}compile_it
 
 # ATMOSPHERE MODULES
-SRC_PATH="../source/atmo/"
-FNAME="USSA76"; . ./compile_it
+SRC_PATH="../source/common/atmo/"
+FNAME="USSA76"; . ${SCR_PATH}compile_it
 
 # PARTICLE UTILITIES MODULES
 SRC_PATH="../source/parts/"
-FNAME="Particle_Piles"; . ./compile_it
-FNAME="cs_Utilities"; . ./compile_it
-FNAME="Neutron_Utilities"; . ./compile_it
-FNAME="n_Cross_Sections"; . ./compile_it
-FNAME="Random_Directions"; . ./compile_it
+FNAME="Particle_Piles"; . ${SCR_PATH}compile_it
+FNAME="cs_Utilities"; . ${SCR_PATH}compile_it
+FNAME="Neutron_Utilities"; . ${SCR_PATH}compile_it
+FNAME="n_Cross_Sections"; . ${SCR_PATH}compile_it
+FNAME="Random_Directions"; . ${SCR_PATH}compile_it
 
 # MAIN CODE MODULES
 SRC_PATH="../source/"
-FNAME="Setups"; . ./compile_it
-FNAME="Atmospheres"; . ./compile_it
-FNAME="Satellite_Motion"; . ./compile_it
-FNAME="Diverge_approx"; . ./compile_it
-FNAME="Find_Trajectory"; . ./compile_it
-FNAME="Pathlengths"; . ./compile_it
-FNAME="Target_Motion"; . ./compile_it
-FNAME="Tallies"; . ./compile_it
-FNAME="Detectors"; . ./compile_it
-FNAME="Neutron_Scatter"; . ./compile_it
-FNAME="Sources"; . ./compile_it
-FNAME="MC_Neutron"; . ./compile_it
+FNAME="Setups"; . ${SCR_PATH}compile_it
+FNAME="Atmospheres"; . ${SCR_PATH}compile_it
+FNAME="Satellite_Motion"; . ${SCR_PATH}compile_it
+FNAME="Diverge_approx"; . ${SCR_PATH}compile_it
+FNAME="Find_Trajectory"; . ${SCR_PATH}compile_it
+FNAME="Pathlengths"; . ${SCR_PATH}compile_it
+FNAME="Target_Motion"; . ${SCR_PATH}compile_it
+FNAME="Tallies"; . ${SCR_PATH}compile_it
+FNAME="Detectors"; . ${SCR_PATH}compile_it
+FNAME="Neutron_Scatter"; . ${SCR_PATH}compile_it
+FNAME="Sources"; . ${SCR_PATH}compile_it
+FNAME="MC_Neutron"; . ${SCR_PATH}compile_it
